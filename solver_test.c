@@ -488,7 +488,7 @@ int main(int argc, char* argv[])
 		for (int i=0;i<dimension;i++)
 			dotrz1+=rk[i]*zk[i];
 		betak=dotrz1/dotrz0;
-		printf("dotp0 is %f, dotrz0 is %f dotrz1 is %f, betak is %f and alphak is %f at iter %d\n", dotp0, dotrz0,dotrz1,betak, alphak, iter);
+		//printf("dotp0 is %f, dotrz0 is %f dotrz1 is %f, betak is %f and alphak is %f at iter %d\n", dotp0, dotrz0,dotrz1,betak, alphak, iter);
 		//p=r+gamak*p;
 #pragma omp parallel for
 		for (int i=0;i<dimension;i++){

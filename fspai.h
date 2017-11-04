@@ -46,7 +46,7 @@ void solverPrecondPhi(const int dimension, const int totalNum, const int *I, con
 				
 void formatChange(int dimension, int *numInRow, int *totalNum_1, int *I, int *J, double *V, int **I_1, int **J_1, double **V_1);				
 
-void solverCPU(const int dimension, const int totalNum, const int *I, const int *J, const double *V, const double *vector_in, 
-			double *vector_out, double *error_track, int MAXIter, int *realIter);	
+void solverCPU(const int dimension, const int totalNum, const int *I, const int *J, const float *V, const float *vector_in, 
+			float *vector_out, float *error_track, int MAXIter, int *realIter);	
 	
 #endif

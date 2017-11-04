@@ -38,21 +38,21 @@ void formatChange(int dimension, int *numInRow, int *totalNum_1, int *I, int *J,
 	}
 	*totalNum_1=totalNum;
 }
-
-void solverCPU(const int dimension, const int totalNum, const int *I, const int *J, const double *V, const double *vector_in, 
-			double *vector_out, double *error_track, int MAXIter, int *realIter)
+/*double for preconditioner generating only*/
+void solverCPU(const int dimension, const int totalNum, const int *I, const int *J, const float*V, const float *vector_in, 
+			float *vector_out, float *error_track, int MAXIter, int *realIter)
 {
 	//This function treat y as input and x as output, (solve the equation Ax=y) y is the vector we already known, x is the vector we are looking for
-	double dotp0,dotr0,dotr1,doth;
-	size_t size1=dimension*sizeof(double);
-	double *bp=(double *) malloc(size1);
-	double *pk=(double *) malloc(size1);
-	double *rk=(double *) malloc(size1);
-	//double *x=(double *) malloc(size1);
+	float dotp0,dotr0,dotr1,doth;
+	size_t size1=dimension*sizeof(float);
+	float *bp=(float *) malloc(size1);
+	float *pk=(float *) malloc(size1);
+	float *rk=(float *) malloc(size1);
+	//float *x=(float *) malloc(size1);
 	int i;
-	double threshold=0.0000001;
+	float threshold=0.0000001;
 	int iter=0;
-	double error,alphak,gamak;
+	float error,alphak,gamak;
 	error=1000;
 	//initialize
 	doth=0;
@@ -594,18 +594,18 @@ void fspaiCPU(S *SInput)
 	//printf("fspai first finish\n");
 	
 	int subMatrixNum;
-	double *subMatrix=(double *) malloc(maxRowNum*maxRowNum*sizeof(double));
+	float *subMatrix=(float *) malloc(maxRowNum*maxRowNum*sizeof(double));
 	int *subI=(int *) malloc(maxRowNum*maxRowNum*sizeof(int));
 	int *subJ=(int *) malloc(maxRowNum*maxRowNum*sizeof(int));
-	double *yk=(double *)malloc(maxRowNum*sizeof(double));
-	double *xk=(double *)malloc(maxRowNum*sizeof(double));
+	float *yk=(float *)malloc(maxRowNum*sizeof(float));
+	float *xk=(float *)malloc(maxRowNum*sizeof(float));
 	int *tempJ=(int *)malloc(maxRowNum*sizeof(int));
 	
 	int iterNum;
 	iterNum=100;
-	double *error=(double *)malloc(iterNum*sizeof(double));
-	double AY;
-	double Lk;
+	float *error=(float *)malloc(iterNum*sizeof(float));
+	float AY;
+	float Lk;
 	int subRowIndex, index1,index2,index3;
 	int tempCol,colIndex;
 	//Complete computation in each column seperately
