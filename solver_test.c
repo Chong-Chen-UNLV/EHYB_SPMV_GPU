@@ -2,7 +2,7 @@
 #include "mmio.h"
 #include <omp.h>
 
-#define MAXthread 6
+#define MAXthread 12
 #define MAXthread2 6
 
 int *I_precond;
@@ -220,6 +220,7 @@ int main(int argc, char* argv[])
 		Sthread[t].id=t;
 	}	
 	struct timeval start1, end1;
+	struct timeval start2, end2;
 
 	gettimeofday(&start1, NULL);
 	omp_set_num_threads(MAXthread);
@@ -411,9 +412,10 @@ int main(int argc, char* argv[])
 		/*#pragma omp parallel for
 		  for (int i=0;i<totalNum_1;i++)
 		  bp[I_1[i]]+=V_1[i]*pk[J_1[i]];*/
-#pragma omp parallel private(rank,tempV)
+#pragma omp parallel private(rank,tempV,start2, end2)
 		{
 			rank=omp_get_thread_num();
+			//gettimeofday(&start2, NULL);
 			for (int i=boundary[rank];i<boundary[rank+1];i++){
 				tempV=0;
 				a=I_accum[i];
@@ -424,6 +426,8 @@ int main(int argc, char* argv[])
 				}
 				bp[i]+=tempV;
 			}
+			//gettimeofday(&end2, NULL);
+			//printf("at iter %d, rank is %d, boundary span is %d, time is %d us\n", iter, rank, boundary[rank+1]-boundary[rank], ((end2.tv_sec * 1000000 + end2.tv_usec)-(start2.tv_sec * 1000000 + start2.tv_usec)));
 		}
 
 		dotp0=0;
