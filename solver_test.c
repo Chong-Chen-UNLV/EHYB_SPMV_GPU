@@ -2,12 +2,12 @@
 #include "mmio.h"
 #include <omp.h>
 
-#define MAXthread 12
+#define MAXthread 16 
 #define MAXthread2 6
 
 int *I_precond;
 int *J_precond;
-double *V_precond;
+float *V_precond;
 
 void fspaiCPU(S *SInput);
 void fspai(S *SInput);	
@@ -29,13 +29,13 @@ int main(int argc, char* argv[])
 	int maxRowNum, maxRowNumPrecond, maxRowNumPrecondP;
 	int *I, *J;
 	int *lowerI, *lowerJ;
-	double *V;
-	double *lowerV;
-	double *x;
-	double *y;
-	double *x_compare;
-	double *error_track;
-	double result_error;
+	float *V;
+	float *lowerV;
+	float *x;
+	float *y;
+	float *x_compare;
+	float *error_track;
+	float result_error;
 	int finish;
 	char fileName[100];
 	char fileName2[100];
@@ -74,26 +74,26 @@ int main(int argc, char* argv[])
 	totalNumPrecond=lowerNum;
 
 	size_t size0=lowerNum*sizeof(int);
-	size_t size1=lowerNum*sizeof(double);
+	size_t size1=lowerNum*sizeof(float);
 	size_t size2=totalNum*sizeof(int);
-	size_t size3=totalNum*sizeof(double);
+	size_t size3=totalNum*sizeof(float);
 	size_t size4=dimension*sizeof(int);
-	size_t size5=dimension*sizeof(double);
+	size_t size5=dimension*sizeof(float);
 	size_t size6=lowerNum*sizeof(int);
-	size_t size7=lowerNum*sizeof(double);
+	size_t size7=lowerNum*sizeof(float);
 
 
 	lowerJ=(int *) malloc(size0);
 	lowerI=(int *) malloc(size0);
-	lowerV=(double *) malloc(size1);
+	lowerV=(float *) malloc(size1);
 	I=(int *) malloc(size2);
 	J=(int *) malloc(size2);
-	V=(double *) malloc(size3);
-	x=(double *) malloc(size5);
-	y=(double *) malloc(size5);
-	double *diag=(double *) malloc(size5);
-	x_compare=(double *) malloc(size5);
-	error_track=(double *) malloc(MAXIter*sizeof(double));
+	V=(float *) malloc(size3);
+	x=(float *) malloc(size5);
+	y=(float *) malloc(size5);
+	float *diag=(float *) malloc(size5);
+	x_compare=(float *) malloc(size5);
+	error_track=(float *) malloc(MAXIter*sizeof(float));
 
 	int *numInRowL;
 	int *rowNumAccumL;
@@ -107,10 +107,10 @@ int main(int argc, char* argv[])
 	rowNumAccumLP=(int *) malloc(size4);
 	numInRow=(int *) malloc(size4);
 	int tempI, tempJ;
-	double tempV;
+	float tempV;
 	for (int i=0; i<lowerNum; i++)
 	{
-		fscanf(f, "%d %d %lg\n", &tempI, &tempJ, &tempV);
+		fscanf(f, "%d %d %f\n", &tempI, &tempJ, &tempV);
 		lowerJ[i]=tempJ-1;  /* adjust from 1-based to 0-based */
 		lowerI[i]=tempI-1;
 		lowerV[i]=tempV;
@@ -155,7 +155,7 @@ int main(int argc, char* argv[])
 	for (int i=0;i<dimension;i++)
 	{		
 		srand(i);
-		//x_compare[i]=(double) (rand()%200-100)/100;
+		//x_compare[i]=(float) (rand()%200-100)/100;
 		x_compare[i]=1;
 	}
 	int index1, index2;
@@ -192,7 +192,7 @@ int main(int argc, char* argv[])
 
 	int *I_precond=(int *) malloc(size6);
 	int *J_precond=(int *) malloc(size6);
-	double *V_precond=(double *) malloc(size7);	
+	float *V_precond=(float *) malloc(size7);	
 
 	/*int rt=pthread_barrier_init(&barr, NULL, MAXthread);
 	  rt=pthread_barrier_init(&barr1, NULL, MAXthread);*/
@@ -234,7 +234,7 @@ int main(int argc, char* argv[])
 	printf("fspai CPU time is %ld us\n",(end1.tv_sec * 1000000 + end1.tv_usec)-(start1.tv_sec * 1000000 + start1.tv_usec));
 	int *I_precondP=(int *) malloc(size6);
 	int *J_precondP=(int *) malloc(size6);
-	double *V_precondP=(double *) malloc(size7);
+	float *V_precondP=(float *) malloc(size7);
 
 
 	
@@ -253,11 +253,11 @@ int main(int argc, char* argv[])
 
 
 	int *I_accum, *J_1;
-	double *V_1;
+	float *V_1;
 	int *I_precond_accum, *J_precond_1;
-	double *V_precond_1;
+	float *V_precond_1;
 	int *I_precondP_accum, *J_precondP_1;
-	double *V_precondP_1;
+	float *V_precondP_1;
 
 	int totalNum_1,totalNumPrecond_1,totalNumPrecondP_1;
 
@@ -272,18 +272,18 @@ int main(int argc, char* argv[])
 	int pp;
 
 
-	double *rk=(double *)malloc(size5);
-	double *zk=(double *)malloc(size5);
-	double *zk1=(double *)malloc(size5);
-	double *pk=(double *)malloc(size5);
-	double *bp=(double *)malloc(size5);
+	float *rk=(float *)malloc(size5);
+	float *zk=(float *)malloc(size5);
+	float *zk1=(float *)malloc(size5);
+	float *pk=(float *)malloc(size5);
+	float *bp=(float *)malloc(size5);
 
-	double alphak = 0,betak = 0,dotp0 = 0, dotrz0 = 0,dotrz1 = 0,doth = 0,alphak_1 = 0,dotr0 = 0;
+	float alphak = 0,betak = 0,dotp0 = 0, dotrz0 = 0,dotrz1 = 0,doth = 0,alphak_1 = 0,dotr0 = 0;
 
-	//double dotz0,dotz0_compare;
+	//float dotz0,dotz0_compare;
 
-	double error=10000;
-	double threshold;
+	float error=10000;
+	float threshold;
 
 	for (int i=0;i<dimension;i++){
 		zk[i]=0;
@@ -313,9 +313,9 @@ int main(int argc, char* argv[])
 
 	int stride, stridePrecond,stridePrecondP;
 
-	stride=ceil((double)totalNum_1/procNum);
-	stridePrecond=ceil((double)totalNumPrecond_1/procNum);
-	stridePrecondP=ceil((double)totalNumPrecondP_1/procNum);
+	stride=ceil((float)totalNum_1/procNum);
+	stridePrecond=ceil((float)totalNumPrecond_1/procNum);
+	stridePrecondP=ceil((float)totalNumPrecondP_1/procNum);
 	int bias, biasPrecond,biasPrecondP;
 
 	bias=1;
@@ -400,7 +400,7 @@ int main(int argc, char* argv[])
 	for (int i=0;i<dimension;i++){
 		doth+=y[i]*y[i];
 	}
-	double errorNorm=sqrt(doth);
+	float errorNorm=sqrt(doth);
 	//printf("errorNorm is %f\n",errorNorm);
 	int iter=0;
 
@@ -519,7 +519,7 @@ int main(int argc, char* argv[])
 
 	gettimeofday(&end1, NULL);	
 	printf("Solver Xeon_phi time is %ld us\n",(end1.tv_sec * 1000000 + end1.tv_usec)-(start1.tv_sec * 1000000 + start1.tv_usec));
-	double timeByMs=((end1.tv_sec * 1000000 + end1.tv_usec)-(start1.tv_sec * 1000000 + start1.tv_usec))/1000;
+	float timeByMs=((end1.tv_sec * 1000000 + end1.tv_usec)-(start1.tv_sec * 1000000 + start1.tv_usec))/1000;
 	printf("iter is %d, Xeon_Phi Gflops is %f\n ",iter, (1e-9*(totalNum*4+14*dimension)*1000*iter)/timeByMs);
 
 
@@ -536,17 +536,17 @@ int main(int argc, char* argv[])
 	//interval2=(end_time2-start_time2)*1000/CLOCKS_PER_SEC;
 
 	//printf("time consuming CPU is %f, time consuming GPU is %f, speedup is %f\n", interval1, interval2, interval1/interval2);
-	//double Gflop=(totalNum*4+12*dimension)/interval1*1000*MAXIter;
+	//float Gflop=(totalNum*4+12*dimension)/interval1*1000*MAXIter;
 	//printf("error is %f, total num is %d, time is %f ms, Gflops is %f, final error is %f\n",result_error/dimension, totalNum, interval1, Gflop, error_track[MAXIter-1]*1000);
 	return 0;
 }
 
-void insertSort(int *J, double *V, int num, int *outJ, double *outV){
+void insertSort(int *J, float *V, int num, int *outJ, float *outV){
 	//input is the unsorted J point, output is the sorted J and V
 
 	int tempJ,tempMap;
 	int i,j,k;
-	double tempV;
+	float tempV;
 	for (i=0;i<num;i++){
 		outJ[i]=0;
 		outV[i]=0;
@@ -580,17 +580,17 @@ void insertSort(int *J, double *V, int num, int *outJ, double *outV){
 	}
 }
 
-void solver(const int dimension, const int totalNum, const int *I, const int *J, const double *V, double *tempCSR, const double *vector_in, 
-		double *vector_out, double *bp, double *pk, double *rk, int MAXIter)
+void solver(const int dimension, const int totalNum, const int *I, const int *J, const float *V, float *tempCSR, const float *vector_in, 
+		float *vector_out, float *bp, float *pk, float *rk, int MAXIter)
 {
 	//This function treat y as input and x as output, (solve the equation Ax=y) y is the vector we already known, x is the vector we are looking for
-	double dotp0,dotr0,dotr1,doth;
+	float dotp0,dotr0,dotr1,doth;
 
-	//double *x=(double *) malloc(size1);
+	//float *x=(float *) malloc(size1);
 	int i,j;
-	double threshold=0.0000001;
+	float threshold=0.0000001;
 	int iter=0;
-	double error,alphak,gamak, tempBp;
+	float error,alphak,gamak, tempBp;
 	int length,startCSR;
 	error=1000;
 	//initialize
@@ -669,28 +669,28 @@ void solver(const int dimension, const int totalNum, const int *I, const int *J,
 }
 
 void fspai(S *SInput)
-	/*void fspai(int *I, int *J, double *V, int *I_precond, int *J_precond, double *V_precond, const int maxRowNum, const int *numInRow, 
-	  const int *rowNumAccum, const int *numInRowPrecond, const int *rowNumAccumPrecond, const double *diag, int colStart, int colEnd)*/
+	/*void fspai(int *I, int *J, float *V, int *I_precond, int *J_precond, float *V_precond, const int maxRowNum, const int *numInRow, 
+	  const int *rowNumAccum, const int *numInRowPrecond, const int *rowNumAccumPrecond, const float *diag, int colStart, int colEnd)*/
 	/* totalNum: number of matrix, dimension: size of vector, I: row index, J: column index, V: matrix value, *_precond: preconditioner index and value
 	*/
 {
 	int *I=SInput->I;
 	int *J=SInput->J;
-	double *V=SInput->V;
+	float *V=SInput->V;
 	int *I_precond=SInput->I_precond;
 	int *J_precond=SInput->J_precond;
-	double *V_precond=SInput->V_precond;
+	float *V_precond=SInput->V_precond;
 	int maxRowNum=SInput->maxRowNum;
 	int *numInRow=SInput->numInRow;
 	int *rowNumAccum=SInput->rowNumAccum;
 	int *numInRowPrecond=SInput->numInRowPrecond;
 	int *rowNumAccumPrecond=SInput->rowNumAccumPrecond;
-	double *diag=SInput->diag;
+	float *diag=SInput->diag;
 	int colStart=SInput->colStart; 
 	int colEnd=SInput->colEnd;
 	int id=SInput->id;
 
-	double *sortedV= (double *)malloc(maxRowNum*sizeof(double));
+	float *sortedV= (float *)malloc(maxRowNum*sizeof(float));
 	int *sortedJ=(int *)malloc(maxRowNum*sizeof(int));
 
 	int start,num;
@@ -712,21 +712,21 @@ void fspai(S *SInput)
 	//printf("fspai first finish\n");
 
 	int subMatrixNum;
-	double *subMatrix=(double *) _mm_malloc(maxRowNum*maxRowNum*sizeof(double),64);
-	double *tempCSR=(double *) _mm_malloc(maxRowNum*maxRowNum*sizeof(double),64);
+	float *subMatrix=(float *) _mm_malloc(maxRowNum*maxRowNum*sizeof(float),64);
+	float *tempCSR=(float *) _mm_malloc(maxRowNum*maxRowNum*sizeof(float),64);
 	int *subI=(int *) _mm_malloc((maxRowNum+1)*sizeof(int),64);
 	int *subJ=(int *) _mm_malloc(maxRowNum*maxRowNum*sizeof(int),64);
-	double *yk=(double *)malloc(maxRowNum*sizeof(double));
-	double *xk=(double *)malloc(maxRowNum*sizeof(double));
+	float *yk=(float *)malloc(maxRowNum*sizeof(float));
+	float *xk=(float *)malloc(maxRowNum*sizeof(float));
 	int *tempJ=(int *)malloc(maxRowNum*sizeof(int));
-	double *bp=(double *) malloc(maxRowNum*sizeof(double));
-	double *pk=(double *) malloc(maxRowNum*sizeof(double));
-	double *rk=(double *) malloc(maxRowNum*sizeof(double));
+	float *bp=(float *) malloc(maxRowNum*sizeof(float));
+	float *pk=(float *) malloc(maxRowNum*sizeof(float));
+	float *rk=(float *) malloc(maxRowNum*sizeof(float));
 
 	int iterNum;
 	iterNum=100;
-	double AY;
-	double Lk;
+	float AY;
+	float Lk;
 	int subRowIndex, index1,index2,index3;
 	int tempCol,colIndex;
 

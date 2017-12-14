@@ -1,6 +1,6 @@
 #include "fspai.h"
 
-void formatChange(int dimension, int *numInRow, int *totalNum_1, int *I, int *J, double *V, int **rowNumAccum_1, int **J_1, double **V_1)
+void formatChange(int dimension, int *numInRow, int *totalNum_1, int *I, int *J, float *V, int **rowNumAccum_1, int **J_1, float **V_1)
 {
 	int totalNum;
 	int *numInRow_1=(int *)malloc((dimension)*sizeof(int));
@@ -9,7 +9,7 @@ void formatChange(int dimension, int *numInRow, int *totalNum_1, int *I, int *J,
 	(*rowNumAccum_1)[0]=0;
 	rowNumAccum[0]=0;
 	for (int i=0;i<dimension;i++){
-		numInRow_1[i]=ceil((double)numInRow[i]/padding)*padding;
+		numInRow_1[i]=ceil((float)numInRow[i]/padding)*padding;
 		rowNumAccum[i+1]=rowNumAccum[i]+numInRow[i];
 		(*rowNumAccum_1)[i+1]=(*rowNumAccum_1)[i]+numInRow_1[i];
 	}
@@ -18,7 +18,7 @@ void formatChange(int dimension, int *numInRow, int *totalNum_1, int *I, int *J,
 	totalNum=(*rowNumAccum_1)[dimension];
 	
 	*J_1=(int *)_mm_malloc(totalNum*sizeof(int),64);
-	*V_1=(double *)_mm_malloc(totalNum*sizeof(double),64);
+	*V_1=(float *)_mm_malloc(totalNum*sizeof(float),64);
 	//printf("totalNum is %d\n",totalNum);
 	
 	#pragma omp parallel for
@@ -38,7 +38,7 @@ void formatChange(int dimension, int *numInRow, int *totalNum_1, int *I, int *J,
 	}
 	*totalNum_1=totalNum;
 }
-/*double for preconditioner generating only*/
+/*float for preconditioner generating only*/
 void solverCPU(const int dimension, const int totalNum, const int *I, const int *J, const float*V, const float *vector_in, 
 			float *vector_out, float *error_track, int MAXIter, int *realIter)
 {
@@ -106,26 +106,26 @@ void solverCPU(const int dimension, const int totalNum, const int *I, const int 
 	}
 }
 
-void solverPrecondCOO(const int dimension, const int totalNum, const int *I_accum, const int *J, const double *V, const int totalNumPrecond, const int *I_precond_accum,
-				const int *J_precond, const double *V_precond, const int totalNumPrecondP, const int *I_precondP_accum, const int *J_precondP, const double *V_precondP,
-				const double *y, double *x, const int MAXIter, int *realIter)
+void solverPrecondCOO(const int dimension, const int totalNum, const int *I_accum, const int *J, const float *V, const int totalNumPrecond, const int *I_precond_accum,
+				const int *J_precond, const float *V_precond, const int totalNumPrecondP, const int *I_precondP_accum, const int *J_precondP, const float *V_precondP,
+				const float *y, float *x, const int MAXIter, int *realIter)
 {
-	size_t size0=dimension*sizeof(double);
+	size_t size0=dimension*sizeof(float);
 	
-	double *rk=(double *)malloc(size0);
-	double *zk=(double *)malloc(size0);
-	double *zk1=(double *)malloc(size0);
-	double *pk=(double *)malloc(size0);
-	double *bp=(double *)malloc(size0);
+	float *rk=(float *)malloc(size0);
+	float *zk=(float *)malloc(size0);
+	float *zk1=(float *)malloc(size0);
+	float *pk=(float *)malloc(size0);
+	float *bp=(float *)malloc(size0);
 	
-	double *vector_in_d;
-	double alphak,betak,dotp0, dotrz0,dotrz1,doth,alphak_1,dotr0;
-	double alpha = 1.0f, beta = 0.0f; 
+	float *vector_in_d;
+	float alphak,betak,dotp0, dotrz0,dotrz1,doth,alphak_1,dotr0;
+	float alpha = 1.0f, beta = 0.0f; 
 	
-	//double dotz0,dotz0_compare;
+	//float dotz0,dotz0_compare;
 	
-	double error=10000;
-	double threshold;
+	float error=10000;
+	float threshold;
 
 	for (int i=0;i<dimension;i++){
 		zk[i]=0;
@@ -134,7 +134,7 @@ void solverPrecondCOO(const int dimension, const int totalNum, const int *I_accu
 	}
 	
 	int procNum, rank;
-	double tempV;
+	float tempV;
 	
 	#pragma omp parallel
 	{
@@ -231,7 +231,7 @@ void solverPrecondCOO(const int dimension, const int totalNum, const int *I_accu
 	for (int i=0;i<dimension;i++){
 		doth+=y[i]*y[i];
 	}
-	double errorNorm=sqrt(doth);
+	float errorNorm=sqrt(doth);
 	printf("errorNorm is %f\n",errorNorm);
 	int iter=0;
 	
@@ -346,26 +346,26 @@ void solverPrecondCOO(const int dimension, const int totalNum, const int *I_accu
 }
 
 
-void solverPrecondPhi(const int dimension, const int totalNum, const int *I, const int *J, const double *V, const int totalNumPrecond, const int *I_precond,
-				const int *J_precond, const double *V_precond, const int totalNumPrecondP, const int *I_precondP, const int *J_precondP, const double *V_precondP,
-				const double *y, double *x, const int MAXIter, int *realIter, int rank)
+void solverPrecondPhi(const int dimension, const int totalNum, const int *I, const int *J, const float *V, const int totalNumPrecond, const int *I_precond,
+				const int *J_precond, const float *V_precond, const int totalNumPrecondP, const int *I_precondP, const int *J_precondP, const float *V_precondP,
+				const float *y, float *x, const int MAXIter, int *realIter, int rank)
 {
-	size_t size0=dimension*sizeof(double);
+	size_t size0=dimension*sizeof(float);
 	
-	double *rk=(double *)malloc(size0);
-	double *zk=(double *)malloc(size0);
-	double *zk1=(double *)malloc(size0);
-	double *pk=(double *)malloc(size0);
-	double *bp=(double *)malloc(size0);
+	float *rk=(float *)malloc(size0);
+	float *zk=(float *)malloc(size0);
+	float *zk1=(float *)malloc(size0);
+	float *pk=(float *)malloc(size0);
+	float *bp=(float *)malloc(size0);
 	
-	double *vector_in_d;
-	double alphak,betak,dotp0, dotrz0,dotrz1,doth,alphak_1,dotr0;
-	double alpha = 1.0f, beta = 0.0f; 
+	float *vector_in_d;
+	float alphak,betak,dotp0, dotrz0,dotrz1,doth,alphak_1,dotr0;
+	float alpha = 1.0f, beta = 0.0f; 
 	
-	//double dotz0,dotz0_compare;
+	//float dotz0,dotz0_compare;
 	
-	double error=10000;
-	double threshold;
+	float error=10000;
+	float threshold;
 
 	for (int i=0;i<dimension;i++){
 		zk[i]=0;
@@ -374,7 +374,7 @@ void solverPrecondPhi(const int dimension, const int totalNum, const int *I, con
 	}
 	
 	int procNum;
-	double tempV;
+	float tempV;
 	
 	#pragma omp parallel
 	{
@@ -470,7 +470,7 @@ void solverPrecondPhi(const int dimension, const int totalNum, const int *I, con
 	for (int i=0;i<dimension;i++){
 		doth+=y[i]*y[i];
 	}
-	double errorNorm=sqrt(doth);
+	float errorNorm=sqrt(doth);
 	//printf("errorNorm is %f\n",errorNorm);
 	int iter=0;
 	
@@ -551,28 +551,28 @@ void solverPrecondPhi(const int dimension, const int totalNum, const int *I, con
 
 
 void fspaiCPU(S *SInput)
-/*void fspai(int *I, int *J, double *V, int *I_precond, int *J_precond, double *V_precond, const int maxRowNum, const int *numInRow, 
-			const int *rowNumAccum, const int *numInRowPrecond, const int *rowNumAccumPrecond, const double *diag, int colStart, int colEnd)*/
+/*void fspai(int *I, int *J, float *V, int *I_precond, int *J_precond, float *V_precond, const int maxRowNum, const int *numInRow, 
+			const int *rowNumAccum, const int *numInRowPrecond, const int *rowNumAccumPrecond, const float *diag, int colStart, int colEnd)*/
 /* totalNum: number of matrix, dimension: size of vector, I: row index, J: column index, V: matrix value, *_precond: preconditioner index and value
 */
 {
 	int *I=SInput->I;
 	int *J=SInput->J;
-	double *V=SInput->V;
+	float *V=SInput->V;
 	int *I_precond=SInput->I_precond;
 	int *J_precond=SInput->J_precond;
-	double *V_precond=SInput->V_precond;
+	float *V_precond=SInput->V_precond;
 	int maxRowNum=SInput->maxRowNum;
 	int *numInRow=SInput->numInRow;
 	int *rowNumAccum=SInput->rowNumAccum;
 	int *numInRowPrecond=SInput->numInRowPrecond;
 	int *rowNumAccumPrecond=SInput->rowNumAccumPrecond;
-	double *diag=SInput->diag;
+	float *diag=SInput->diag;
 	int colStart=SInput->colStart; 
 	int colEnd=SInput->colEnd;
 	int id=SInput->id;
 	
-	double *sortedV= (double *)malloc(maxRowNum*sizeof(double));
+	float *sortedV= (float *)malloc(maxRowNum*sizeof(float));
 	int *sortedJ=(int *)malloc(maxRowNum*sizeof(int));
 	
 	int start,num;
@@ -594,7 +594,7 @@ void fspaiCPU(S *SInput)
 	//printf("fspai first finish\n");
 	
 	int subMatrixNum;
-	float *subMatrix=(float *) malloc(maxRowNum*maxRowNum*sizeof(double));
+	float *subMatrix=(float *) malloc(maxRowNum*maxRowNum*sizeof(float));
 	int *subI=(int *) malloc(maxRowNum*maxRowNum*sizeof(int));
 	int *subJ=(int *) malloc(maxRowNum*maxRowNum*sizeof(int));
 	float *yk=(float *)malloc(maxRowNum*sizeof(float));
