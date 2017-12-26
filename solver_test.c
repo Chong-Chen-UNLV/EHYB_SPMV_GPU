@@ -2,7 +2,7 @@
 #include "mmio.h"
 #include <omp.h>
 
-#define MAXthread 16 
+#define MAXthread 2 
 #define MAXthread2 6
 
 int *I_precond;
@@ -20,6 +20,7 @@ int main(int argc, char* argv[])
 	int lowerNum=0;
 	int lowerNumPrecond=0;
 	int totalNumPrecond=0;
+	int totalNumPrecondP=0;
 	int ret_code;
 	MM_typecode matcode,matcode2;
 	int MAXIter;
@@ -72,6 +73,7 @@ int main(int argc, char* argv[])
 	/*The overall number of nozeros in this matrix*/
 	totalNum=lowerNum*2-dimension;
 	totalNumPrecond=lowerNum;
+	totalNumPrecondP = lowerNum;
 
 	size_t size0=lowerNum*sizeof(int);
 	size_t size1=lowerNum*sizeof(float);
@@ -103,8 +105,8 @@ int main(int argc, char* argv[])
 
 	numInRowL=(int *) malloc(size4);
 	numInRowLP=(int *) malloc(size4);
-	rowNumAccumL=(int *) malloc(size4);
-	rowNumAccumLP=(int *) malloc(size4);
+	rowNumAccumL=(int *) malloc(size4 + sizeof(int));
+	rowNumAccumLP=(int *) malloc(size4 + sizeof(int));
 	numInRow=(int *) malloc(size4);
 	int tempI, tempJ;
 	float tempV;
@@ -125,11 +127,14 @@ int main(int argc, char* argv[])
 	}
 
 
-	int *rowNumAccum=(int *)malloc(dimension*sizeof(int));
+	int *rowNumAccum=(int *)malloc((dimension+1)*sizeof(int));
 	maxRowNum=0;
 	maxRowNumPrecond=0;
 	maxRowNumPrecondP=0;
-	for (int i=1;i<dimension;i++)
+	rowNumAccum[0] = 0;
+	rowNumAccumL[0] = 0;
+	rowNumAccumLP[0] = 0;
+	for (int i=1;i<= dimension;i++)
 	{
 
 		if (numInRow[i-1]>maxRowNum)
@@ -252,20 +257,18 @@ int main(int argc, char* argv[])
 	}
 
 
-	int *I_accum, *J_1;
-	float *V_1;
-	int *I_precond_accum, *J_precond_1;
-	float *V_precond_1;
-	int *I_precondP_accum, *J_precondP_1;
-	float *V_precondP_1;
-
-	int totalNum_1,totalNumPrecond_1,totalNumPrecondP_1;
+	int *I_accum, *I_precond_accum, *I_precondP_accum;
+	I_accum = (int *)malloc((dimension + 1)*sizeof(int));
+	I_precond_accum = (int *)malloc((dimension + 1)*sizeof(int));
+	I_precondP_accum = (int *)malloc((dimension + 1)*sizeof(int));
+	for (int i = 0; i <= dimension; ++i){
+		I_accum[i] = rowNumAccum[i];
+		I_precond_accum[i] = rowNumAccumL[i];
+		I_precondP_accum[i] = rowNumAccumLP[i];
+	}
 
 	int realIter;
 
-	formatChange(dimension, numInRow, &totalNum_1, I, J, V, &I_accum, &J_1, &V_1);
-	formatChange(dimension, numInRowL, &totalNumPrecond_1, I_precond, J_precond, V_precond, &I_precond_accum, &J_precond_1, &V_precond_1);
-	formatChange(dimension, numInRowLP, &totalNumPrecondP_1, I_precondP, J_precondP, V_precondP, &I_precondP_accum, &J_precondP_1, &V_precondP_1);
 
 
 	struct timeval start, end;
@@ -313,9 +316,9 @@ int main(int argc, char* argv[])
 
 	int stride, stridePrecond,stridePrecondP;
 
-	stride=ceil((float)totalNum_1/procNum);
-	stridePrecond=ceil((float)totalNumPrecond_1/procNum);
-	stridePrecondP=ceil((float)totalNumPrecondP_1/procNum);
+	stride=ceil((float)totalNum/procNum);
+	stridePrecond=ceil((float)totalNumPrecond/procNum);
+	stridePrecondP=ceil((float)totalNumPrecondP/procNum);
 	int bias, biasPrecond,biasPrecondP;
 
 	bias=1;
@@ -323,7 +326,7 @@ int main(int argc, char* argv[])
 	biasPrecondP=1;
 
 	int a,b;
-
+	
 	for (int i=0;i<dimension;i++){
 
 		if (I_accum[i]>bias*stride){
@@ -343,18 +346,10 @@ int main(int argc, char* argv[])
 
 	}
 
-	__assume_aligned(V_1,64);
-	__assume_aligned(J_1,64);;
-
-	__assume_aligned(V_precond_1,64);
-	__assume_aligned(J_precond_1,64);
-
-	__assume_aligned(V_precondP_1,64);
-	__assume_aligned(J_precondP_1,64);
 
 	/*#pragma omp parallel for
-	  for (int i=0;i<totalNumPrecond_1;i++)
-	  zk1[I_precond_1[i]]+=V_precond_1[i]*rk[J_precond_1[i]];*/
+	  for (int i=0;i<totalNumPrecond;i++)
+	  zk1[I_precond[i]]+=V_precond[i]*rk[J_precond[i]];*/
 #pragma omp parallel private(rank,tempV)
 	{
 		rank=omp_get_thread_num();
@@ -364,7 +359,7 @@ int main(int argc, char* argv[])
 			b=I_precond_accum[i+1];
 #pragma simd
 			for (int j=a;j<b;j++){
-				tempV+=V_precond_1[j]*rk[J_precond_1[j]];
+				tempV+=V_precond[j]*rk[J_precond[j]];
 			}
 			zk1[i]+=tempV;
 			//if (rank==4&&i<precond_boundary[4]+64) printf("tempV is %f\n",tempV);
@@ -380,7 +375,7 @@ int main(int argc, char* argv[])
 			b=I_precondP_accum[i+1];
 #pragma simd
 			for (int j=a;j<b;j++)
-				tempV+=V_precondP_1[j]*zk1[J_precondP_1[j]];
+				tempV+=V_precondP[j]*zk1[J_precondP[j]];
 			zk[i]+=tempV;
 		}
 
@@ -422,7 +417,7 @@ int main(int argc, char* argv[])
 				b=I_accum[i+1];
 #pragma simd
 				for (int j=a;j<b;j++){
-					tempV+=V_1[j]*pk[J_1[j]];
+					tempV+=V[j]*pk[J[j]];
 				}
 				bp[i]+=tempV;
 			}
@@ -464,7 +459,7 @@ int main(int argc, char* argv[])
 				b=I_precond_accum[i+1];
 #pragma simd
 				for (int j=a;j<b;j++){
-					tempV+=V_precond_1[j]*rk[J_precond_1[j]];
+					tempV+=V_precond[j]*rk[J_precond[j]];
 				}
 				zk1[i]+=tempV;
 				//if (rank==4&&i<precond_boundary[4]+64) printf("tempV is %f\n",tempV);
@@ -480,7 +475,7 @@ int main(int argc, char* argv[])
 				b=I_precondP_accum[i+1];
 #pragma simd
 				for (int j=a;j<b;j++)
-					tempV+=V_precondP_1[j]*zk1[J_precondP_1[j]];
+					tempV+=V_precondP[j]*zk1[J_precondP[j]];
 				zk[i]+=tempV;
 			}
 
