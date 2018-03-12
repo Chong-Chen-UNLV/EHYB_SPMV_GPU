@@ -1,5 +1,44 @@
 #include "fspai.h"
 
+void insertSort(int *J, float *V, int num, int *outJ, float *outV)
+{
+	//input is the unsorted J point, output is the sorted J and V
+
+	int tempJ,tempMap;
+	int i,j,k;
+	float tempV;
+	for (i=0;i<num;i++){
+		outJ[i]=0;
+		outV[i]=0;
+	}
+	//initial output[0]
+	outJ[0]=*J;
+	outV[0]=*V;
+	for (i=1;i<num;i++){
+		tempJ=J[i];
+		tempV=V[i];
+		//updata output [i]
+		for (j=i;j>0;j--){
+			if (tempJ>=outJ[j-1]){
+				outV[j]=tempV;
+				outJ[j]=tempJ;
+				break;
+			}
+			else
+			{
+				outJ[j]=outJ[j-1];
+				outV[j]=outV[j-1];
+				//output[j-1]=*(input+i);
+				//outputDegree[j-1]=tempDegree;
+			}
+		}
+		if (j==0)
+		{		
+			outJ[0]=tempJ;
+			outV[0]=tempV;
+		}
+	}
+}
 /*float for preconditioner generating only*/
 void solverCPU(const int dimension, const int totalNum, const int *I, const int *J, const float*V, const float *vector_in, 
 			float *vector_out, float *error_track, int MAXIter, int *realIter)
@@ -68,86 +107,131 @@ void solverCPU(const int dimension, const int totalNum, const int *I, const int 
 	}
 }
 
-void solverPrecondCPU(const int dimension, const int totalNum, const int *I_accum, const int *J, const float *V, const int totalNumPrecond, const int *I_precond_accum,
-			const int *J_precond, const float *V_precond, const int totalNumPrecondP, const int *I_precondP_accum, const int *J_precondP, const float *V_precondP, 
-			 const float *y, float *x, const int MAXIter, int *realIter)
+
+void fspaiCPU(S *SInput)
+/*void fspai(int *I, int *J, float *V, int *I_precond, int *J_precond, float *V_precond, const int maxRowNum, const int *numInRow, 
+			const int *rowNumAccum, const int *numInRowPrecond, const int *rowNumAccumPrecond, const float *diag, int colStart, int colEnd)*/
+/* totalNum: number of matrix, dimension: size of vector, I: row index, J: column index, V: matrix value, *_precond: preconditioner index and value
+*/
 {
-	float *rk=(float *)malloc(size5);
-	float *zk=(float *)malloc(size5);
-	float *zk1=(float *)malloc(size5);
-	float *pk=(float *)malloc(size5);
-	float *bp=(float *)malloc(size5);
-
-	float alphak = 0,betak = 0,dotp0 = 0, dotrz0 = 0,dotrz1 = 0,doth = 0,alphak_1 = 0,dotr0 = 0;
-
-	//float dotz0,dotz0_compare;
-
-	float error=10000;
-	float threshold;
-
-	for (int i=0;i<dimension;i++){
-		zk[i]=0;
-		zk1[i]=0;
-		rk[i]=y[i];
-	}
-	int *boundary=(int *)malloc((procNum+1)*sizeof(int));
-	int *precond_boundary=(int *)malloc((procNum+1)*sizeof(int));
-	int *precondP_boundary=(int *)malloc((procNum+1)*sizeof(int));
-	boundary[0]=0;
-	precond_boundary[0]=0;
-	precondP_boundary[0]=0;
-	boundary[procNum]=dimension;
-	precond_boundary[procNum]=dimension;
-	precondP_boundary[procNum]=dimension;
-
-	int stride, stridePrecond,stridePrecondP;
-
-	stride=ceil((float)totalNum/procNum);
-	stridePrecond=ceil((float)totalNumPrecond/procNum);
-	stridePrecondP=ceil((float)totalNumPrecondP/procNum);
-	int bias, biasPrecond,biasPrecondP;
-
-	bias=1;
-	biasPrecond=1;
-	biasPrecondP=1;
-
-	int a,b;
+	int *I=SInput->I;
+	int *J=SInput->J;
+	float *V=SInput->V;
+	int *I_precond=SInput->I_precond;
+	int *J_precond=SInput->J_precond;
+	float *V_precond=SInput->V_precond;
+	int maxRowNum=SInput->maxRowNum;
+	int *numInRow=SInput->numInRow;
+	int *rowNumAccum=SInput->rowNumAccum;
+	int *numInRowPrecond=SInput->numInRowPrecond;
+	int *rowNumAccumPrecond=SInput->rowNumAccumPrecond;
+	float *diag=SInput->diag;
+	int colStart=SInput->colStart; 
+	int colEnd=SInput->colEnd;
+	int id=SInput->id;
 	
-	for (int i=0;i<dimension;i++){
-
-		if (I_accum[i]>bias*stride){
-			boundary[bias]=i;
-			bias++;
-		}
-
-		if (I_precond_accum[i]>biasPrecond*stridePrecond){
-			precond_boundary[biasPrecond]=i;
-			biasPrecond++;
-		}		
-
-		if (I_precondP_accum[i]>biasPrecondP*stridePrecondP){
-			precondP_boundary[biasPrecondP]=i;
-			biasPrecondP++;
-		}
-
-	}
-
-
-	/*#pragma omp parallel for
-	  for (int i=0;i<totalNumPrecond;i++)
-	  zk1[I_precond[i]]+=V_precond[i]*rk[J_precond[i]];*/
-#pragma omp parallel private(rank,tempV)
+	float *sortedV= (float *)malloc(maxRowNum*sizeof(float));
+	int *sortedJ=(int *)malloc(maxRowNum*sizeof(int));
+	
+	int start,num;
+	//printf("fspai start at %d end at %d maxRowNum is %d\n", colStart, colEnd,maxRowNum);
+	//Sort the matrix, using insert sort algorithm, will try quick sort algorithm
+	for (int i=colStart;i<colEnd;i++)
 	{
-		rank=omp_get_thread_num();
-		for (int i=precond_boundary[rank];i<precond_boundary[rank+1];i++){
-			tempV=0;
-			a=I_precond_accum[i];
-			b=I_precond_accum[i+1];
-#pragma simd
-???LINES MISSING
-???LINES MISSING
-???LINES MISSING
-???LINES MISSING
+		
+		start=rowNumAccum[i];
+		num=numInRow[i];
+		insertSort(&J[start],&V[start],num,sortedJ,sortedV);
+		for (int j=0;j<num;j++)
+		{
+			J[start+j]=sortedJ[j];
+			V[start+j]=sortedV[j];
+		}
+		
+	}
+	//printf("fspai first finish\n");
+	
+	int subMatrixNum;
+	float *subMatrix=(float *) malloc(maxRowNum*maxRowNum*sizeof(float));
+	int *subI=(int *) malloc(maxRowNum*maxRowNum*sizeof(int));
+	int *subJ=(int *) malloc(maxRowNum*maxRowNum*sizeof(int));
+	float *yk=(float *)malloc(maxRowNum*sizeof(float));
+	float *xk=(float *)malloc(maxRowNum*sizeof(float));
+	int *tempJ=(int *)malloc(maxRowNum*sizeof(int));
+	
+	int iterNum;
+	iterNum=100;
+	float *error=(float *)malloc(iterNum*sizeof(float));
+	float AY;
+	float Lk;
+	int subRowIndex, index1,index2,index3;
+	int tempCol,colIndex;
+	//Complete computation in each column seperately
+	for (int i=colStart;i<colEnd;i++)
+	{
+		subRowIndex=0;
+		start=0;
+		subMatrixNum=0;
+		for (int j=0;j<maxRowNum;j++)
+		{
+			xk[j]=0;
+			yk[j]=0;
+		}
+		for (int j=0; j<numInRow[i]; j++ )
+		{
+			index1=J[rowNumAccum[i]+j];
+			if(index1>i)
+			{
+				//first time touch the column index larger than i
+				if (start==0) start=j;
+				colIndex=0;
+				for (int k=0; k<numInRow[index1]; k++)
+				{
+					index2=rowNumAccum[index1]+k;
+					if (J[index2]>i)
+					{
+						//travel at both row, the row i is currently in colIndex+j
+						tempCol=J[rowNumAccum[i]+colIndex+start];
+						//check the current line, whether it meet the 
+						if (J[index2]==tempCol)
+						{
+							subI[subMatrixNum]=subRowIndex;
+							subJ[subMatrixNum]=colIndex;
+							subMatrix[subMatrixNum]=V[index2];
+							subMatrixNum++;
+						}
+						else 
+						{
+							while (J[index2]>tempCol&&colIndex+start<numInRow[i])
+							{
+								colIndex++;
+								tempCol=J[rowNumAccum[i]+colIndex+start];
+								if (J[index2]==tempCol)
+								{
+									subI[subMatrixNum]=subRowIndex;
+									subJ[subMatrixNum]=colIndex;
+									subMatrix[subMatrixNum]=V[index2];
+									subMatrixNum++;
+								}
+							}
+						}
+					}
+				}
+				xk[subRowIndex]=V[rowNumAccum[i]+j];
+				tempJ[subRowIndex]=index1;
+				subRowIndex=subRowIndex+1;
+			}	
+		}
+		
+		//calculate yk
+		int realIter;
+		if (subMatrixNum>0)
+		{
+			solverCPU(subRowIndex,subMatrixNum, subI, subJ, subMatrix, xk, yk, error, iterNum, &realIter);
+		}
+		//calculate Lk
+		AY=0;
+		//
 		for (int p=0;p<subRowIndex;p++)
 		{
 			AY=AY+xk[p]*yk[p];

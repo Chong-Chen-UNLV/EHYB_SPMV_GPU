@@ -1,0 +1,1 @@
+/share/apps/gnu/gcc-6.4.0/bin/g++    -fopenmp -O3 -DNDEBUG    CMakeFiles/mtmetis_bin.dir/mtmetis_bin.c.o  -o ../bin/mtmetis -rdynamic ../lib/libmtmetis.a ../lib/libwildriver.a -lz -lm 

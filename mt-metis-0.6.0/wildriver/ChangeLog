@@ -1,0 +1,10 @@
+# Changelog
+
+
+1.0.0 - 2016.10.29
+  -Added new interface for reading and writing matrices and vector.
+  -Speed improvemts.
+  -Fix missing newline character bug.
+
+0.1.0 - 2015.02.05
+  -Initial implementation.
