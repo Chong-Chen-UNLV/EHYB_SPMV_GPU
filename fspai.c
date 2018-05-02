@@ -110,7 +110,7 @@ void solverCPU(const int dimension, const int totalNum, const int *I, const int 
 
 void fspaiCPU(S *SInput)
 /*void fspai(int *I, int *J, float *V, int *I_precond, int *J_precond, float *V_precond, const int maxRowNum, const int *numInRow, 
-			const int *rowNumAccum, const int *numInRowPrecond, const int *rowNumAccumPrecond, const float *diag, int colStart, int colEnd)*/
+			const int *row_idx, const int *numInRowPrecond, const int *row_idxPrecond, const float *diag, int colStart, int colEnd)*/
 /* totalNum: number of matrix, dimension: size of vector, I: row index, J: column index, V: matrix value, *_precond: preconditioner index and value
 */
 {
@@ -122,9 +122,9 @@ void fspaiCPU(S *SInput)
 	float *V_precond=SInput->V_precond;
 	int maxRowNum=SInput->maxRowNum;
 	int *numInRow=SInput->numInRow;
-	int *rowNumAccum=SInput->rowNumAccum;
+	int *row_idx=SInput->row_idx;
 	int *numInRowPrecond=SInput->numInRowPrecond;
-	int *rowNumAccumPrecond=SInput->rowNumAccumPrecond;
+	int *row_idxPrecond=SInput->row_idxPrecond;
 	float *diag=SInput->diag;
 	int colStart=SInput->colStart; 
 	int colEnd=SInput->colEnd;
@@ -139,7 +139,7 @@ void fspaiCPU(S *SInput)
 	for (int i=colStart;i<colEnd;i++)
 	{
 		
-		start=rowNumAccum[i];
+		start=row_idx[i];
 		num=numInRow[i];
 		insertSort(&J[start],&V[start],num,sortedJ,sortedV);
 		for (int j=0;j<num;j++)
@@ -179,7 +179,7 @@ void fspaiCPU(S *SInput)
 		}
 		for (int j=0; j<numInRow[i]; j++ )
 		{
-			index1=J[rowNumAccum[i]+j];
+			index1=J[row_idx[i]+j];
 			if(index1>i)
 			{
 				//first time touch the column index larger than i
@@ -187,11 +187,11 @@ void fspaiCPU(S *SInput)
 				colIndex=0;
 				for (int k=0; k<numInRow[index1]; k++)
 				{
-					index2=rowNumAccum[index1]+k;
+					index2=row_idx[index1]+k;
 					if (J[index2]>i)
 					{
 						//travel at both row, the row i is currently in colIndex+j
-						tempCol=J[rowNumAccum[i]+colIndex+start];
+						tempCol=J[row_idx[i]+colIndex+start];
 						//check the current line, whether it meet the 
 						if (J[index2]==tempCol)
 						{
@@ -205,7 +205,7 @@ void fspaiCPU(S *SInput)
 							while (J[index2]>tempCol&&colIndex+start<numInRow[i])
 							{
 								colIndex++;
-								tempCol=J[rowNumAccum[i]+colIndex+start];
+								tempCol=J[row_idx[i]+colIndex+start];
 								if (J[index2]==tempCol)
 								{
 									subI[subMatrixNum]=subRowIndex;
@@ -217,7 +217,7 @@ void fspaiCPU(S *SInput)
 						}
 					}
 				}
-				xk[subRowIndex]=V[rowNumAccum[i]+j];
+				xk[subRowIndex]=V[row_idx[i]+j];
 				tempJ[subRowIndex]=index1;
 				subRowIndex=subRowIndex+1;
 			}	
@@ -241,7 +241,7 @@ void fspaiCPU(S *SInput)
 		//write the result
 		for (int p=0;p<numInRowPrecond[i];p++)
 		{
-			index3=p+rowNumAccumPrecond[i];
+			index3=p+row_idxPrecond[i];
 			if (p==0)
 			{
 				I_precond[index3]=i;

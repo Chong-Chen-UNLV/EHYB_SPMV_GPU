@@ -1,7 +1,12 @@
 #include "fspai.h"
 #include "mmio.h"
+#include "kernel.h"
+#include "reordering.h"
+#include "solver.h"
 #include <omp.h>
 
+#define GPU 0
+#define RODR false
 #define MAXthread 2 
 #define MAXthread2 6
 
@@ -98,15 +103,15 @@ int main(int argc, char* argv[])
 	error_track=(float *) malloc(MAXIter*sizeof(float));
 
 	int *numInRowL;
-	int *rowNumAccumL;
+	int *row_idxL;
 	int *numInRowLP;
-	int *rowNumAccumLP;	
+	int *row_idxLP;	
 	int *numInRow;
 
 	numInRowL=(int *) malloc(size4);
 	numInRowLP=(int *) malloc(size4);
-	rowNumAccumL=(int *) malloc(size4 + sizeof(int));
-	rowNumAccumLP=(int *) malloc(size4 + sizeof(int));
+	row_idxL=(int *) malloc(size4 + sizeof(int));
+	row_idxLP=(int *) malloc(size4 + sizeof(int));
 	numInRow=(int *) malloc(size4);
 	int tempI, tempJ;
 	float tempV;
@@ -127,13 +132,13 @@ int main(int argc, char* argv[])
 	}
 
 
-	int *rowNumAccum=(int *)malloc((dimension+1)*sizeof(int));
+	int *row_idx=(int *)malloc((dimension+1)*sizeof(int));
 	maxRowNum=0;
 	maxRowNumPrecond=0;
 	maxRowNumPrecondP=0;
-	rowNumAccum[0] = 0;
-	rowNumAccumL[0] = 0;
-	rowNumAccumLP[0] = 0;
+	row_idx[0] = 0;
+	row_idxL[0] = 0;
+	row_idxLP[0] = 0;
 	for (int i=1;i<= dimension;i++)
 	{
 
@@ -144,9 +149,9 @@ int main(int argc, char* argv[])
 		if (numInRowLP[i-1]>maxRowNumPrecondP)
 			maxRowNumPrecondP=numInRowLP[i-1];			
 
-		rowNumAccum[i]=rowNumAccum[i-1]+numInRow[i-1];
-		rowNumAccumL[i]=rowNumAccumL[i-1]+numInRowL[i-1];
-		rowNumAccumLP[i]=rowNumAccumLP[i-1]+numInRowLP[i-1];
+		row_idx[i]=row_idx[i-1]+numInRow[i-1];
+		row_idxL[i]=row_idxL[i-1]+numInRowL[i-1];
+		row_idxLP[i]=row_idxLP[i-1]+numInRowLP[i-1];
 		numInRow[i-1]=0;
 		numInRowLP[i-1]=0;
 		//determine y
@@ -160,8 +165,8 @@ int main(int argc, char* argv[])
 	for (int i=0;i<dimension;i++)
 	{		
 		srand(i);
-		//x_compare[i]=(float) (rand()%200-100)/100;
-		x_compare[i]=1;
+		x_compare[i]=(float) (rand()%200-100)/100;
+		//x_compare[i]=1;
 	}
 	int index1, index2;
 
@@ -170,8 +175,8 @@ int main(int argc, char* argv[])
 		tempI=lowerI[i];
 		tempJ=lowerJ[i];
 		tempV=lowerV[i];
-		index1=rowNumAccum[tempI]+numInRow[tempI];
-		index2=rowNumAccum[tempJ]+numInRow[tempJ];
+		index1=row_idx[tempI]+numInRow[tempI];
+		index2=row_idx[tempJ]+numInRow[tempJ];
 		numInRow[tempI]+=1;
 		I[index1]=tempI;
 		J[index1]=tempJ;
@@ -191,10 +196,22 @@ int main(int argc, char* argv[])
 		}
 	}	
 	/*-----------------do the reordering with metis/hmetis, determine the value------------*/
-		
-
-
-
+	/*suffix _rodr means reordered*/		
+	int* I_rodr, J_rodr, part_boundary, rodr_list;
+	float* V_rodr, x_rodr, y_rodr;
+	
+	if(RODR){
+		rodr_list = (float* )calloc(dimension, sizeof(int)); 
+		part_boundary = (int* )calloc((blocks + 1), sizeof(int)); 	
+		I_rodr = (int *) malloc(size2);
+		J_rodr = (int *) malloc(size2);
+		V_rodr = (float *) malloc(size3);
+		x_rodr = (float* )calloc(dimension, sizeof(int)); 
+		y_rodr = (float* )calloc(dimension, sizeof(int)); 
+		matrix_reorder(dimension, totalNum, I, J, V, numInRow, I_rodr, J_rodr, V_rodr, rodr_list, part_boundary, option);
+		vector_reorder(dimension, y, y_rodr, rodr_list);
+		update_numInRow(totalNum, dimension, I_rodr, J_roder, V_rodr, numInRow, numInRowL, row_idx, row_idxL, diag);
+	}
 	/*---------------------read the preconditioner ------------------------------*/
 
 
@@ -209,17 +226,24 @@ int main(int argc, char* argv[])
 
 	for (int t=0;t<MAXthread;t++)
 	{
-		Sthread[t].I=I;
-		Sthread[t].J=J;
-		Sthread[t].V=V;
+		if(RODR){
+			Sthread[t].I=I_rodr;
+			Sthread[t].J=J_rodr;
+			Sthread[t].V=V_rodr;
+		}
+		else{
+			Sthread[t].I=I;
+			Sthread[t].J=J;
+			Sthread[t].V=V;
+		}
 		Sthread[t].I_precond=I_precond;
 		Sthread[t].J_precond=J_precond;
 		Sthread[t].V_precond=V_precond;
 		Sthread[t].maxRowNum=maxRowNum;
 		Sthread[t].numInRow=numInRow;
-		Sthread[t].rowNumAccum=rowNumAccum;
+		Sthread[t].row_idx=row_idx;
 		Sthread[t].numInRowPrecond=numInRowL;
-		Sthread[t].rowNumAccumPrecond=rowNumAccumL;
+		Sthread[t].row_idxPrecond=row_idxL;
 		Sthread[t].diag=diag;
 		if (t==0) Sthread[t].colStart=0;
 		else Sthread[t].colStart=(dimension/MAXthread)*t;
@@ -243,16 +267,15 @@ int main(int argc, char* argv[])
 	int *I_precondP=(int *) malloc(size6);
 	int *J_precondP=(int *) malloc(size6);
 	float *V_precondP=(float *) malloc(size7);
-
-
 	
 	for (int i=0; i<totalNumPrecond; i++)
 	{
 		tempI=J_precond[i];
 		tempJ=I_precond[i];
 		tempV=V_precond[i];
-		if (tempI<0||tempI>dimension-1||tempJ<0||tempJ>dimension-1) printf("error happend at %d with tempI %d and tempJ %d\n", i ,tempI, tempJ); 
-		index1=rowNumAccumLP[tempI]+numInRowLP[tempI];
+		if (tempI<0||tempI>dimension-1||tempJ<0||tempJ>dimension-1)
+			 printf("error happend at %d with tempI %d and tempJ %d\n", i ,tempI, tempJ); 
+		index1=row_idxLP[tempI]+numInRowLP[tempI];
 		I_precondP[index1]=tempI;
 		J_precondP[index1]=tempJ;
 		V_precondP[index1]=tempV;
@@ -260,27 +283,12 @@ int main(int argc, char* argv[])
 	}
 
 
-	int *I_accum, *I_precond_accum, *I_precondP_accum;
-	I_accum = (int *)malloc((dimension + 1)*sizeof(int));
+	int *I_precond_accum, *I_precondP_accum;
 	I_precond_accum = (int *)malloc((dimension + 1)*sizeof(int));
 	I_precondP_accum = (int *)malloc((dimension + 1)*sizeof(int));
-	for (int i = 0; i <= dimension; ++i){
-		I_accum[i] = rowNumAccum[i];
-		I_precond_accum[i] = rowNumAccumL[i];
-		I_precondP_accum[i] = rowNumAccumLP[i];
-	}
 
-	int realIter;
-
-
-
+	int realIter, pp, procNum;
 	struct timeval start, end;
-	int pp;
-
-
-	
-
-	int procNum;
 
 #pragma omp parallel
 	{
@@ -290,23 +298,71 @@ int main(int argc, char* argv[])
 		}
 	}
 	printf("thread num is %d\n",procNum);
-	//solverPrecondCPU(dimension, totalNum, *I_accum, *J, *V, totalNumPrecond, *I_precond_accum, *J_precond, *V_precond, 
+	if(GPU){
+		if(RODR){
+			solverGPU_HYB(dimension, totalNum, row_idx, J_rodr, V_rodr, totalNumPrecond, 
+					I_precond_accum, J_precond, V_precond,totalNumPrecondP, 
+					I_precondP_accum, J_precondP, V_precondP, 
+					y_rodr, x_rodr, MAXIter, realIter, true, partition_boundary);
+		}
+		else{
+			solverGPU_HYB(dimension, totalNum, row_idx, J, V, totalNumPrecond, 
+					I_precond_accum, J_precond, V_precond,totalNumPrecondP, 
+					I_precondP_accum, J_precondP, V_precondP, 
+					y, x, MAXIter, realIter, false, NULL);
+		}
+	}
+	else{
+		if(RODR){
+			solverPrecondCPU(dimension, totalNum, row_idx, J_rodr, V_rodr, totalNumPrecond, 
+					I_precond_accum, J_precond, V_precond,totalNumPrecondP, 
+					I_precondP_accum, J_precondP, V_precondP, 
+					y_rodr, x_rodr, MAXIter, realIter);
+		}
+		else{
+			solverPrecondCPU(dimension, totalNum, row_idx, J, V, totalNumPrecond, 
+					I_precond_accum, J_precond, V_precond,totalNumPrecondP, 
+					I_precondP_accum, J_precondP, V_precondP, 
+					y, x, MAXIter, realIter);
+		}
+	}
+	//solverPrecondGPU_CUSPARSE(dimension, totalNum, *row_idx, *J, *V, totalNumPrecond, *I_precond_accum, *J_precond, *V_precond, 
 	//	totalNumPrecondP, *I_precondP_accum, *J_precondP, *V_precondP, *y, *x, MAXIter, *realIter);
-	solverPrecondGPU_Chong(dimension, totalNum, *I_accum, *J, *V, totalNumPrecond, *I_precond_accum, *J_precond, *V_precond, 
-		totalNumPrecondP, *I_precondP_accum, *J_precondP, *V_precondP, *y, *x, MAXIter, *realIter);
-	//solverPrecondGPU_CUSPARSE(dimension, totalNum, *I_accum, *J, *V, totalNumPrecond, *I_precond_accum, *J_precond, *V_precond, 
-	//	totalNumPrecondP, *I_precondP_accum, *J_precondP, *V_precondP, *y, *x, MAXIter, *realIter);
-	
+		
+	if(RODR){
+		vector_recover(dimension, rodr_list, x_rodr, x);
+	}
 
 	for (int i=0;i<10;i++)
 	{
-		//int base=rowNumAccumL[I[a]];
 		//printf("Xeon_phi I is %d J %d is V is %f\n",I_precond[i+10000], J_precond[i+10000], V_precond[i+10000]);
 		//printf("CPU I is %d, J is %d, V is %f\n",I_precond2[i+10000],J_precond2[i+10000],V_precond2[i+10000]);
-		//printf("Y %d is %f\n",i,y[i]);
+		printf("at %d x is %d x_compare is  %f\n",i, x[i], x_compare[i]);
 	}
-
-
+	free(I);
+	freee(J);
+	free(V);
+	free(I_precond);
+	free(J_precond);
+	free(V_precond);
+	free(I_precondP);
+	free(J_precondP);
+	free(V_precondP);
+	free(lowerJ);
+	free(lowerI);
+	free(lowerV);
+	free(x);
+	free(y);
+	free(y_rodr);
+	
+	free(numInRow);
+	free(numInRowL);
+	free(numInRowLP);
+	free(row_idx);
+	free(row_idxL);
+	free(row_idxLP);
+	free(x_compare);
+	free(diag);
 	//interval2=(end_time2-start_time2)*1000/CLOCKS_PER_SEC;
 
 	//printf("time consuming CPU is %f, time consuming GPU is %f, speedup is %f\n", interval1, interval2, interval1/interval2);

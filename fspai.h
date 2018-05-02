@@ -9,7 +9,7 @@
 #include <unistd.h>
 #include <omp.h>
 
-
+#define bzero(b,len) (memset((b), '\0', (len)), (void) 0)
 #define padding 1
 
 typedef struct _S
@@ -22,9 +22,9 @@ typedef struct _S
 	float *V_precond;
 	int maxRowNum;
 	int *numInRow;	
-	int *rowNumAccum;
+	int *row_idx;
 	int *numInRowPrecond;
-	int *rowNumAccumPrecond; 
+	int *row_idxPrecond; 
 	float *diag;
 	int colStart;
 	int colEnd;

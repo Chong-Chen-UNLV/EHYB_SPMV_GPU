@@ -26,6 +26,13 @@ __device__ void segreduce_block(const int * idx, double * val)
 	if( threadIdx.x >= 512 && idx[threadIdx.x] == idx[threadIdx.x - 512] ) { left = val[threadIdx.x - 512]; } __syncthreads(); val[threadIdx.x] += left; left = 0; __syncthreads();
 }
 
+__device__ float get_val(const int idx, const int scope1, const int scope2,  double * vec, float* cached_vec){
+	if(idx > scope1 && idx < scope2)
+		return cached_vec[idx - scope1];
+	else
+		return vec[idx];
+}
+
 /*kernel function for initialize*/
 __global__ void kernelInitialize(const int num, double *x)
 {
@@ -59,8 +66,9 @@ __global__ void kernelInitializeR(const int num,double *rk, const double *vector
 }
 
 //for ELL format matrix, output y=data*x
-__global__ void ELL_kernel(const int num_rows, const int cal_rows, const int num_cols_per_row, const int *indices, const double *data, const double * x,
-					double * y, const int bias0, const int bias1)
+__global__ void ELL_kernel(const int num_rows, const int cal_rows, const int num_cols_per_row,
+			const int *indices, const double *data, const double * x, double * y, 
+			const int bias0, const int bias1)
 {
 	int row= blockDim.x*blockIdx.x+threadIdx.x;
 	if (row<cal_rows){
@@ -76,10 +84,33 @@ __global__ void ELL_kernel(const int num_rows, const int cal_rows, const int num
 		}
 }
 
+__global__ void ELL_cached_kernel(const int num_rows, const int num_cols_per_row, const int *indices, 
+				const double *data, const double * x,double * y, const int bias0, 
+				const int bias1, const int* part_boundary)
+{
+	int x_idx = blockDim.x*blockIdx.x+threadIdx.x;
+	__shared__ volatile int cached[vector_cache_size];  
+	int vec_start = part_boundary[blockIdx.x];
+	int vec_end = part_boundary[blockIdx.x + 1];
+
+	for (int i = x_idx; i < vector_cache_size; i += threadSize){
+		cached[i] = val[i + vec_start];
+	}
+	for(row_idx = x_idx; row_idx < vec_end; row_idx+=ELL_stride){
+		float dot =0;
+		for (int n=0; n< num_cols_per_row; n++){
+			int col=indices[num_rows * n + row];
+			double val=data[num_rows*n+row];
+			if (val != 0)
+				dot += val*get_val(col, vec_start, vec_end, x, cached_vec);
+		}
+		y[row+bias1] = dot;
+	}		
+}
 //for COO format matrix, output y=data*x
 //the basic idea is come from
 __global__ void COO_level1(const int num_nozeros, const int interval_size, const int *I, const int *J, const double *V, 
-						const double *x, double *y, int *temp_rows, double *temp_vals, const int xp,const int yp)
+				const double *x, double *y, int *temp_rows, double *temp_vals, const int xp,const int yp)
 {
 	__shared__ volatile int rows[48*threadSize/WARP_SIZE];  //why using 48? because we need 16 additional junk elements
 	__shared__ volatile double vals[threadSize];
@@ -297,13 +328,21 @@ void initialDeviceArray(int num, double *x)
 
 
 
-void matrix_vectorELL(const int num_rows, const int cal_rows, const int num_cols_per_row,  const int *J, const double *V, const double *x, double *y, const int bias0, const int bias1)
+void matrix_vectorELL(const int num_rows, const int cal_rows, const int num_cols_per_row,  const int *J,
+ 			const double *V, const double *x, double *y, const int bias0, const int bias1, 
+			const bool RODR, const float* part_boundary_d)
 {
 	/*bias0 is for x and bias1 is for y, in precond solver, x, y may have different start point, bias0 is "absolut bias", bias 1 is relative bias*/
 	int threads=ceil((float) num_rows/2048 );
 	//printf("blocks is %d\n",blocks);
 	bind_x(x);
-	ELL_kernel<<<2048, threads>>>(num_rows, cal_rows, num_cols_per_row, J, V, x,y, bias0, bias1);
+	if(RODR){
+		
+		ELL_cached_kernel<<<blocks_ELL_rodr, threads_ELL_rodr>>>(num_rows, cal_rows, num_cols_per_row, J,
+ 			V, x,y, bias0, bias1, part_boundary_d);	
+	}
+	else
+		ELL_kernel<<<2048, threads>>>(num_rows, cal_rows, num_cols_per_row, J, V, x,y, bias0, bias1);
 	unbind_x(x);
 	
 }
