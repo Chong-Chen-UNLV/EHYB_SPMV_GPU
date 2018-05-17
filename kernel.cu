@@ -5,15 +5,16 @@
 
 #define blockSize 512	
 #define threadSize 512
+#define ELL_threadSize 2048 
 #define blockSize2 16
 #define threadSize2 512
 #define WARP_SIZE 32
 
 
 /*the device function for level 2 reduce*/
-__device__ void segreduce_block(const int * idx, double * val)
+__device__ void segreduce_block(const int * idx, float * val)
 {
-    double left = 0;
+    float left = 0;
     if( threadIdx.x >=   1 && idx[threadIdx.x] == idx[threadIdx.x -   1] ) { left = val[threadIdx.x -   1]; } __syncthreads(); val[threadIdx.x] += left; left = 0; __syncthreads();  
     if( threadIdx.x >=   2 && idx[threadIdx.x] == idx[threadIdx.x -   2] ) { left = val[threadIdx.x -   2]; } __syncthreads(); val[threadIdx.x] += left; left = 0; __syncthreads();
     if( threadIdx.x >=   4 && idx[threadIdx.x] == idx[threadIdx.x -   4] ) { left = val[threadIdx.x -   4]; } __syncthreads(); val[threadIdx.x] += left; left = 0; __syncthreads();
@@ -26,7 +27,8 @@ __device__ void segreduce_block(const int * idx, double * val)
 	if( threadIdx.x >= 512 && idx[threadIdx.x] == idx[threadIdx.x - 512] ) { left = val[threadIdx.x - 512]; } __syncthreads(); val[threadIdx.x] += left; left = 0; __syncthreads();
 }
 
-__device__ float get_val(const int idx, const int scope1, const int scope2,  double * vec, float* cached_vec){
+__device__ 
+float get_val(const int idx, const int scope1, const int scope2,  const float *vec, volatile float* cached_vec){
 	if(idx > scope1 && idx < scope2)
 		return cached_vec[idx - scope1];
 	else
@@ -34,17 +36,17 @@ __device__ float get_val(const int idx, const int scope1, const int scope2,  dou
 }
 
 /*kernel function for initialize*/
-__global__ void kernelInitialize(const int num, double *x)
+__global__ void kernelInitialize(const int num, float *x)
 {
 	int idx=blockDim.x * blockIdx.x+ threadIdx.x;
 	
 	for (int n=idx;n<num;n+=BASE) x[n]=0;
 }
 
-__global__ void kernelInitializeAll(const int num, double *pk, double *bp, double *x, double *zk, const double *vector_in)
+__global__ void kernelInitializeAll(const int num, float *pk, float *bp, float *x, float *zk, const float *vector_in)
 {
 	int idx=blockDim.x * blockIdx.x+ threadIdx.x;
-	double temp;
+	float temp;
 	for (int n=idx;n<num;n+=BASE) 
 	{
 		temp=zk[n];
@@ -54,10 +56,10 @@ __global__ void kernelInitializeAll(const int num, double *pk, double *bp, doubl
 	}
 }
 
-__global__ void kernelInitializeR(const int num,double *rk, const double *vector_in)
+__global__ void kernelInitializeR(const int num,float *rk, const float *vector_in)
 {
 	int idx=blockDim.x * blockIdx.x+ threadIdx.x;
-	double temp;
+	float temp;
 	for (int n=idx;n<num;n+=BASE) 
 	{
 		temp=vector_in[n];
@@ -67,15 +69,15 @@ __global__ void kernelInitializeR(const int num,double *rk, const double *vector
 
 //for ELL format matrix, output y=data*x
 __global__ void ELL_kernel(const int num_rows, const int cal_rows, const int num_cols_per_row,
-			const int *indices, const double *data, const double * x, double * y, 
+			const int *indices, const float *data, const float * x, float * y, 
 			const int bias0, const int bias1)
 {
 	int row= blockDim.x*blockIdx.x+threadIdx.x;
 	if (row<cal_rows){
-		double dot =0;
+		float dot =0;
 		for (int n=0; n< num_cols_per_row; n++){
 			int col=indices[num_rows * n + row];
-			double val=data[num_rows*n+row];
+			float val=data[num_rows*n+row];
 			
 			if (val != 0)
 				dot += val* x[col-bias0];
@@ -84,36 +86,41 @@ __global__ void ELL_kernel(const int num_rows, const int cal_rows, const int num
 		}
 }
 
-__global__ void ELL_cached_kernel(const int num_rows, const int num_cols_per_row, const int *indices, 
-				const double *data, const double * x,double * y, const int bias0, 
+/* bias0 and bias1 is reserved for future distributed version*/
+__global__ void ELL_cached_kernel(const int num_rows,  
+				const int num_cols_per_row, 
+				const int *indices, const float *data, const float * x,
+				float * y, const int bias0, 
 				const int bias1, const int* part_boundary)
 {
 	int x_idx = blockDim.x*blockIdx.x+threadIdx.x;
-	__shared__ volatile int cached[vector_cache_size];  
-	int vec_start = part_boundary[blockIdx.x];
-	int vec_end = part_boundary[blockIdx.x + 1];
+	__shared__ volatile float cached_vec[vector_cache_size];  
+	int vec_start = part_boundary[blockIdx.x] + bias0;
+	int vec_end = part_boundary[blockIdx.x + 1] + bias0;
+	float val, dot;
+	int col;
 
-	for (int i = x_idx; i < vector_cache_size; i += threadSize){
-		cached[i] = val[i + vec_start];
+	for (int i = x_idx; i < vector_cache_size; i += ELL_threadSize){
+		cached_vec[i] = x[i + vec_start];
 	}
-	for(row_idx = x_idx; row_idx < vec_end; row_idx+=ELL_stride){
-		float dot =0;
+	for(int row = x_idx; row < vec_end; row += ELL_threadSize){
+		dot =0;
 		for (int n=0; n< num_cols_per_row; n++){
-			int col=indices[num_rows * n + row];
-			double val=data[num_rows*n+row];
+			col=indices[num_rows*n + row];
+			val=data[num_rows*n + row];
 			if (val != 0)
-				dot += val*get_val(col, vec_start, vec_end, x, cached_vec);
+				dot += val*get_val(col, vec_start, vec_start + vector_cache_size, x, cached_vec);
 		}
 		y[row+bias1] = dot;
 	}		
 }
 //for COO format matrix, output y=data*x
 //the basic idea is come from
-__global__ void COO_level1(const int num_nozeros, const int interval_size, const int *I, const int *J, const double *V, 
-				const double *x, double *y, int *temp_rows, double *temp_vals, const int xp,const int yp)
+__global__ void COO_level1(const int num_nozeros, const int interval_size, const int *I, const int *J, const float *V, 
+				const float *x, float *y, int *temp_rows, float *temp_vals, const int xp,const int yp)
 {
 	__shared__ volatile int rows[48*threadSize/WARP_SIZE];  //why using 48? because we need 16 additional junk elements
-	__shared__ volatile double vals[threadSize];
+	__shared__ volatile float vals[threadSize];
 	
 	int thread_id = blockDim.x*blockIdx.x + threadIdx.x;
 	int thread_lane= threadIdx.x & (WARP_SIZE-1); //great idea! think about it
@@ -144,8 +151,8 @@ __global__ void COO_level1(const int num_nozeros, const int interval_size, const
 	while (n< interval_end)
 	{
 		int row =I[n];
-		//double val=V[n]*fetch_x(J[n], x);
-		double val=V[n]*x[J[n]-xp];
+		//float val=V[n]*fetch_x(J[n], x);
+		float val=V[n]*x[J[n]-xp];
 		
 		if (thread_lane==0)
 		{
@@ -188,14 +195,14 @@ temp_rows will be 512*512/32=8192, this is a fix number
 So, we should set this device function's blockSize=512/32=16, threadSize=512*/
 
 __global__ void COO_level2(const int * temp_rows,
-                              const double * temp_vals,
+                              const float * temp_vals,
 									int * temp_rows2,
-									double * temp_vals2,
-                                    double * y, const int p)
+									float * temp_vals2,
+                                    float * y, const int p)
 /*The bias is */									
 {
     __shared__ int rows[threadSize2 + 1];    
-    __shared__ double vals[threadSize2 + 1];
+    __shared__ float vals[threadSize2 + 1];
 	int idx_t=threadIdx.x;
 	int idx_g=blockDim.x*blockIdx.x+threadIdx.x;
 	
@@ -230,8 +237,8 @@ __global__ void COO_level2(const int * temp_rows,
 //no sychronize between blocks, so we need to restart another kernel function
 __global__ void COO_level3(const int num,
                             const int * temp_rows,
-                            double * temp_vals,
-                            double * y,const int p)
+                            float * temp_vals,
+                            float * y,const int p)
 {
 	/*only 16 elements, single thread is enough*/
 	int i=0;
@@ -248,8 +255,8 @@ __global__ void COO_level3(const int num,
 
 /*The single thread version of reduction*/
 __global__ void COO_level2_serial(const int * temp_rows,
-                              const double * temp_vals,
-                                    double * y,const int p)
+                              const float * temp_vals,
+                                    float * y,const int p)
 {
 	int i=0;
 	for (i=0;i<(blockSize*threadSize/WARP_SIZE);i++)
@@ -259,8 +266,8 @@ __global__ void COO_level2_serial(const int * temp_rows,
 }
 
 __global__ void COO_level2_serial2(const int * temp_rows,
-                              const double * temp_vals,
-                                    double * y, const int p)
+                              const float * temp_vals,
+                                    float * y, const int p)
 {
 	int i=0;
 	for (i=0;i<(blockSize2*threadSize2/WARP_SIZE);i++)
@@ -270,8 +277,8 @@ __global__ void COO_level2_serial2(const int * temp_rows,
 }
 
 __global__ void COO_level2_serial3(const int num, const int * temp_rows,
-                              const double * temp_vals,
-                                    double * y,const int p)
+                              const float * temp_vals,
+                                    float * y,const int p)
 {
 	int i=0;
 	for (i=0;i<num;i++)
@@ -280,7 +287,7 @@ __global__ void COO_level2_serial3(const int num, const int * temp_rows,
 	}
 }
 
-__global__ void COO_level1_serial(const int num, int *I, int *J, double *V, double *x, double *y, const int xp, const int yp)
+__global__ void COO_level1_serial(const int num, int *I, int *J, float *V, float *x, float *y, const int xp, const int yp)
 {
 	int i=0;
 	for (i=0;i<num;i++)
@@ -290,7 +297,7 @@ __global__ void COO_level1_serial(const int num, int *I, int *J, double *V, doub
 }
 
 //y=x+gamak*y
-__global__ void kernelMyxpy(const int dimension, double gamak, const double *x, double *y)
+__global__ void kernelMyxpy(const int dimension, float gamak, const float *x, float *y)
 {
 	int idx=blockDim.x*blockIdx.x+threadIdx.x;
 	int n=idx;
@@ -302,26 +309,26 @@ __global__ void kernelMyxpy(const int dimension, double gamak, const double *x, 
 
 extern "C"
 
-void initialize_all(const int dimension, double *pk_d, double *bp_d, double *x, double *zk, const double *vector_in_d)
+void initialize_all(const int dimension, float *pk_d, float *bp_d, float *x, float *zk, const float *vector_in_d)
 {
 	kernelInitializeAll<<<blockSize,threadSize>>>(dimension, pk_d, bp_d, x, zk, vector_in_d);
 }
 
-void initialize_bp(int num, double *x)
+void initialize_bp(int num, float *x)
 {
 	kernelInitialize<<<blockSize,threadSize>>>(num,x);
 }
 
-void initialize_r(int num, double *rk, double *vector_in)
+void initialize_r(int num, float *rk, float *vector_in)
 {
 	kernelInitializeR<<<blockSize,threadSize>>>(num,rk,vector_in);
 }
-void myxpy(const int dimension, double gamak, const double *x, double *y)
+void myxpy(const int dimension, float gamak, const float *x, float *y)
 {
 	kernelMyxpy<<<blockSize,threadSize>>>(dimension,gamak,x,y);
 }
 
-void initialDeviceArray(int num, double *x)
+void initialDeviceArray(int num, float *x)
 {
 	kernelInitialize<<<512,512>>>(num,x);
 }
@@ -329,43 +336,44 @@ void initialDeviceArray(int num, double *x)
 
 
 void matrix_vectorELL(const int num_rows, const int cal_rows, const int num_cols_per_row,  const int *J,
- 			const double *V, const double *x, double *y, const int bias0, const int bias1, 
-			const bool RODR, const float* part_boundary_d)
+ 			const float *V, const float *x, float *y, const int bias0, const int bias1, 
+			const bool RODR, const int rodr_blocks, const int* part_boundary_d)
 {
-	/*bias0 is for x and bias1 is for y, in precond solver, x, y may have different start point, bias0 is "absolut bias", bias 1 is relative bias*/
-	int threads=ceil((float) num_rows/2048 );
+	/*bias0 is for x and bias1 is for y, in precond solver, x, y may have different start point, 
+		bias0 is "absolut bias", bias 1 is relative bias*/
+	int ELL_blocks = ceil((float) num_rows/ELL_threadSize);
 	//printf("blocks is %d\n",blocks);
 	bind_x(x);
 	if(RODR){
 		
-		ELL_cached_kernel<<<blocks_ELL_rodr, threads_ELL_rodr>>>(num_rows, cal_rows, num_cols_per_row, J,
+		ELL_cached_kernel<<<rodr_blocks, ELL_threadSize>>>(num_rows, num_cols_per_row, J,
  			V, x,y, bias0, bias1, part_boundary_d);	
 	}
 	else
-		ELL_kernel<<<2048, threads>>>(num_rows, cal_rows, num_cols_per_row, J, V, x,y, bias0, bias1);
+		ELL_kernel<<<ELL_blocks, ELL_threadSize>>>(num_rows, cal_rows, num_cols_per_row, J, V, x,y, bias0, bias1);
 	unbind_x(x);
 	
 }
 
-void matrix_vectorCOO(const int num_nozeros_compensation, int *I, int *J, double *V, double *x_d, double *y_d, int bias0, int bias1)
+void matrix_vectorCOO(const int num_nozeros_compensation, int *I, int *J, float *V, float *x_d, float *y_d, int bias0, int bias1)
 {
 	/*bias0 is for input vector, bias1 is for output vector, different from the ELL format both bias0 and bias1 is absolut bias*/
 	int interval_size2;
-	interval_size2=ceil(((double) num_nozeros_compensation)/(blockSize2*threadSize/WARP_SIZE));//for data with 2 million elements, we have interval size 200	
+	interval_size2=ceil(((float) num_nozeros_compensation)/(blockSize2*threadSize/WARP_SIZE));//for data with 2 million elements, we have interval size 200	
 	//printf("intervalSize is %d\n",interval_size2 );
 	if (interval_size2>2*32)
 	{
 		//512*512
 		size_t sizeKernel0=(blockSize*threadSize/WARP_SIZE)*sizeof(int);
-		size_t sizeKernel1=(blockSize*threadSize/WARP_SIZE)*sizeof(double);		
+		size_t sizeKernel1=(blockSize*threadSize/WARP_SIZE)*sizeof(float);		
 		int *temp_rows1;
-		double *temp_vals1;
+		float *temp_vals1;
 		int *temp_rows2;
-		double *temp_vals2;
+		float *temp_vals2;
 		cudaMalloc((void**)&temp_rows1, sizeKernel0);
 		cudaMalloc((void**)&temp_vals1, sizeKernel1);
 		cudaMalloc((void**)&temp_rows2, blockSize2*sizeof(int));
-		cudaMalloc((void**)&temp_vals2, blockSize2*sizeof(double));
+		cudaMalloc((void**)&temp_vals2, blockSize2*sizeof(float));
 		COO_level1<<<blockSize,threadSize>>>(num_nozeros_compensation,interval_size2, I,J,V,x_d,y_d,temp_rows1,temp_vals1, bias0, bias1);
 		COO_level2<<<blockSize2,threadSize2>>>(temp_rows1,temp_vals1,temp_rows2,temp_vals2,y_d, bias1);
 		COO_level3<<<1,1>>>(blockSize2,temp_rows2,temp_vals2,y_d, bias1);
@@ -377,9 +385,9 @@ void matrix_vectorCOO(const int num_nozeros_compensation, int *I, int *J, double
 		//16*512
 		//printf("situation 2 happened!\n");
 		size_t sizeKernel2=(blockSize2*threadSize2/WARP_SIZE)*sizeof(int);
-		size_t sizeKernel3=(blockSize2*threadSize2/WARP_SIZE)*sizeof(double);
+		size_t sizeKernel3=(blockSize2*threadSize2/WARP_SIZE)*sizeof(float);
 		int *temp_rows3;
-		double *temp_vals3;
+		float *temp_vals3;
 		cudaMalloc((void**)&temp_rows3, sizeKernel2);
 		cudaMalloc((void**)&temp_vals3, sizeKernel3);
 		COO_level1<<<blockSize2,threadSize2>>>(num_nozeros_compensation, interval_size2, I,J,V,x_d,y_d,temp_rows3,temp_vals3, bias0, bias1);
@@ -391,9 +399,9 @@ void matrix_vectorCOO(const int num_nozeros_compensation, int *I, int *J, double
 		//16*32
 		int iterval_size3=ceil((float) num_nozeros_compensation/(512*2/32));
 		int *temp_rows4;
-		double *temp_vals4;
+		float *temp_vals4;
 		cudaMalloc((void**)&temp_rows4, 32*sizeof(int));
-		cudaMalloc((void**)&temp_vals4, 32*sizeof(double));		
+		cudaMalloc((void**)&temp_vals4, 32*sizeof(float));		
 		COO_level1<<<2,512>>>(num_nozeros_compensation, iterval_size3, I,J,V,x_d,y_d,temp_rows4,temp_vals4,bias0,bias1);
 		//16 calculation excuted serially
 		COO_level2_serial3<<<1,1>>>(32, temp_rows4,temp_vals4,y_d, bias1);		
@@ -407,7 +415,7 @@ void matrix_vectorCOO(const int num_nozeros_compensation, int *I, int *J, double
 	
 }
 
-/*void matrix_vectorHYP(const int num_rows, const int max, const int *J, const double *V, int NumCOO, int *I_COO, int *J_COO, double *V_COO, )
+/*void matrix_vectorHYP(const int num_rows, const int max, const int *J, const float *V, int NumCOO, int *I_COO, int *J_COO, float *V_COO, )
 {
 	matrix_vectorELL();
 	matrix_vectorCOO();

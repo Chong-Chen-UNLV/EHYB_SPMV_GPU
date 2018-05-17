@@ -1,0 +1,6 @@
+Lmod has detected the following error: The following module(s) are unknown:
+"intempi"
+
+   Please check the spelling or version number. Also try "module spider ..."
+
+./Solver_test.out: error while loading shared libraries: libmkl_intel_lp64.so: cannot open shared object file: No such file or directory

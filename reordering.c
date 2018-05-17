@@ -15,7 +15,7 @@
 /*reorder function with I_rodr, J_rodr, v_rodr, rodr_list as output*/
 void matrix_reorder(const int* dimension_in, const int totalNum, const int* I, const int* J, const float* V, 
 		int* numInRow, int* I_rodr, int* J_rodr, float* V_rodr, int* rodr_list, int* part_boundary,
-		const int rodr_option, const unsigned int nparts){
+		const unsigned int nparts){
 
 	unsigned int dimension = *dimension_in;
 	unsigned int *colVal = (unsigned int *) malloc(totalNum*sizeof(int));
@@ -107,10 +107,10 @@ void matrix_reorder(const int* dimension_in, const int totalNum, const int* I, c
 	free(part_filled);
 }
 
-void vector_reorder(const int dimension, const int* rodr_list, const float* v_in, float* v_rodr){
+void vector_reorder(const int dimension, const float* v_in, float* v_rodr, const int* rodr_list){
 	for(int i=0; i < dimension; i++) v_rodr[rodr_list[i]] = v_in[i];	
 }
-void vector_recover(const int dimension, const int* rodr_list, const float* v_rodr, float* v){
+void vector_recover(const int dimension, const float* v_rodr, float* v, const int* rodr_list){
 	int* rodr_list_recover= (int*) malloc(dimension*sizeof(int));
 	for(int i=0; i < dimension; i++) rodr_list_recover[rodr_list[i]] = i;	
 	for(int i=0; i < dimension; i++) v[rodr_list_recover[i]] = v[i];	

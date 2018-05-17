@@ -3,16 +3,17 @@
 #include "kernel.h"
 #include "reordering.h"
 #include "solver.h"
-#include <omp.h>
+#include <unistd.h>
 
-#define GPU 0
-#define RODR false
 #define MAXthread 2 
 #define MAXthread2 6
 
 int *I_precond;
 int *J_precond;
 float *V_precond;
+
+bool GPU false;
+bool RODR false;
 
 void fspaiCPU(S *SInput);
 void fspai(S *SInput);	
@@ -45,13 +46,46 @@ int main(int argc, char* argv[])
 	int finish;
 	char fileName[100];
 	char fileName2[100];
+	unsigned int blocks;
+	int oc;
+	int arg_val;
+	char* arg_str;
 
-	if(argc!=3) {  /* Check command line inputs */
-		printf("Usage: distribute [matrixFile]\n");
+	if(argc < 3) {  /* Check command line inputs */
+		printf("Usage: distribute [matrixFile] [iterNUm] [partitionNum]\n");
 		exit(0);
 	}		
-	sprintf(fileName, "../read/%s.mtx", argv[1]);		
-	MAXIter=atoi(argv[2]);
+	while ((oc = getopt(argc, argv, "m:c:r:g:")) != -1) {
+		switch (oc) {
+			case 'm':
+				/* input matrix */
+				sprintf(fileName, "../read/%s.mtx", argv[1]);		
+				printf"filename is %s\n", 
+				break;
+			case 'c':
+				/* the number of cycles */
+				MAXIter = atoi(optarg);
+				break;
+			case 'r':
+				if(atoi(optarg) == 1)
+					RODR = true;
+				break;
+			case 'g'
+				if(atoi(optarg) == 1)
+					GPU = true;
+				break;
+			case ':':
+				       /* error handling, see text */
+				printf("missing arguments\n");
+				exit(0);
+				break;
+			case '?':
+				printf("unrecongnized option\n")
+			default:
+				printf("option/arguments error!\n");       /* error handling, see text */
+				exit(0);
+		}
+	}
 	//---------------------------------read the matrix---------------------------
 	if ((f = fopen(fileName, "r")) == NULL) 
 		exit(1);
@@ -161,7 +195,6 @@ int main(int argc, char* argv[])
 	if (numInRowLP[dimension-1]>maxRowNumPrecondP) maxRowNumPrecondP=numInRowLP[dimension-1];
 	numInRow[dimension-1]=0;
 	numInRowLP[dimension-1]=0;
-	MAXIter=atoi(argv[2]);
 	for (int i=0;i<dimension;i++)
 	{		
 		srand(i);
@@ -197,20 +230,20 @@ int main(int argc, char* argv[])
 	}	
 	/*-----------------do the reordering with metis/hmetis, determine the value------------*/
 	/*suffix _rodr means reordered*/		
-	int* I_rodr, J_rodr, part_boundary, rodr_list;
-	float* V_rodr, x_rodr, y_rodr;
+	int *I_rodr, *J_rodr,*part_boundary, *rodr_list;
+	float *V_rodr, *x_rodr, *y_rodr;
 	
 	if(RODR){
-		rodr_list = (float* )calloc(dimension, sizeof(int)); 
+		rodr_list = (int* )calloc(dimension, sizeof(int)); 
 		part_boundary = (int* )calloc((blocks + 1), sizeof(int)); 	
 		I_rodr = (int *) malloc(size2);
 		J_rodr = (int *) malloc(size2);
 		V_rodr = (float *) malloc(size3);
 		x_rodr = (float* )calloc(dimension, sizeof(int)); 
 		y_rodr = (float* )calloc(dimension, sizeof(int)); 
-		matrix_reorder(dimension, totalNum, I, J, V, numInRow, I_rodr, J_rodr, V_rodr, rodr_list, part_boundary, option);
+		matrix_reorder(&dimension, totalNum, I, J, V, numInRow, I_rodr, J_rodr, V_rodr, rodr_list, part_boundary, blocks);
 		vector_reorder(dimension, y, y_rodr, rodr_list);
-		update_numInRow(totalNum, dimension, I_rodr, J_roder, V_rodr, numInRow, numInRowL, row_idx, row_idxL, diag);
+		update_numInRow(totalNum, dimension, I_rodr, J_rodr, V_rodr, numInRow, numInRowL, row_idx, row_idxL, diag);
 	}
 	/*---------------------read the preconditioner ------------------------------*/
 
@@ -283,10 +316,6 @@ int main(int argc, char* argv[])
 	}
 
 
-	int *I_precond_accum, *I_precondP_accum;
-	I_precond_accum = (int *)malloc((dimension + 1)*sizeof(int));
-	I_precondP_accum = (int *)malloc((dimension + 1)*sizeof(int));
-
 	int realIter, pp, procNum;
 	struct timeval start, end;
 
@@ -299,38 +328,46 @@ int main(int argc, char* argv[])
 	}
 	printf("thread num is %d\n",procNum);
 	if(GPU){
+		/*please notice that we need transfer the format of matrix to HYB, so we need I, J, V completely
+	   	for GPU solver, for CPU solver, no format change is applied, so we only need row_idx**/
 		if(RODR){
-			solverGPU_HYB(dimension, totalNum, row_idx, J_rodr, V_rodr, totalNumPrecond, 
-					I_precond_accum, J_precond, V_precond,totalNumPrecondP, 
-					I_precondP_accum, J_precondP, V_precondP, 
-					y_rodr, x_rodr, MAXIter, realIter, true, partition_boundary);
+			solverGPU_HYB(dimension, totalNum, numInRow, 
+					row_idx, I_rodr, J_rodr, V_rodr, 
+					totalNumPrecond, numInRowL, 
+					row_idxL, I_precond, J_precond, V_precond,
+					totalNumPrecondP, numInRowLP, 
+					row_idxLP, I_precondP, J_precondP, V_precondP, 
+					y_rodr, x_rodr, MAXIter, &realIter, true, blocks, part_boundary);
 		}
 		else{
-			solverGPU_HYB(dimension, totalNum, row_idx, J, V, totalNumPrecond, 
-					I_precond_accum, J_precond, V_precond,totalNumPrecondP, 
-					I_precondP_accum, J_precondP, V_precondP, 
-					y, x, MAXIter, realIter, false, NULL);
+			solverGPU_HYB(dimension, totalNum, numInRow, 
+					row_idx, I, J, V, 
+					totalNumPrecond, numInRowL, 
+					row_idxL, I_precond, J_precond, V_precond,
+					totalNumPrecondP, numInRowLP, 
+					row_idxLP, I_precondP, J_precondP, V_precondP, 
+					y, x, MAXIter, &realIter, false, blocks, NULL);
 		}
 	}
 	else{
 		if(RODR){
-			solverPrecondCPU(dimension, totalNum, row_idx, J_rodr, V_rodr, totalNumPrecond, 
-					I_precond_accum, J_precond, V_precond,totalNumPrecondP, 
-					I_precondP_accum, J_precondP, V_precondP, 
-					y_rodr, x_rodr, MAXIter, realIter);
+			solverPrecondCPU(procNum, dimension, totalNum, row_idx, J_rodr, V_rodr, totalNumPrecond, 
+					row_idxL, J_precond, V_precond,totalNumPrecondP, 
+					row_idxLP, J_precondP, V_precondP, 
+					y_rodr, x_rodr, MAXIter, &realIter);
 		}
 		else{
-			solverPrecondCPU(dimension, totalNum, row_idx, J, V, totalNumPrecond, 
-					I_precond_accum, J_precond, V_precond,totalNumPrecondP, 
-					I_precondP_accum, J_precondP, V_precondP, 
-					y, x, MAXIter, realIter);
+			solverPrecondCPU(procNum, dimension, totalNum, row_idx, J, V, totalNumPrecond, 
+					row_idxL, J_precond, V_precond,totalNumPrecondP, 
+					row_idxLP, J_precondP, V_precondP, 
+					y, x, MAXIter, &realIter);
 		}
 	}
-	//solverPrecondGPU_CUSPARSE(dimension, totalNum, *row_idx, *J, *V, totalNumPrecond, *I_precond_accum, *J_precond, *V_precond, 
-	//	totalNumPrecondP, *I_precondP_accum, *J_precondP, *V_precondP, *y, *x, MAXIter, *realIter);
+	//solverPrecondGPU_CUSPARSE(dimension, totalNum, *row_idx, *J, *V, totalNumPrecond, *row_idxL, *J_precond, *V_precond, 
+	//	totalNumPrecondP, *row_idxLP, *J_precondP, *V_precondP, *y, *x, MAXIter, *realIter);
 		
 	if(RODR){
-		vector_recover(dimension, rodr_list, x_rodr, x);
+		vector_recover(dimension,  x_rodr, x, rodr_list);
 	}
 
 	for (int i=0;i<10;i++)
@@ -340,7 +377,7 @@ int main(int argc, char* argv[])
 		printf("at %d x is %d x_compare is  %f\n",i, x[i], x_compare[i]);
 	}
 	free(I);
-	freee(J);
+	free(J);
 	free(V);
 	free(I_precond);
 	free(J_precond);
@@ -353,7 +390,12 @@ int main(int argc, char* argv[])
 	free(lowerV);
 	free(x);
 	free(y);
-	free(y_rodr);
+	if(RODR){
+		free(y_rodr);
+		free(I_rodr);
+		free(J_rodr);
+		free(V_rodr);
+	}
 	
 	free(numInRow);
 	free(numInRowL);

@@ -1,0 +1,16 @@
+
+---------------------- Job Info ------------------------------
+
+Name of the working queue 	 workq
+Job name                  	 solver
+Job identifier            	 167090.cherry
+Working directory is       	 /home/cchen/matrix/fast_PCG2
+Running on host           	 ci-125-13.local
+Start time                	 Thu Feb 15 10:04:00 PST 2018
+
+fspai CPU time is 4340663 us
+thread num is 16
+max iteration is 516 with error 9.962798e-08
+Solver Xeon_phi time is 11327293 us
+iter is 516, Xeon_Phi Gflops is 9.084586
+ 
