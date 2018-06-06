@@ -1,1 +1,1 @@
-/share/apps/gnu/gcc-6.4.0/bin/g++    -fopenmp -O3 -DNDEBUG    CMakeFiles/mtmetis_bin.dir/mtmetis_bin.c.o  -o ../bin/mtmetis -rdynamic ../lib/libmtmetis.a ../lib/libwildriver.a -lz -lm 
+/share/apps/gnu/gcc-4_9-branch/bin/c++    -fopenmp -O3 -DNDEBUG    CMakeFiles/mtmetis_bin.dir/mtmetis_bin.c.o  -o ../bin/mtmetis  -L/share/apps2/intel-2016/compilers_and_libraries_2016.1.150/linux/compiler/lib/intel64_lin -rdynamic ../lib/libmtmetis.a ../lib/libwildriver.a -lz -lm -limf -lsvml -lirng -lipgo -ldecimal -lcilkrts -lirc -lsvml -lirc_s -ldl 

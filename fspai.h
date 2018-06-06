@@ -14,39 +14,62 @@
 
 typedef struct _S
 {
-	int *I;
-	int *J;
+	unsigned int *I;
+	unsigned int *J;
 	float *V;
-	int *I_precond;
-	int *J_precond;
+	unsigned int *I_precond;
+	unsigned int *J_precond;
 	float *V_precond;
-	int maxRowNum;
-	int *numInRow;	
-	int *row_idx;
-	int *numInRowPrecond;
-	int *row_idxPrecond; 
+	unsigned int maxRowNum;
+	unsigned int *numInRow;	
+	unsigned int *row_idx;
+	unsigned int *numInRowPrecond;
+	unsigned int *row_idxPrecond; 
 	float *diag;
-	int colStart;
-	int colEnd;
-	int id;
+	unsigned int colStart;
+	unsigned int colEnd;
+	unsigned int id;
 }S;
 
-void solver(const int dimension, const int totalNum, const int *I, const int *J, const float *V, float *tempCSR,
-			const float *vector_in,float *vector_out, float *bp, float *pk, float *rk, int MAXIter);
+typedef struct _Sort_S{
+	unsigned int idx;
+	float val; 
+}Sort_S;
+
+inline int qs_compare(Sort_S *A, Sort_S *B);
+
+void solver(const unsigned int dimension, const unsigned int totalNum, 
+		const unsigned int *I, const unsigned int *J, 
+		const float *V, float *tempCSR,
+		const float *vector_in, float *vector_out,
+		float *bp, float *pk, float *rk, int MAXIter);
 			
-void insertSort(int *J, float *V, int num, int *outJ, float *outV);
+void insertSort(unsigned int *J, float *V, unsigned int num, unsigned int *outJ, float *outV);
 
-void solverPrecondCOO(const int dimension, const int totalNum, const int *I, const int *J, const float *V, const int totalNumPrecond, const int *I_precond,
-				const int *J_precond, const float *V_precond, const int totalNumPrecondP, const int *I_precondP, const int *J_precondP, const float *V_precondP,
-				const float *y, float *x, const int MAXIter, int *realIter);
+void solverPrecondCOO(const unsigned int dimension, const unsigned int totalNum,
+			const unsigned int *I, const unsigned int *J, 
+			const float *V, const unsigned int totalNumPrecond, 
+			const unsigned int *I_precond,
+			const unsigned int *J_precond, const float *V_precond, 
+			const unsigned int totalNumPrecondP, const unsigned int *I_precondP, 
+			const unsigned int *J_precondP, const float *V_precondP,
+			const float *y, float *x, const unsigned int MAXIter, unsigned int *realIter);
 
-void solverPrecondPhi(const int dimension, const int totalNum, const int *I, const int *J, const float *V, const int totalNumPrecond, const int *I_precond,
-				const int *J_precond, const float *V_precond, const int totalNumPrecondP, const int *I_precondP, const int *J_precondP, const float *V_precondP,
-				const float *y, float *x, const int MAXIter, int *realIter, int rank);
+void solverPrecondPhi(const unsigned int dimension, const unsigned int totalNum, 
+			const unsigned int *I, const unsigned int *J, 
+			const float *V, const unsigned int totalNumPrecond, 
+			const unsigned int *I_precond,
+			const unsigned int *J_precond, const float *V_precond, 
+			const unsigned int totalNumPrecondP, const unsigned int *I_precondP, 
+			const unsigned int *J_precondP, const float *V_precondP,
+			const float *y, float *x, const int MAXIter, 
+			int *realIter, int Rank);
 				
-void formatChange(int dimension, int *numInRow, int *totalNum_1, int *I, int *J, float *V, int **I_1, int **J_1, float **V_1);				
+void formatChange(unsigned int dimension, unsigned int *numInRow, unsigned int *totalNum_1, unsigned int *I, unsigned int *J, float *V, unsigned int **I_1, unsigned int **J_1, float **V_1);				
 
-void solverCPU(const int dimension, const int totalNum, const int *I, const int *J, const float *V, const float *vector_in, 
-			float *vector_out, float *error_track, int MAXIter, int *realIter);	
+void solverCPU(const unsigned int dimension, const unsigned int totalNum, 
+		const unsigned int *I, const unsigned int *J, 
+		const float *V, const float *vector_in, 
+		float *vector_out, float *error_track, int MAXIter, int *realIter);	
 	
 #endif

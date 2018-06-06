@@ -45,10 +45,10 @@ EQUALS = =
 CMAKE_EDIT_COMMAND = /usr/bin/ccmake
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/cchen/matrix/partition/Metis/mt-metis-0.6.0
+CMAKE_SOURCE_DIR = /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64
+CMAKE_BINARY_DIR = /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -116,14 +116,14 @@ rebuild_cache/fast: rebuild_cache
 
 # The main all target
 all: cmake_check_build_system
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(CMAKE_COMMAND) -E cmake_progress_start /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64/CMakeFiles /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64/src/CMakeFiles/progress.marks
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f CMakeFiles/Makefile2 src/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64/CMakeFiles 0
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(CMAKE_COMMAND) -E cmake_progress_start /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64/CMakeFiles /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64/src/CMakeFiles/progress.marks
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f CMakeFiles/Makefile2 src/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
 clean:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f CMakeFiles/Makefile2 src/clean
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f CMakeFiles/Makefile2 src/clean
 .PHONY : clean
 
 # The main clean target
@@ -132,22 +132,22 @@ clean/fast: clean
 
 # Prepare targets for installation.
 preinstall: all
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f CMakeFiles/Makefile2 src/preinstall
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f CMakeFiles/Makefile2 src/preinstall
 .PHONY : preinstall
 
 # Prepare targets for installation.
 preinstall/fast:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f CMakeFiles/Makefile2 src/preinstall
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f CMakeFiles/Makefile2 src/preinstall
 .PHONY : preinstall/fast
 
 # clear depends
 depend:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
 .PHONY : depend
 
 # Convenience name for target.
 src/CMakeFiles/mtmetis.dir/rule:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f CMakeFiles/Makefile2 src/CMakeFiles/mtmetis.dir/rule
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f CMakeFiles/Makefile2 src/CMakeFiles/mtmetis.dir/rule
 .PHONY : src/CMakeFiles/mtmetis.dir/rule
 
 # Convenience name for target.
@@ -156,12 +156,12 @@ mtmetis: src/CMakeFiles/mtmetis.dir/rule
 
 # fast build rule for target.
 mtmetis/fast:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/build
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/build
 .PHONY : mtmetis/fast
 
 # Convenience name for target.
 src/CMakeFiles/mtmetis_bin.dir/rule:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f CMakeFiles/Makefile2 src/CMakeFiles/mtmetis_bin.dir/rule
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f CMakeFiles/Makefile2 src/CMakeFiles/mtmetis_bin.dir/rule
 .PHONY : src/CMakeFiles/mtmetis_bin.dir/rule
 
 # Convenience name for target.
@@ -170,7 +170,7 @@ mtmetis_bin: src/CMakeFiles/mtmetis_bin.dir/rule
 
 # fast build rule for target.
 mtmetis_bin/fast:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis_bin.dir/build.make src/CMakeFiles/mtmetis_bin.dir/build
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis_bin.dir/build.make src/CMakeFiles/mtmetis_bin.dir/build
 .PHONY : mtmetis_bin/fast
 
 __/domlib/dlcmdline.o: __/domlib/dlcmdline.c.o
@@ -178,7 +178,7 @@ __/domlib/dlcmdline.o: __/domlib/dlcmdline.c.o
 
 # target to build an object file
 __/domlib/dlcmdline.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlcmdline.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlcmdline.c.o
 .PHONY : __/domlib/dlcmdline.c.o
 
 __/domlib/dlcmdline.i: __/domlib/dlcmdline.c.i
@@ -186,7 +186,7 @@ __/domlib/dlcmdline.i: __/domlib/dlcmdline.c.i
 
 # target to preprocess a source file
 __/domlib/dlcmdline.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlcmdline.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlcmdline.c.i
 .PHONY : __/domlib/dlcmdline.c.i
 
 __/domlib/dlcmdline.s: __/domlib/dlcmdline.c.s
@@ -194,7 +194,7 @@ __/domlib/dlcmdline.s: __/domlib/dlcmdline.c.s
 
 # target to generate assembly for a file
 __/domlib/dlcmdline.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlcmdline.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlcmdline.c.s
 .PHONY : __/domlib/dlcmdline.c.s
 
 __/domlib/dlenv.o: __/domlib/dlenv.c.o
@@ -202,7 +202,7 @@ __/domlib/dlenv.o: __/domlib/dlenv.c.o
 
 # target to build an object file
 __/domlib/dlenv.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlenv.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlenv.c.o
 .PHONY : __/domlib/dlenv.c.o
 
 __/domlib/dlenv.i: __/domlib/dlenv.c.i
@@ -210,7 +210,7 @@ __/domlib/dlenv.i: __/domlib/dlenv.c.i
 
 # target to preprocess a source file
 __/domlib/dlenv.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlenv.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlenv.c.i
 .PHONY : __/domlib/dlenv.c.i
 
 __/domlib/dlenv.s: __/domlib/dlenv.c.s
@@ -218,7 +218,7 @@ __/domlib/dlenv.s: __/domlib/dlenv.c.s
 
 # target to generate assembly for a file
 __/domlib/dlenv.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlenv.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlenv.c.s
 .PHONY : __/domlib/dlenv.c.s
 
 __/domlib/dlfile.o: __/domlib/dlfile.c.o
@@ -226,7 +226,7 @@ __/domlib/dlfile.o: __/domlib/dlfile.c.o
 
 # target to build an object file
 __/domlib/dlfile.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlfile.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlfile.c.o
 .PHONY : __/domlib/dlfile.c.o
 
 __/domlib/dlfile.i: __/domlib/dlfile.c.i
@@ -234,7 +234,7 @@ __/domlib/dlfile.i: __/domlib/dlfile.c.i
 
 # target to preprocess a source file
 __/domlib/dlfile.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlfile.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlfile.c.i
 .PHONY : __/domlib/dlfile.c.i
 
 __/domlib/dlfile.s: __/domlib/dlfile.c.s
@@ -242,7 +242,7 @@ __/domlib/dlfile.s: __/domlib/dlfile.c.s
 
 # target to generate assembly for a file
 __/domlib/dlfile.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlfile.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlfile.c.s
 .PHONY : __/domlib/dlfile.c.s
 
 __/domlib/dlstring.o: __/domlib/dlstring.c.o
@@ -250,7 +250,7 @@ __/domlib/dlstring.o: __/domlib/dlstring.c.o
 
 # target to build an object file
 __/domlib/dlstring.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlstring.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlstring.c.o
 .PHONY : __/domlib/dlstring.c.o
 
 __/domlib/dlstring.i: __/domlib/dlstring.c.i
@@ -258,7 +258,7 @@ __/domlib/dlstring.i: __/domlib/dlstring.c.i
 
 # target to preprocess a source file
 __/domlib/dlstring.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlstring.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlstring.c.i
 .PHONY : __/domlib/dlstring.c.i
 
 __/domlib/dlstring.s: __/domlib/dlstring.c.s
@@ -266,7 +266,7 @@ __/domlib/dlstring.s: __/domlib/dlstring.c.s
 
 # target to generate assembly for a file
 __/domlib/dlstring.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlstring.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlstring.c.s
 .PHONY : __/domlib/dlstring.c.s
 
 __/domlib/dlterm.o: __/domlib/dlterm.c.o
@@ -274,7 +274,7 @@ __/domlib/dlterm.o: __/domlib/dlterm.c.o
 
 # target to build an object file
 __/domlib/dlterm.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlterm.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlterm.c.o
 .PHONY : __/domlib/dlterm.c.o
 
 __/domlib/dlterm.i: __/domlib/dlterm.c.i
@@ -282,7 +282,7 @@ __/domlib/dlterm.i: __/domlib/dlterm.c.i
 
 # target to preprocess a source file
 __/domlib/dlterm.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlterm.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlterm.c.i
 .PHONY : __/domlib/dlterm.c.i
 
 __/domlib/dlterm.s: __/domlib/dlterm.c.s
@@ -290,7 +290,7 @@ __/domlib/dlterm.s: __/domlib/dlterm.c.s
 
 # target to generate assembly for a file
 __/domlib/dlterm.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlterm.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlterm.c.s
 .PHONY : __/domlib/dlterm.c.s
 
 __/domlib/dlthread.o: __/domlib/dlthread.c.o
@@ -298,7 +298,7 @@ __/domlib/dlthread.o: __/domlib/dlthread.c.o
 
 # target to build an object file
 __/domlib/dlthread.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlthread.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlthread.c.o
 .PHONY : __/domlib/dlthread.c.o
 
 __/domlib/dlthread.i: __/domlib/dlthread.c.i
@@ -306,7 +306,7 @@ __/domlib/dlthread.i: __/domlib/dlthread.c.i
 
 # target to preprocess a source file
 __/domlib/dlthread.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlthread.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlthread.c.i
 .PHONY : __/domlib/dlthread.c.i
 
 __/domlib/dlthread.s: __/domlib/dlthread.c.s
@@ -314,7 +314,7 @@ __/domlib/dlthread.s: __/domlib/dlthread.c.s
 
 # target to generate assembly for a file
 __/domlib/dlthread.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlthread.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlthread.c.s
 .PHONY : __/domlib/dlthread.c.s
 
 __/domlib/dlthread_pool.o: __/domlib/dlthread_pool.c.o
@@ -322,7 +322,7 @@ __/domlib/dlthread_pool.o: __/domlib/dlthread_pool.c.o
 
 # target to build an object file
 __/domlib/dlthread_pool.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlthread_pool.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlthread_pool.c.o
 .PHONY : __/domlib/dlthread_pool.c.o
 
 __/domlib/dlthread_pool.i: __/domlib/dlthread_pool.c.i
@@ -330,7 +330,7 @@ __/domlib/dlthread_pool.i: __/domlib/dlthread_pool.c.i
 
 # target to preprocess a source file
 __/domlib/dlthread_pool.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlthread_pool.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlthread_pool.c.i
 .PHONY : __/domlib/dlthread_pool.c.i
 
 __/domlib/dlthread_pool.s: __/domlib/dlthread_pool.c.s
@@ -338,7 +338,7 @@ __/domlib/dlthread_pool.s: __/domlib/dlthread_pool.c.s
 
 # target to generate assembly for a file
 __/domlib/dlthread_pool.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlthread_pool.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlthread_pool.c.s
 .PHONY : __/domlib/dlthread_pool.c.s
 
 __/domlib/dlutil.o: __/domlib/dlutil.c.o
@@ -346,7 +346,7 @@ __/domlib/dlutil.o: __/domlib/dlutil.c.o
 
 # target to build an object file
 __/domlib/dlutil.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlutil.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlutil.c.o
 .PHONY : __/domlib/dlutil.c.o
 
 __/domlib/dlutil.i: __/domlib/dlutil.c.i
@@ -354,7 +354,7 @@ __/domlib/dlutil.i: __/domlib/dlutil.c.i
 
 # target to preprocess a source file
 __/domlib/dlutil.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlutil.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlutil.c.i
 .PHONY : __/domlib/dlutil.c.i
 
 __/domlib/dlutil.s: __/domlib/dlutil.c.s
@@ -362,7 +362,7 @@ __/domlib/dlutil.s: __/domlib/dlutil.c.s
 
 # target to generate assembly for a file
 __/domlib/dlutil.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlutil.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/dlutil.c.s
 .PHONY : __/domlib/dlutil.c.s
 
 __/domlib/domlib.o: __/domlib/domlib.c.o
@@ -370,7 +370,7 @@ __/domlib/domlib.o: __/domlib/domlib.c.o
 
 # target to build an object file
 __/domlib/domlib.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/domlib.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/domlib.c.o
 .PHONY : __/domlib/domlib.c.o
 
 __/domlib/domlib.i: __/domlib/domlib.c.i
@@ -378,7 +378,7 @@ __/domlib/domlib.i: __/domlib/domlib.c.i
 
 # target to preprocess a source file
 __/domlib/domlib.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/domlib.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/domlib.c.i
 .PHONY : __/domlib/domlib.c.i
 
 __/domlib/domlib.s: __/domlib/domlib.c.s
@@ -386,7 +386,7 @@ __/domlib/domlib.s: __/domlib/domlib.c.s
 
 # target to generate assembly for a file
 __/domlib/domlib.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/domlib.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/domlib/domlib.c.s
 .PHONY : __/domlib/domlib.c.s
 
 __/metis/GKlib/error.o: __/metis/GKlib/error.c.o
@@ -394,7 +394,7 @@ __/metis/GKlib/error.o: __/metis/GKlib/error.c.o
 
 # target to build an object file
 __/metis/GKlib/error.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/error.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/error.c.o
 .PHONY : __/metis/GKlib/error.c.o
 
 __/metis/GKlib/error.i: __/metis/GKlib/error.c.i
@@ -402,7 +402,7 @@ __/metis/GKlib/error.i: __/metis/GKlib/error.c.i
 
 # target to preprocess a source file
 __/metis/GKlib/error.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/error.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/error.c.i
 .PHONY : __/metis/GKlib/error.c.i
 
 __/metis/GKlib/error.s: __/metis/GKlib/error.c.s
@@ -410,7 +410,7 @@ __/metis/GKlib/error.s: __/metis/GKlib/error.c.s
 
 # target to generate assembly for a file
 __/metis/GKlib/error.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/error.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/error.c.s
 .PHONY : __/metis/GKlib/error.c.s
 
 __/metis/GKlib/fs.o: __/metis/GKlib/fs.c.o
@@ -418,7 +418,7 @@ __/metis/GKlib/fs.o: __/metis/GKlib/fs.c.o
 
 # target to build an object file
 __/metis/GKlib/fs.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/fs.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/fs.c.o
 .PHONY : __/metis/GKlib/fs.c.o
 
 __/metis/GKlib/fs.i: __/metis/GKlib/fs.c.i
@@ -426,7 +426,7 @@ __/metis/GKlib/fs.i: __/metis/GKlib/fs.c.i
 
 # target to preprocess a source file
 __/metis/GKlib/fs.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/fs.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/fs.c.i
 .PHONY : __/metis/GKlib/fs.c.i
 
 __/metis/GKlib/fs.s: __/metis/GKlib/fs.c.s
@@ -434,7 +434,7 @@ __/metis/GKlib/fs.s: __/metis/GKlib/fs.c.s
 
 # target to generate assembly for a file
 __/metis/GKlib/fs.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/fs.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/fs.c.s
 .PHONY : __/metis/GKlib/fs.c.s
 
 __/metis/GKlib/gk_util.o: __/metis/GKlib/gk_util.c.o
@@ -442,7 +442,7 @@ __/metis/GKlib/gk_util.o: __/metis/GKlib/gk_util.c.o
 
 # target to build an object file
 __/metis/GKlib/gk_util.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/gk_util.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/gk_util.c.o
 .PHONY : __/metis/GKlib/gk_util.c.o
 
 __/metis/GKlib/gk_util.i: __/metis/GKlib/gk_util.c.i
@@ -450,7 +450,7 @@ __/metis/GKlib/gk_util.i: __/metis/GKlib/gk_util.c.i
 
 # target to preprocess a source file
 __/metis/GKlib/gk_util.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/gk_util.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/gk_util.c.i
 .PHONY : __/metis/GKlib/gk_util.c.i
 
 __/metis/GKlib/gk_util.s: __/metis/GKlib/gk_util.c.s
@@ -458,7 +458,7 @@ __/metis/GKlib/gk_util.s: __/metis/GKlib/gk_util.c.s
 
 # target to generate assembly for a file
 __/metis/GKlib/gk_util.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/gk_util.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/gk_util.c.s
 .PHONY : __/metis/GKlib/gk_util.c.s
 
 __/metis/GKlib/io.o: __/metis/GKlib/io.c.o
@@ -466,7 +466,7 @@ __/metis/GKlib/io.o: __/metis/GKlib/io.c.o
 
 # target to build an object file
 __/metis/GKlib/io.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/io.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/io.c.o
 .PHONY : __/metis/GKlib/io.c.o
 
 __/metis/GKlib/io.i: __/metis/GKlib/io.c.i
@@ -474,7 +474,7 @@ __/metis/GKlib/io.i: __/metis/GKlib/io.c.i
 
 # target to preprocess a source file
 __/metis/GKlib/io.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/io.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/io.c.i
 .PHONY : __/metis/GKlib/io.c.i
 
 __/metis/GKlib/io.s: __/metis/GKlib/io.c.s
@@ -482,7 +482,7 @@ __/metis/GKlib/io.s: __/metis/GKlib/io.c.s
 
 # target to generate assembly for a file
 __/metis/GKlib/io.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/io.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/io.c.s
 .PHONY : __/metis/GKlib/io.c.s
 
 __/metis/GKlib/mcore.o: __/metis/GKlib/mcore.c.o
@@ -490,7 +490,7 @@ __/metis/GKlib/mcore.o: __/metis/GKlib/mcore.c.o
 
 # target to build an object file
 __/metis/GKlib/mcore.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/mcore.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/mcore.c.o
 .PHONY : __/metis/GKlib/mcore.c.o
 
 __/metis/GKlib/mcore.i: __/metis/GKlib/mcore.c.i
@@ -498,7 +498,7 @@ __/metis/GKlib/mcore.i: __/metis/GKlib/mcore.c.i
 
 # target to preprocess a source file
 __/metis/GKlib/mcore.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/mcore.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/mcore.c.i
 .PHONY : __/metis/GKlib/mcore.c.i
 
 __/metis/GKlib/mcore.s: __/metis/GKlib/mcore.c.s
@@ -506,7 +506,7 @@ __/metis/GKlib/mcore.s: __/metis/GKlib/mcore.c.s
 
 # target to generate assembly for a file
 __/metis/GKlib/mcore.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/mcore.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/mcore.c.s
 .PHONY : __/metis/GKlib/mcore.c.s
 
 __/metis/GKlib/memory.o: __/metis/GKlib/memory.c.o
@@ -514,7 +514,7 @@ __/metis/GKlib/memory.o: __/metis/GKlib/memory.c.o
 
 # target to build an object file
 __/metis/GKlib/memory.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/memory.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/memory.c.o
 .PHONY : __/metis/GKlib/memory.c.o
 
 __/metis/GKlib/memory.i: __/metis/GKlib/memory.c.i
@@ -522,7 +522,7 @@ __/metis/GKlib/memory.i: __/metis/GKlib/memory.c.i
 
 # target to preprocess a source file
 __/metis/GKlib/memory.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/memory.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/memory.c.i
 .PHONY : __/metis/GKlib/memory.c.i
 
 __/metis/GKlib/memory.s: __/metis/GKlib/memory.c.s
@@ -530,7 +530,7 @@ __/metis/GKlib/memory.s: __/metis/GKlib/memory.c.s
 
 # target to generate assembly for a file
 __/metis/GKlib/memory.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/memory.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/memory.c.s
 .PHONY : __/metis/GKlib/memory.c.s
 
 __/metis/GKlib/random.o: __/metis/GKlib/random.c.o
@@ -538,7 +538,7 @@ __/metis/GKlib/random.o: __/metis/GKlib/random.c.o
 
 # target to build an object file
 __/metis/GKlib/random.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/random.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/random.c.o
 .PHONY : __/metis/GKlib/random.c.o
 
 __/metis/GKlib/random.i: __/metis/GKlib/random.c.i
@@ -546,7 +546,7 @@ __/metis/GKlib/random.i: __/metis/GKlib/random.c.i
 
 # target to preprocess a source file
 __/metis/GKlib/random.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/random.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/random.c.i
 .PHONY : __/metis/GKlib/random.c.i
 
 __/metis/GKlib/random.s: __/metis/GKlib/random.c.s
@@ -554,7 +554,7 @@ __/metis/GKlib/random.s: __/metis/GKlib/random.c.s
 
 # target to generate assembly for a file
 __/metis/GKlib/random.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/random.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/random.c.s
 .PHONY : __/metis/GKlib/random.c.s
 
 __/metis/GKlib/string.o: __/metis/GKlib/string.c.o
@@ -562,7 +562,7 @@ __/metis/GKlib/string.o: __/metis/GKlib/string.c.o
 
 # target to build an object file
 __/metis/GKlib/string.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/string.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/string.c.o
 .PHONY : __/metis/GKlib/string.c.o
 
 __/metis/GKlib/string.i: __/metis/GKlib/string.c.i
@@ -570,7 +570,7 @@ __/metis/GKlib/string.i: __/metis/GKlib/string.c.i
 
 # target to preprocess a source file
 __/metis/GKlib/string.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/string.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/string.c.i
 .PHONY : __/metis/GKlib/string.c.i
 
 __/metis/GKlib/string.s: __/metis/GKlib/string.c.s
@@ -578,7 +578,7 @@ __/metis/GKlib/string.s: __/metis/GKlib/string.c.s
 
 # target to generate assembly for a file
 __/metis/GKlib/string.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/string.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/string.c.s
 .PHONY : __/metis/GKlib/string.c.s
 
 __/metis/GKlib/timers.o: __/metis/GKlib/timers.c.o
@@ -586,7 +586,7 @@ __/metis/GKlib/timers.o: __/metis/GKlib/timers.c.o
 
 # target to build an object file
 __/metis/GKlib/timers.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/timers.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/timers.c.o
 .PHONY : __/metis/GKlib/timers.c.o
 
 __/metis/GKlib/timers.i: __/metis/GKlib/timers.c.i
@@ -594,7 +594,7 @@ __/metis/GKlib/timers.i: __/metis/GKlib/timers.c.i
 
 # target to preprocess a source file
 __/metis/GKlib/timers.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/timers.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/timers.c.i
 .PHONY : __/metis/GKlib/timers.c.i
 
 __/metis/GKlib/timers.s: __/metis/GKlib/timers.c.s
@@ -602,7 +602,7 @@ __/metis/GKlib/timers.s: __/metis/GKlib/timers.c.s
 
 # target to generate assembly for a file
 __/metis/GKlib/timers.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/timers.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/GKlib/timers.c.s
 .PHONY : __/metis/GKlib/timers.c.s
 
 __/metis/libmetis/auxapi.o: __/metis/libmetis/auxapi.c.o
@@ -610,7 +610,7 @@ __/metis/libmetis/auxapi.o: __/metis/libmetis/auxapi.c.o
 
 # target to build an object file
 __/metis/libmetis/auxapi.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/auxapi.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/auxapi.c.o
 .PHONY : __/metis/libmetis/auxapi.c.o
 
 __/metis/libmetis/auxapi.i: __/metis/libmetis/auxapi.c.i
@@ -618,7 +618,7 @@ __/metis/libmetis/auxapi.i: __/metis/libmetis/auxapi.c.i
 
 # target to preprocess a source file
 __/metis/libmetis/auxapi.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/auxapi.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/auxapi.c.i
 .PHONY : __/metis/libmetis/auxapi.c.i
 
 __/metis/libmetis/auxapi.s: __/metis/libmetis/auxapi.c.s
@@ -626,7 +626,7 @@ __/metis/libmetis/auxapi.s: __/metis/libmetis/auxapi.c.s
 
 # target to generate assembly for a file
 __/metis/libmetis/auxapi.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/auxapi.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/auxapi.c.s
 .PHONY : __/metis/libmetis/auxapi.c.s
 
 __/metis/libmetis/balance.o: __/metis/libmetis/balance.c.o
@@ -634,7 +634,7 @@ __/metis/libmetis/balance.o: __/metis/libmetis/balance.c.o
 
 # target to build an object file
 __/metis/libmetis/balance.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/balance.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/balance.c.o
 .PHONY : __/metis/libmetis/balance.c.o
 
 __/metis/libmetis/balance.i: __/metis/libmetis/balance.c.i
@@ -642,7 +642,7 @@ __/metis/libmetis/balance.i: __/metis/libmetis/balance.c.i
 
 # target to preprocess a source file
 __/metis/libmetis/balance.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/balance.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/balance.c.i
 .PHONY : __/metis/libmetis/balance.c.i
 
 __/metis/libmetis/balance.s: __/metis/libmetis/balance.c.s
@@ -650,7 +650,7 @@ __/metis/libmetis/balance.s: __/metis/libmetis/balance.c.s
 
 # target to generate assembly for a file
 __/metis/libmetis/balance.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/balance.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/balance.c.s
 .PHONY : __/metis/libmetis/balance.c.s
 
 __/metis/libmetis/bucketsort.o: __/metis/libmetis/bucketsort.c.o
@@ -658,7 +658,7 @@ __/metis/libmetis/bucketsort.o: __/metis/libmetis/bucketsort.c.o
 
 # target to build an object file
 __/metis/libmetis/bucketsort.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/bucketsort.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/bucketsort.c.o
 .PHONY : __/metis/libmetis/bucketsort.c.o
 
 __/metis/libmetis/bucketsort.i: __/metis/libmetis/bucketsort.c.i
@@ -666,7 +666,7 @@ __/metis/libmetis/bucketsort.i: __/metis/libmetis/bucketsort.c.i
 
 # target to preprocess a source file
 __/metis/libmetis/bucketsort.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/bucketsort.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/bucketsort.c.i
 .PHONY : __/metis/libmetis/bucketsort.c.i
 
 __/metis/libmetis/bucketsort.s: __/metis/libmetis/bucketsort.c.s
@@ -674,7 +674,7 @@ __/metis/libmetis/bucketsort.s: __/metis/libmetis/bucketsort.c.s
 
 # target to generate assembly for a file
 __/metis/libmetis/bucketsort.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/bucketsort.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/bucketsort.c.s
 .PHONY : __/metis/libmetis/bucketsort.c.s
 
 __/metis/libmetis/checkgraph.o: __/metis/libmetis/checkgraph.c.o
@@ -682,7 +682,7 @@ __/metis/libmetis/checkgraph.o: __/metis/libmetis/checkgraph.c.o
 
 # target to build an object file
 __/metis/libmetis/checkgraph.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/checkgraph.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/checkgraph.c.o
 .PHONY : __/metis/libmetis/checkgraph.c.o
 
 __/metis/libmetis/checkgraph.i: __/metis/libmetis/checkgraph.c.i
@@ -690,7 +690,7 @@ __/metis/libmetis/checkgraph.i: __/metis/libmetis/checkgraph.c.i
 
 # target to preprocess a source file
 __/metis/libmetis/checkgraph.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/checkgraph.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/checkgraph.c.i
 .PHONY : __/metis/libmetis/checkgraph.c.i
 
 __/metis/libmetis/checkgraph.s: __/metis/libmetis/checkgraph.c.s
@@ -698,7 +698,7 @@ __/metis/libmetis/checkgraph.s: __/metis/libmetis/checkgraph.c.s
 
 # target to generate assembly for a file
 __/metis/libmetis/checkgraph.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/checkgraph.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/checkgraph.c.s
 .PHONY : __/metis/libmetis/checkgraph.c.s
 
 __/metis/libmetis/coarsen.o: __/metis/libmetis/coarsen.c.o
@@ -706,7 +706,7 @@ __/metis/libmetis/coarsen.o: __/metis/libmetis/coarsen.c.o
 
 # target to build an object file
 __/metis/libmetis/coarsen.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/coarsen.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/coarsen.c.o
 .PHONY : __/metis/libmetis/coarsen.c.o
 
 __/metis/libmetis/coarsen.i: __/metis/libmetis/coarsen.c.i
@@ -714,7 +714,7 @@ __/metis/libmetis/coarsen.i: __/metis/libmetis/coarsen.c.i
 
 # target to preprocess a source file
 __/metis/libmetis/coarsen.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/coarsen.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/coarsen.c.i
 .PHONY : __/metis/libmetis/coarsen.c.i
 
 __/metis/libmetis/coarsen.s: __/metis/libmetis/coarsen.c.s
@@ -722,7 +722,7 @@ __/metis/libmetis/coarsen.s: __/metis/libmetis/coarsen.c.s
 
 # target to generate assembly for a file
 __/metis/libmetis/coarsen.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/coarsen.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/coarsen.c.s
 .PHONY : __/metis/libmetis/coarsen.c.s
 
 __/metis/libmetis/compress.o: __/metis/libmetis/compress.c.o
@@ -730,7 +730,7 @@ __/metis/libmetis/compress.o: __/metis/libmetis/compress.c.o
 
 # target to build an object file
 __/metis/libmetis/compress.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/compress.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/compress.c.o
 .PHONY : __/metis/libmetis/compress.c.o
 
 __/metis/libmetis/compress.i: __/metis/libmetis/compress.c.i
@@ -738,7 +738,7 @@ __/metis/libmetis/compress.i: __/metis/libmetis/compress.c.i
 
 # target to preprocess a source file
 __/metis/libmetis/compress.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/compress.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/compress.c.i
 .PHONY : __/metis/libmetis/compress.c.i
 
 __/metis/libmetis/compress.s: __/metis/libmetis/compress.c.s
@@ -746,7 +746,7 @@ __/metis/libmetis/compress.s: __/metis/libmetis/compress.c.s
 
 # target to generate assembly for a file
 __/metis/libmetis/compress.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/compress.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/compress.c.s
 .PHONY : __/metis/libmetis/compress.c.s
 
 __/metis/libmetis/contig.o: __/metis/libmetis/contig.c.o
@@ -754,7 +754,7 @@ __/metis/libmetis/contig.o: __/metis/libmetis/contig.c.o
 
 # target to build an object file
 __/metis/libmetis/contig.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/contig.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/contig.c.o
 .PHONY : __/metis/libmetis/contig.c.o
 
 __/metis/libmetis/contig.i: __/metis/libmetis/contig.c.i
@@ -762,7 +762,7 @@ __/metis/libmetis/contig.i: __/metis/libmetis/contig.c.i
 
 # target to preprocess a source file
 __/metis/libmetis/contig.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/contig.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/contig.c.i
 .PHONY : __/metis/libmetis/contig.c.i
 
 __/metis/libmetis/contig.s: __/metis/libmetis/contig.c.s
@@ -770,7 +770,7 @@ __/metis/libmetis/contig.s: __/metis/libmetis/contig.c.s
 
 # target to generate assembly for a file
 __/metis/libmetis/contig.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/contig.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/contig.c.s
 .PHONY : __/metis/libmetis/contig.c.s
 
 __/metis/libmetis/debug.o: __/metis/libmetis/debug.c.o
@@ -778,7 +778,7 @@ __/metis/libmetis/debug.o: __/metis/libmetis/debug.c.o
 
 # target to build an object file
 __/metis/libmetis/debug.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/debug.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/debug.c.o
 .PHONY : __/metis/libmetis/debug.c.o
 
 __/metis/libmetis/debug.i: __/metis/libmetis/debug.c.i
@@ -786,7 +786,7 @@ __/metis/libmetis/debug.i: __/metis/libmetis/debug.c.i
 
 # target to preprocess a source file
 __/metis/libmetis/debug.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/debug.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/debug.c.i
 .PHONY : __/metis/libmetis/debug.c.i
 
 __/metis/libmetis/debug.s: __/metis/libmetis/debug.c.s
@@ -794,7 +794,7 @@ __/metis/libmetis/debug.s: __/metis/libmetis/debug.c.s
 
 # target to generate assembly for a file
 __/metis/libmetis/debug.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/debug.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/debug.c.s
 .PHONY : __/metis/libmetis/debug.c.s
 
 __/metis/libmetis/fm.o: __/metis/libmetis/fm.c.o
@@ -802,7 +802,7 @@ __/metis/libmetis/fm.o: __/metis/libmetis/fm.c.o
 
 # target to build an object file
 __/metis/libmetis/fm.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/fm.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/fm.c.o
 .PHONY : __/metis/libmetis/fm.c.o
 
 __/metis/libmetis/fm.i: __/metis/libmetis/fm.c.i
@@ -810,7 +810,7 @@ __/metis/libmetis/fm.i: __/metis/libmetis/fm.c.i
 
 # target to preprocess a source file
 __/metis/libmetis/fm.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/fm.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/fm.c.i
 .PHONY : __/metis/libmetis/fm.c.i
 
 __/metis/libmetis/fm.s: __/metis/libmetis/fm.c.s
@@ -818,7 +818,7 @@ __/metis/libmetis/fm.s: __/metis/libmetis/fm.c.s
 
 # target to generate assembly for a file
 __/metis/libmetis/fm.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/fm.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/fm.c.s
 .PHONY : __/metis/libmetis/fm.c.s
 
 __/metis/libmetis/fortran.o: __/metis/libmetis/fortran.c.o
@@ -826,7 +826,7 @@ __/metis/libmetis/fortran.o: __/metis/libmetis/fortran.c.o
 
 # target to build an object file
 __/metis/libmetis/fortran.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/fortran.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/fortran.c.o
 .PHONY : __/metis/libmetis/fortran.c.o
 
 __/metis/libmetis/fortran.i: __/metis/libmetis/fortran.c.i
@@ -834,7 +834,7 @@ __/metis/libmetis/fortran.i: __/metis/libmetis/fortran.c.i
 
 # target to preprocess a source file
 __/metis/libmetis/fortran.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/fortran.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/fortran.c.i
 .PHONY : __/metis/libmetis/fortran.c.i
 
 __/metis/libmetis/fortran.s: __/metis/libmetis/fortran.c.s
@@ -842,7 +842,7 @@ __/metis/libmetis/fortran.s: __/metis/libmetis/fortran.c.s
 
 # target to generate assembly for a file
 __/metis/libmetis/fortran.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/fortran.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/fortran.c.s
 .PHONY : __/metis/libmetis/fortran.c.s
 
 __/metis/libmetis/gklib.o: __/metis/libmetis/gklib.c.o
@@ -850,7 +850,7 @@ __/metis/libmetis/gklib.o: __/metis/libmetis/gklib.c.o
 
 # target to build an object file
 __/metis/libmetis/gklib.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/gklib.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/gklib.c.o
 .PHONY : __/metis/libmetis/gklib.c.o
 
 __/metis/libmetis/gklib.i: __/metis/libmetis/gklib.c.i
@@ -858,7 +858,7 @@ __/metis/libmetis/gklib.i: __/metis/libmetis/gklib.c.i
 
 # target to preprocess a source file
 __/metis/libmetis/gklib.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/gklib.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/gklib.c.i
 .PHONY : __/metis/libmetis/gklib.c.i
 
 __/metis/libmetis/gklib.s: __/metis/libmetis/gklib.c.s
@@ -866,7 +866,7 @@ __/metis/libmetis/gklib.s: __/metis/libmetis/gklib.c.s
 
 # target to generate assembly for a file
 __/metis/libmetis/gklib.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/gklib.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/gklib.c.s
 .PHONY : __/metis/libmetis/gklib.c.s
 
 __/metis/libmetis/graph.o: __/metis/libmetis/graph.c.o
@@ -874,7 +874,7 @@ __/metis/libmetis/graph.o: __/metis/libmetis/graph.c.o
 
 # target to build an object file
 __/metis/libmetis/graph.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/graph.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/graph.c.o
 .PHONY : __/metis/libmetis/graph.c.o
 
 __/metis/libmetis/graph.i: __/metis/libmetis/graph.c.i
@@ -882,7 +882,7 @@ __/metis/libmetis/graph.i: __/metis/libmetis/graph.c.i
 
 # target to preprocess a source file
 __/metis/libmetis/graph.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/graph.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/graph.c.i
 .PHONY : __/metis/libmetis/graph.c.i
 
 __/metis/libmetis/graph.s: __/metis/libmetis/graph.c.s
@@ -890,7 +890,7 @@ __/metis/libmetis/graph.s: __/metis/libmetis/graph.c.s
 
 # target to generate assembly for a file
 __/metis/libmetis/graph.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/graph.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/graph.c.s
 .PHONY : __/metis/libmetis/graph.c.s
 
 __/metis/libmetis/initpart.o: __/metis/libmetis/initpart.c.o
@@ -898,7 +898,7 @@ __/metis/libmetis/initpart.o: __/metis/libmetis/initpart.c.o
 
 # target to build an object file
 __/metis/libmetis/initpart.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/initpart.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/initpart.c.o
 .PHONY : __/metis/libmetis/initpart.c.o
 
 __/metis/libmetis/initpart.i: __/metis/libmetis/initpart.c.i
@@ -906,7 +906,7 @@ __/metis/libmetis/initpart.i: __/metis/libmetis/initpart.c.i
 
 # target to preprocess a source file
 __/metis/libmetis/initpart.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/initpart.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/initpart.c.i
 .PHONY : __/metis/libmetis/initpart.c.i
 
 __/metis/libmetis/initpart.s: __/metis/libmetis/initpart.c.s
@@ -914,7 +914,7 @@ __/metis/libmetis/initpart.s: __/metis/libmetis/initpart.c.s
 
 # target to generate assembly for a file
 __/metis/libmetis/initpart.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/initpart.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/initpart.c.s
 .PHONY : __/metis/libmetis/initpart.c.s
 
 __/metis/libmetis/kmetis.o: __/metis/libmetis/kmetis.c.o
@@ -922,7 +922,7 @@ __/metis/libmetis/kmetis.o: __/metis/libmetis/kmetis.c.o
 
 # target to build an object file
 __/metis/libmetis/kmetis.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/kmetis.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/kmetis.c.o
 .PHONY : __/metis/libmetis/kmetis.c.o
 
 __/metis/libmetis/kmetis.i: __/metis/libmetis/kmetis.c.i
@@ -930,7 +930,7 @@ __/metis/libmetis/kmetis.i: __/metis/libmetis/kmetis.c.i
 
 # target to preprocess a source file
 __/metis/libmetis/kmetis.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/kmetis.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/kmetis.c.i
 .PHONY : __/metis/libmetis/kmetis.c.i
 
 __/metis/libmetis/kmetis.s: __/metis/libmetis/kmetis.c.s
@@ -938,7 +938,7 @@ __/metis/libmetis/kmetis.s: __/metis/libmetis/kmetis.c.s
 
 # target to generate assembly for a file
 __/metis/libmetis/kmetis.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/kmetis.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/kmetis.c.s
 .PHONY : __/metis/libmetis/kmetis.c.s
 
 __/metis/libmetis/kwayfm.o: __/metis/libmetis/kwayfm.c.o
@@ -946,7 +946,7 @@ __/metis/libmetis/kwayfm.o: __/metis/libmetis/kwayfm.c.o
 
 # target to build an object file
 __/metis/libmetis/kwayfm.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/kwayfm.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/kwayfm.c.o
 .PHONY : __/metis/libmetis/kwayfm.c.o
 
 __/metis/libmetis/kwayfm.i: __/metis/libmetis/kwayfm.c.i
@@ -954,7 +954,7 @@ __/metis/libmetis/kwayfm.i: __/metis/libmetis/kwayfm.c.i
 
 # target to preprocess a source file
 __/metis/libmetis/kwayfm.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/kwayfm.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/kwayfm.c.i
 .PHONY : __/metis/libmetis/kwayfm.c.i
 
 __/metis/libmetis/kwayfm.s: __/metis/libmetis/kwayfm.c.s
@@ -962,7 +962,7 @@ __/metis/libmetis/kwayfm.s: __/metis/libmetis/kwayfm.c.s
 
 # target to generate assembly for a file
 __/metis/libmetis/kwayfm.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/kwayfm.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/kwayfm.c.s
 .PHONY : __/metis/libmetis/kwayfm.c.s
 
 __/metis/libmetis/kwayrefine.o: __/metis/libmetis/kwayrefine.c.o
@@ -970,7 +970,7 @@ __/metis/libmetis/kwayrefine.o: __/metis/libmetis/kwayrefine.c.o
 
 # target to build an object file
 __/metis/libmetis/kwayrefine.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/kwayrefine.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/kwayrefine.c.o
 .PHONY : __/metis/libmetis/kwayrefine.c.o
 
 __/metis/libmetis/kwayrefine.i: __/metis/libmetis/kwayrefine.c.i
@@ -978,7 +978,7 @@ __/metis/libmetis/kwayrefine.i: __/metis/libmetis/kwayrefine.c.i
 
 # target to preprocess a source file
 __/metis/libmetis/kwayrefine.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/kwayrefine.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/kwayrefine.c.i
 .PHONY : __/metis/libmetis/kwayrefine.c.i
 
 __/metis/libmetis/kwayrefine.s: __/metis/libmetis/kwayrefine.c.s
@@ -986,7 +986,7 @@ __/metis/libmetis/kwayrefine.s: __/metis/libmetis/kwayrefine.c.s
 
 # target to generate assembly for a file
 __/metis/libmetis/kwayrefine.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/kwayrefine.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/kwayrefine.c.s
 .PHONY : __/metis/libmetis/kwayrefine.c.s
 
 __/metis/libmetis/mcutil.o: __/metis/libmetis/mcutil.c.o
@@ -994,7 +994,7 @@ __/metis/libmetis/mcutil.o: __/metis/libmetis/mcutil.c.o
 
 # target to build an object file
 __/metis/libmetis/mcutil.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/mcutil.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/mcutil.c.o
 .PHONY : __/metis/libmetis/mcutil.c.o
 
 __/metis/libmetis/mcutil.i: __/metis/libmetis/mcutil.c.i
@@ -1002,7 +1002,7 @@ __/metis/libmetis/mcutil.i: __/metis/libmetis/mcutil.c.i
 
 # target to preprocess a source file
 __/metis/libmetis/mcutil.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/mcutil.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/mcutil.c.i
 .PHONY : __/metis/libmetis/mcutil.c.i
 
 __/metis/libmetis/mcutil.s: __/metis/libmetis/mcutil.c.s
@@ -1010,7 +1010,7 @@ __/metis/libmetis/mcutil.s: __/metis/libmetis/mcutil.c.s
 
 # target to generate assembly for a file
 __/metis/libmetis/mcutil.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/mcutil.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/mcutil.c.s
 .PHONY : __/metis/libmetis/mcutil.c.s
 
 __/metis/libmetis/minconn.o: __/metis/libmetis/minconn.c.o
@@ -1018,7 +1018,7 @@ __/metis/libmetis/minconn.o: __/metis/libmetis/minconn.c.o
 
 # target to build an object file
 __/metis/libmetis/minconn.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/minconn.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/minconn.c.o
 .PHONY : __/metis/libmetis/minconn.c.o
 
 __/metis/libmetis/minconn.i: __/metis/libmetis/minconn.c.i
@@ -1026,7 +1026,7 @@ __/metis/libmetis/minconn.i: __/metis/libmetis/minconn.c.i
 
 # target to preprocess a source file
 __/metis/libmetis/minconn.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/minconn.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/minconn.c.i
 .PHONY : __/metis/libmetis/minconn.c.i
 
 __/metis/libmetis/minconn.s: __/metis/libmetis/minconn.c.s
@@ -1034,7 +1034,7 @@ __/metis/libmetis/minconn.s: __/metis/libmetis/minconn.c.s
 
 # target to generate assembly for a file
 __/metis/libmetis/minconn.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/minconn.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/minconn.c.s
 .PHONY : __/metis/libmetis/minconn.c.s
 
 __/metis/libmetis/mincover.o: __/metis/libmetis/mincover.c.o
@@ -1042,7 +1042,7 @@ __/metis/libmetis/mincover.o: __/metis/libmetis/mincover.c.o
 
 # target to build an object file
 __/metis/libmetis/mincover.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/mincover.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/mincover.c.o
 .PHONY : __/metis/libmetis/mincover.c.o
 
 __/metis/libmetis/mincover.i: __/metis/libmetis/mincover.c.i
@@ -1050,7 +1050,7 @@ __/metis/libmetis/mincover.i: __/metis/libmetis/mincover.c.i
 
 # target to preprocess a source file
 __/metis/libmetis/mincover.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/mincover.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/mincover.c.i
 .PHONY : __/metis/libmetis/mincover.c.i
 
 __/metis/libmetis/mincover.s: __/metis/libmetis/mincover.c.s
@@ -1058,7 +1058,7 @@ __/metis/libmetis/mincover.s: __/metis/libmetis/mincover.c.s
 
 # target to generate assembly for a file
 __/metis/libmetis/mincover.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/mincover.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/mincover.c.s
 .PHONY : __/metis/libmetis/mincover.c.s
 
 __/metis/libmetis/mmd.o: __/metis/libmetis/mmd.c.o
@@ -1066,7 +1066,7 @@ __/metis/libmetis/mmd.o: __/metis/libmetis/mmd.c.o
 
 # target to build an object file
 __/metis/libmetis/mmd.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/mmd.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/mmd.c.o
 .PHONY : __/metis/libmetis/mmd.c.o
 
 __/metis/libmetis/mmd.i: __/metis/libmetis/mmd.c.i
@@ -1074,7 +1074,7 @@ __/metis/libmetis/mmd.i: __/metis/libmetis/mmd.c.i
 
 # target to preprocess a source file
 __/metis/libmetis/mmd.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/mmd.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/mmd.c.i
 .PHONY : __/metis/libmetis/mmd.c.i
 
 __/metis/libmetis/mmd.s: __/metis/libmetis/mmd.c.s
@@ -1082,7 +1082,7 @@ __/metis/libmetis/mmd.s: __/metis/libmetis/mmd.c.s
 
 # target to generate assembly for a file
 __/metis/libmetis/mmd.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/mmd.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/mmd.c.s
 .PHONY : __/metis/libmetis/mmd.c.s
 
 __/metis/libmetis/ometis.o: __/metis/libmetis/ometis.c.o
@@ -1090,7 +1090,7 @@ __/metis/libmetis/ometis.o: __/metis/libmetis/ometis.c.o
 
 # target to build an object file
 __/metis/libmetis/ometis.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/ometis.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/ometis.c.o
 .PHONY : __/metis/libmetis/ometis.c.o
 
 __/metis/libmetis/ometis.i: __/metis/libmetis/ometis.c.i
@@ -1098,7 +1098,7 @@ __/metis/libmetis/ometis.i: __/metis/libmetis/ometis.c.i
 
 # target to preprocess a source file
 __/metis/libmetis/ometis.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/ometis.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/ometis.c.i
 .PHONY : __/metis/libmetis/ometis.c.i
 
 __/metis/libmetis/ometis.s: __/metis/libmetis/ometis.c.s
@@ -1106,7 +1106,7 @@ __/metis/libmetis/ometis.s: __/metis/libmetis/ometis.c.s
 
 # target to generate assembly for a file
 __/metis/libmetis/ometis.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/ometis.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/ometis.c.s
 .PHONY : __/metis/libmetis/ometis.c.s
 
 __/metis/libmetis/options.o: __/metis/libmetis/options.c.o
@@ -1114,7 +1114,7 @@ __/metis/libmetis/options.o: __/metis/libmetis/options.c.o
 
 # target to build an object file
 __/metis/libmetis/options.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/options.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/options.c.o
 .PHONY : __/metis/libmetis/options.c.o
 
 __/metis/libmetis/options.i: __/metis/libmetis/options.c.i
@@ -1122,7 +1122,7 @@ __/metis/libmetis/options.i: __/metis/libmetis/options.c.i
 
 # target to preprocess a source file
 __/metis/libmetis/options.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/options.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/options.c.i
 .PHONY : __/metis/libmetis/options.c.i
 
 __/metis/libmetis/options.s: __/metis/libmetis/options.c.s
@@ -1130,7 +1130,7 @@ __/metis/libmetis/options.s: __/metis/libmetis/options.c.s
 
 # target to generate assembly for a file
 __/metis/libmetis/options.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/options.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/options.c.s
 .PHONY : __/metis/libmetis/options.c.s
 
 __/metis/libmetis/parmetis.o: __/metis/libmetis/parmetis.c.o
@@ -1138,7 +1138,7 @@ __/metis/libmetis/parmetis.o: __/metis/libmetis/parmetis.c.o
 
 # target to build an object file
 __/metis/libmetis/parmetis.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/parmetis.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/parmetis.c.o
 .PHONY : __/metis/libmetis/parmetis.c.o
 
 __/metis/libmetis/parmetis.i: __/metis/libmetis/parmetis.c.i
@@ -1146,7 +1146,7 @@ __/metis/libmetis/parmetis.i: __/metis/libmetis/parmetis.c.i
 
 # target to preprocess a source file
 __/metis/libmetis/parmetis.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/parmetis.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/parmetis.c.i
 .PHONY : __/metis/libmetis/parmetis.c.i
 
 __/metis/libmetis/parmetis.s: __/metis/libmetis/parmetis.c.s
@@ -1154,7 +1154,7 @@ __/metis/libmetis/parmetis.s: __/metis/libmetis/parmetis.c.s
 
 # target to generate assembly for a file
 __/metis/libmetis/parmetis.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/parmetis.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/parmetis.c.s
 .PHONY : __/metis/libmetis/parmetis.c.s
 
 __/metis/libmetis/pmetis.o: __/metis/libmetis/pmetis.c.o
@@ -1162,7 +1162,7 @@ __/metis/libmetis/pmetis.o: __/metis/libmetis/pmetis.c.o
 
 # target to build an object file
 __/metis/libmetis/pmetis.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/pmetis.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/pmetis.c.o
 .PHONY : __/metis/libmetis/pmetis.c.o
 
 __/metis/libmetis/pmetis.i: __/metis/libmetis/pmetis.c.i
@@ -1170,7 +1170,7 @@ __/metis/libmetis/pmetis.i: __/metis/libmetis/pmetis.c.i
 
 # target to preprocess a source file
 __/metis/libmetis/pmetis.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/pmetis.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/pmetis.c.i
 .PHONY : __/metis/libmetis/pmetis.c.i
 
 __/metis/libmetis/pmetis.s: __/metis/libmetis/pmetis.c.s
@@ -1178,7 +1178,7 @@ __/metis/libmetis/pmetis.s: __/metis/libmetis/pmetis.c.s
 
 # target to generate assembly for a file
 __/metis/libmetis/pmetis.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/pmetis.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/pmetis.c.s
 .PHONY : __/metis/libmetis/pmetis.c.s
 
 __/metis/libmetis/refine.o: __/metis/libmetis/refine.c.o
@@ -1186,7 +1186,7 @@ __/metis/libmetis/refine.o: __/metis/libmetis/refine.c.o
 
 # target to build an object file
 __/metis/libmetis/refine.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/refine.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/refine.c.o
 .PHONY : __/metis/libmetis/refine.c.o
 
 __/metis/libmetis/refine.i: __/metis/libmetis/refine.c.i
@@ -1194,7 +1194,7 @@ __/metis/libmetis/refine.i: __/metis/libmetis/refine.c.i
 
 # target to preprocess a source file
 __/metis/libmetis/refine.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/refine.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/refine.c.i
 .PHONY : __/metis/libmetis/refine.c.i
 
 __/metis/libmetis/refine.s: __/metis/libmetis/refine.c.s
@@ -1202,7 +1202,7 @@ __/metis/libmetis/refine.s: __/metis/libmetis/refine.c.s
 
 # target to generate assembly for a file
 __/metis/libmetis/refine.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/refine.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/refine.c.s
 .PHONY : __/metis/libmetis/refine.c.s
 
 __/metis/libmetis/separator.o: __/metis/libmetis/separator.c.o
@@ -1210,7 +1210,7 @@ __/metis/libmetis/separator.o: __/metis/libmetis/separator.c.o
 
 # target to build an object file
 __/metis/libmetis/separator.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/separator.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/separator.c.o
 .PHONY : __/metis/libmetis/separator.c.o
 
 __/metis/libmetis/separator.i: __/metis/libmetis/separator.c.i
@@ -1218,7 +1218,7 @@ __/metis/libmetis/separator.i: __/metis/libmetis/separator.c.i
 
 # target to preprocess a source file
 __/metis/libmetis/separator.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/separator.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/separator.c.i
 .PHONY : __/metis/libmetis/separator.c.i
 
 __/metis/libmetis/separator.s: __/metis/libmetis/separator.c.s
@@ -1226,7 +1226,7 @@ __/metis/libmetis/separator.s: __/metis/libmetis/separator.c.s
 
 # target to generate assembly for a file
 __/metis/libmetis/separator.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/separator.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/separator.c.s
 .PHONY : __/metis/libmetis/separator.c.s
 
 __/metis/libmetis/sfm.o: __/metis/libmetis/sfm.c.o
@@ -1234,7 +1234,7 @@ __/metis/libmetis/sfm.o: __/metis/libmetis/sfm.c.o
 
 # target to build an object file
 __/metis/libmetis/sfm.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/sfm.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/sfm.c.o
 .PHONY : __/metis/libmetis/sfm.c.o
 
 __/metis/libmetis/sfm.i: __/metis/libmetis/sfm.c.i
@@ -1242,7 +1242,7 @@ __/metis/libmetis/sfm.i: __/metis/libmetis/sfm.c.i
 
 # target to preprocess a source file
 __/metis/libmetis/sfm.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/sfm.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/sfm.c.i
 .PHONY : __/metis/libmetis/sfm.c.i
 
 __/metis/libmetis/sfm.s: __/metis/libmetis/sfm.c.s
@@ -1250,7 +1250,7 @@ __/metis/libmetis/sfm.s: __/metis/libmetis/sfm.c.s
 
 # target to generate assembly for a file
 __/metis/libmetis/sfm.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/sfm.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/sfm.c.s
 .PHONY : __/metis/libmetis/sfm.c.s
 
 __/metis/libmetis/srefine.o: __/metis/libmetis/srefine.c.o
@@ -1258,7 +1258,7 @@ __/metis/libmetis/srefine.o: __/metis/libmetis/srefine.c.o
 
 # target to build an object file
 __/metis/libmetis/srefine.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/srefine.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/srefine.c.o
 .PHONY : __/metis/libmetis/srefine.c.o
 
 __/metis/libmetis/srefine.i: __/metis/libmetis/srefine.c.i
@@ -1266,7 +1266,7 @@ __/metis/libmetis/srefine.i: __/metis/libmetis/srefine.c.i
 
 # target to preprocess a source file
 __/metis/libmetis/srefine.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/srefine.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/srefine.c.i
 .PHONY : __/metis/libmetis/srefine.c.i
 
 __/metis/libmetis/srefine.s: __/metis/libmetis/srefine.c.s
@@ -1274,7 +1274,7 @@ __/metis/libmetis/srefine.s: __/metis/libmetis/srefine.c.s
 
 # target to generate assembly for a file
 __/metis/libmetis/srefine.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/srefine.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/srefine.c.s
 .PHONY : __/metis/libmetis/srefine.c.s
 
 __/metis/libmetis/stat.o: __/metis/libmetis/stat.c.o
@@ -1282,7 +1282,7 @@ __/metis/libmetis/stat.o: __/metis/libmetis/stat.c.o
 
 # target to build an object file
 __/metis/libmetis/stat.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/stat.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/stat.c.o
 .PHONY : __/metis/libmetis/stat.c.o
 
 __/metis/libmetis/stat.i: __/metis/libmetis/stat.c.i
@@ -1290,7 +1290,7 @@ __/metis/libmetis/stat.i: __/metis/libmetis/stat.c.i
 
 # target to preprocess a source file
 __/metis/libmetis/stat.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/stat.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/stat.c.i
 .PHONY : __/metis/libmetis/stat.c.i
 
 __/metis/libmetis/stat.s: __/metis/libmetis/stat.c.s
@@ -1298,7 +1298,7 @@ __/metis/libmetis/stat.s: __/metis/libmetis/stat.c.s
 
 # target to generate assembly for a file
 __/metis/libmetis/stat.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/stat.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/stat.c.s
 .PHONY : __/metis/libmetis/stat.c.s
 
 __/metis/libmetis/timing.o: __/metis/libmetis/timing.c.o
@@ -1306,7 +1306,7 @@ __/metis/libmetis/timing.o: __/metis/libmetis/timing.c.o
 
 # target to build an object file
 __/metis/libmetis/timing.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/timing.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/timing.c.o
 .PHONY : __/metis/libmetis/timing.c.o
 
 __/metis/libmetis/timing.i: __/metis/libmetis/timing.c.i
@@ -1314,7 +1314,7 @@ __/metis/libmetis/timing.i: __/metis/libmetis/timing.c.i
 
 # target to preprocess a source file
 __/metis/libmetis/timing.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/timing.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/timing.c.i
 .PHONY : __/metis/libmetis/timing.c.i
 
 __/metis/libmetis/timing.s: __/metis/libmetis/timing.c.s
@@ -1322,7 +1322,7 @@ __/metis/libmetis/timing.s: __/metis/libmetis/timing.c.s
 
 # target to generate assembly for a file
 __/metis/libmetis/timing.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/timing.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/timing.c.s
 .PHONY : __/metis/libmetis/timing.c.s
 
 __/metis/libmetis/util.o: __/metis/libmetis/util.c.o
@@ -1330,7 +1330,7 @@ __/metis/libmetis/util.o: __/metis/libmetis/util.c.o
 
 # target to build an object file
 __/metis/libmetis/util.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/util.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/util.c.o
 .PHONY : __/metis/libmetis/util.c.o
 
 __/metis/libmetis/util.i: __/metis/libmetis/util.c.i
@@ -1338,7 +1338,7 @@ __/metis/libmetis/util.i: __/metis/libmetis/util.c.i
 
 # target to preprocess a source file
 __/metis/libmetis/util.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/util.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/util.c.i
 .PHONY : __/metis/libmetis/util.c.i
 
 __/metis/libmetis/util.s: __/metis/libmetis/util.c.s
@@ -1346,7 +1346,7 @@ __/metis/libmetis/util.s: __/metis/libmetis/util.c.s
 
 # target to generate assembly for a file
 __/metis/libmetis/util.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/util.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/util.c.s
 .PHONY : __/metis/libmetis/util.c.s
 
 __/metis/libmetis/wspace.o: __/metis/libmetis/wspace.c.o
@@ -1354,7 +1354,7 @@ __/metis/libmetis/wspace.o: __/metis/libmetis/wspace.c.o
 
 # target to build an object file
 __/metis/libmetis/wspace.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/wspace.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/wspace.c.o
 .PHONY : __/metis/libmetis/wspace.c.o
 
 __/metis/libmetis/wspace.i: __/metis/libmetis/wspace.c.i
@@ -1362,7 +1362,7 @@ __/metis/libmetis/wspace.i: __/metis/libmetis/wspace.c.i
 
 # target to preprocess a source file
 __/metis/libmetis/wspace.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/wspace.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/wspace.c.i
 .PHONY : __/metis/libmetis/wspace.c.i
 
 __/metis/libmetis/wspace.s: __/metis/libmetis/wspace.c.s
@@ -1370,7 +1370,7 @@ __/metis/libmetis/wspace.s: __/metis/libmetis/wspace.c.s
 
 # target to generate assembly for a file
 __/metis/libmetis/wspace.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/wspace.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/__/metis/libmetis/wspace.c.s
 .PHONY : __/metis/libmetis/wspace.c.s
 
 aggregate.o: aggregate.c.o
@@ -1378,7 +1378,7 @@ aggregate.o: aggregate.c.o
 
 # target to build an object file
 aggregate.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/aggregate.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/aggregate.c.o
 .PHONY : aggregate.c.o
 
 aggregate.i: aggregate.c.i
@@ -1386,7 +1386,7 @@ aggregate.i: aggregate.c.i
 
 # target to preprocess a source file
 aggregate.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/aggregate.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/aggregate.c.i
 .PHONY : aggregate.c.i
 
 aggregate.s: aggregate.c.s
@@ -1394,7 +1394,7 @@ aggregate.s: aggregate.c.s
 
 # target to generate assembly for a file
 aggregate.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/aggregate.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/aggregate.c.s
 .PHONY : aggregate.c.s
 
 check.o: check.c.o
@@ -1402,7 +1402,7 @@ check.o: check.c.o
 
 # target to build an object file
 check.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/check.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/check.c.o
 .PHONY : check.c.o
 
 check.i: check.c.i
@@ -1410,7 +1410,7 @@ check.i: check.c.i
 
 # target to preprocess a source file
 check.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/check.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/check.c.i
 .PHONY : check.c.i
 
 check.s: check.c.s
@@ -1418,7 +1418,7 @@ check.s: check.c.s
 
 # target to generate assembly for a file
 check.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/check.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/check.c.s
 .PHONY : check.c.s
 
 coarsen.o: coarsen.c.o
@@ -1426,7 +1426,7 @@ coarsen.o: coarsen.c.o
 
 # target to build an object file
 coarsen.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/coarsen.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/coarsen.c.o
 .PHONY : coarsen.c.o
 
 coarsen.i: coarsen.c.i
@@ -1434,7 +1434,7 @@ coarsen.i: coarsen.c.i
 
 # target to preprocess a source file
 coarsen.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/coarsen.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/coarsen.c.i
 .PHONY : coarsen.c.i
 
 coarsen.s: coarsen.c.s
@@ -1442,7 +1442,7 @@ coarsen.s: coarsen.c.s
 
 # target to generate assembly for a file
 coarsen.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/coarsen.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/coarsen.c.s
 .PHONY : coarsen.c.s
 
 contract.o: contract.c.o
@@ -1450,7 +1450,7 @@ contract.o: contract.c.o
 
 # target to build an object file
 contract.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/contract.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/contract.c.o
 .PHONY : contract.c.o
 
 contract.i: contract.c.i
@@ -1458,7 +1458,7 @@ contract.i: contract.c.i
 
 # target to preprocess a source file
 contract.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/contract.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/contract.c.i
 .PHONY : contract.c.i
 
 contract.s: contract.c.s
@@ -1466,7 +1466,7 @@ contract.s: contract.c.s
 
 # target to generate assembly for a file
 contract.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/contract.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/contract.c.s
 .PHONY : contract.c.s
 
 ctrl.o: ctrl.c.o
@@ -1474,7 +1474,7 @@ ctrl.o: ctrl.c.o
 
 # target to build an object file
 ctrl.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/ctrl.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/ctrl.c.o
 .PHONY : ctrl.c.o
 
 ctrl.i: ctrl.c.i
@@ -1482,7 +1482,7 @@ ctrl.i: ctrl.c.i
 
 # target to preprocess a source file
 ctrl.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/ctrl.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/ctrl.c.i
 .PHONY : ctrl.c.i
 
 ctrl.s: ctrl.c.s
@@ -1490,7 +1490,7 @@ ctrl.s: ctrl.c.s
 
 # target to generate assembly for a file
 ctrl.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/ctrl.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/ctrl.c.s
 .PHONY : ctrl.c.s
 
 eseprefine.o: eseprefine.c.o
@@ -1498,7 +1498,7 @@ eseprefine.o: eseprefine.c.o
 
 # target to build an object file
 eseprefine.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/eseprefine.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/eseprefine.c.o
 .PHONY : eseprefine.c.o
 
 eseprefine.i: eseprefine.c.i
@@ -1506,7 +1506,7 @@ eseprefine.i: eseprefine.c.i
 
 # target to preprocess a source file
 eseprefine.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/eseprefine.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/eseprefine.c.i
 .PHONY : eseprefine.c.i
 
 eseprefine.s: eseprefine.c.s
@@ -1514,7 +1514,7 @@ eseprefine.s: eseprefine.c.s
 
 # target to generate assembly for a file
 eseprefine.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/eseprefine.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/eseprefine.c.s
 .PHONY : eseprefine.c.s
 
 esinfo.o: esinfo.c.o
@@ -1522,7 +1522,7 @@ esinfo.o: esinfo.c.o
 
 # target to build an object file
 esinfo.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/esinfo.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/esinfo.c.o
 .PHONY : esinfo.c.o
 
 esinfo.i: esinfo.c.i
@@ -1530,7 +1530,7 @@ esinfo.i: esinfo.c.i
 
 # target to preprocess a source file
 esinfo.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/esinfo.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/esinfo.c.i
 .PHONY : esinfo.c.i
 
 esinfo.s: esinfo.c.s
@@ -1538,7 +1538,7 @@ esinfo.s: esinfo.c.s
 
 # target to generate assembly for a file
 esinfo.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/esinfo.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/esinfo.c.s
 .PHONY : esinfo.c.s
 
 graph.o: graph.c.o
@@ -1546,7 +1546,7 @@ graph.o: graph.c.o
 
 # target to build an object file
 graph.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/graph.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/graph.c.o
 .PHONY : graph.c.o
 
 graph.i: graph.c.i
@@ -1554,7 +1554,7 @@ graph.i: graph.c.i
 
 # target to preprocess a source file
 graph.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/graph.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/graph.c.i
 .PHONY : graph.c.i
 
 graph.s: graph.c.s
@@ -1562,7 +1562,7 @@ graph.s: graph.c.s
 
 # target to generate assembly for a file
 graph.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/graph.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/graph.c.s
 .PHONY : graph.c.s
 
 imetis.o: imetis.c.o
@@ -1570,7 +1570,7 @@ imetis.o: imetis.c.o
 
 # target to build an object file
 imetis.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/imetis.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/imetis.c.o
 .PHONY : imetis.c.o
 
 imetis.i: imetis.c.i
@@ -1578,7 +1578,7 @@ imetis.i: imetis.c.i
 
 # target to preprocess a source file
 imetis.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/imetis.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/imetis.c.i
 .PHONY : imetis.c.i
 
 imetis.s: imetis.c.s
@@ -1586,7 +1586,7 @@ imetis.s: imetis.c.s
 
 # target to generate assembly for a file
 imetis.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/imetis.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/imetis.c.s
 .PHONY : imetis.c.s
 
 initpart.o: initpart.c.o
@@ -1594,7 +1594,7 @@ initpart.o: initpart.c.o
 
 # target to build an object file
 initpart.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/initpart.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/initpart.c.o
 .PHONY : initpart.c.o
 
 initpart.i: initpart.c.i
@@ -1602,7 +1602,7 @@ initpart.i: initpart.c.i
 
 # target to preprocess a source file
 initpart.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/initpart.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/initpart.c.i
 .PHONY : initpart.c.i
 
 initpart.s: initpart.c.s
@@ -1610,7 +1610,7 @@ initpart.s: initpart.c.s
 
 # target to generate assembly for a file
 initpart.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/initpart.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/initpart.c.s
 .PHONY : initpart.c.s
 
 kwayrefine.o: kwayrefine.c.o
@@ -1618,7 +1618,7 @@ kwayrefine.o: kwayrefine.c.o
 
 # target to build an object file
 kwayrefine.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/kwayrefine.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/kwayrefine.c.o
 .PHONY : kwayrefine.c.o
 
 kwayrefine.i: kwayrefine.c.i
@@ -1626,7 +1626,7 @@ kwayrefine.i: kwayrefine.c.i
 
 # target to preprocess a source file
 kwayrefine.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/kwayrefine.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/kwayrefine.c.i
 .PHONY : kwayrefine.c.i
 
 kwayrefine.s: kwayrefine.c.s
@@ -1634,7 +1634,7 @@ kwayrefine.s: kwayrefine.c.s
 
 # target to generate assembly for a file
 kwayrefine.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/kwayrefine.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/kwayrefine.c.s
 .PHONY : kwayrefine.c.s
 
 kwinfo.o: kwinfo.c.o
@@ -1642,7 +1642,7 @@ kwinfo.o: kwinfo.c.o
 
 # target to build an object file
 kwinfo.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/kwinfo.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/kwinfo.c.o
 .PHONY : kwinfo.c.o
 
 kwinfo.i: kwinfo.c.i
@@ -1650,7 +1650,7 @@ kwinfo.i: kwinfo.c.i
 
 # target to preprocess a source file
 kwinfo.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/kwinfo.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/kwinfo.c.i
 .PHONY : kwinfo.c.i
 
 kwinfo.s: kwinfo.c.s
@@ -1658,7 +1658,7 @@ kwinfo.s: kwinfo.c.s
 
 # target to generate assembly for a file
 kwinfo.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/kwinfo.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/kwinfo.c.s
 .PHONY : kwinfo.c.s
 
 mtmetis.o: mtmetis.c.o
@@ -1666,7 +1666,7 @@ mtmetis.o: mtmetis.c.o
 
 # target to build an object file
 mtmetis.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/mtmetis.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/mtmetis.c.o
 .PHONY : mtmetis.c.o
 
 mtmetis.i: mtmetis.c.i
@@ -1674,7 +1674,7 @@ mtmetis.i: mtmetis.c.i
 
 # target to preprocess a source file
 mtmetis.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/mtmetis.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/mtmetis.c.i
 .PHONY : mtmetis.c.i
 
 mtmetis.s: mtmetis.c.s
@@ -1682,7 +1682,7 @@ mtmetis.s: mtmetis.c.s
 
 # target to generate assembly for a file
 mtmetis.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/mtmetis.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/mtmetis.c.s
 .PHONY : mtmetis.c.s
 
 mtmetis_bin.o: mtmetis_bin.c.o
@@ -1690,8 +1690,8 @@ mtmetis_bin.o: mtmetis_bin.c.o
 
 # target to build an object file
 mtmetis_bin.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/mtmetis_bin.c.o
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis_bin.dir/build.make src/CMakeFiles/mtmetis_bin.dir/mtmetis_bin.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/mtmetis_bin.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis_bin.dir/build.make src/CMakeFiles/mtmetis_bin.dir/mtmetis_bin.c.o
 .PHONY : mtmetis_bin.c.o
 
 mtmetis_bin.i: mtmetis_bin.c.i
@@ -1699,8 +1699,8 @@ mtmetis_bin.i: mtmetis_bin.c.i
 
 # target to preprocess a source file
 mtmetis_bin.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/mtmetis_bin.c.i
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis_bin.dir/build.make src/CMakeFiles/mtmetis_bin.dir/mtmetis_bin.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/mtmetis_bin.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis_bin.dir/build.make src/CMakeFiles/mtmetis_bin.dir/mtmetis_bin.c.i
 .PHONY : mtmetis_bin.c.i
 
 mtmetis_bin.s: mtmetis_bin.c.s
@@ -1708,8 +1708,8 @@ mtmetis_bin.s: mtmetis_bin.c.s
 
 # target to generate assembly for a file
 mtmetis_bin.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/mtmetis_bin.c.s
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis_bin.dir/build.make src/CMakeFiles/mtmetis_bin.dir/mtmetis_bin.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/mtmetis_bin.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis_bin.dir/build.make src/CMakeFiles/mtmetis_bin.dir/mtmetis_bin.c.s
 .PHONY : mtmetis_bin.c.s
 
 order.o: order.c.o
@@ -1717,7 +1717,7 @@ order.o: order.c.o
 
 # target to build an object file
 order.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/order.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/order.c.o
 .PHONY : order.c.o
 
 order.i: order.c.i
@@ -1725,7 +1725,7 @@ order.i: order.c.i
 
 # target to preprocess a source file
 order.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/order.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/order.c.i
 .PHONY : order.c.i
 
 order.s: order.c.s
@@ -1733,7 +1733,7 @@ order.s: order.c.s
 
 # target to generate assembly for a file
 order.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/order.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/order.c.s
 .PHONY : order.c.s
 
 partition.o: partition.c.o
@@ -1741,7 +1741,7 @@ partition.o: partition.c.o
 
 # target to build an object file
 partition.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/partition.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/partition.c.o
 .PHONY : partition.c.o
 
 partition.i: partition.c.i
@@ -1749,7 +1749,7 @@ partition.i: partition.c.i
 
 # target to preprocess a source file
 partition.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/partition.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/partition.c.i
 .PHONY : partition.c.i
 
 partition.s: partition.c.s
@@ -1757,7 +1757,7 @@ partition.s: partition.c.s
 
 # target to generate assembly for a file
 partition.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/partition.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/partition.c.s
 .PHONY : partition.c.s
 
 project.o: project.c.o
@@ -1765,7 +1765,7 @@ project.o: project.c.o
 
 # target to build an object file
 project.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/project.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/project.c.o
 .PHONY : project.c.o
 
 project.i: project.c.i
@@ -1773,7 +1773,7 @@ project.i: project.c.i
 
 # target to preprocess a source file
 project.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/project.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/project.c.i
 .PHONY : project.c.i
 
 project.s: project.c.s
@@ -1781,7 +1781,7 @@ project.s: project.c.s
 
 # target to generate assembly for a file
 project.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/project.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/project.c.s
 .PHONY : project.c.s
 
 refine.o: refine.c.o
@@ -1789,7 +1789,7 @@ refine.o: refine.c.o
 
 # target to build an object file
 refine.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/refine.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/refine.c.o
 .PHONY : refine.c.o
 
 refine.i: refine.c.i
@@ -1797,7 +1797,7 @@ refine.i: refine.c.i
 
 # target to preprocess a source file
 refine.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/refine.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/refine.c.i
 .PHONY : refine.c.i
 
 refine.s: refine.c.s
@@ -1805,7 +1805,7 @@ refine.s: refine.c.s
 
 # target to generate assembly for a file
 refine.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/refine.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/refine.c.s
 .PHONY : refine.c.s
 
 uncoarsen.o: uncoarsen.c.o
@@ -1813,7 +1813,7 @@ uncoarsen.o: uncoarsen.c.o
 
 # target to build an object file
 uncoarsen.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/uncoarsen.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/uncoarsen.c.o
 .PHONY : uncoarsen.c.o
 
 uncoarsen.i: uncoarsen.c.i
@@ -1821,7 +1821,7 @@ uncoarsen.i: uncoarsen.c.i
 
 # target to preprocess a source file
 uncoarsen.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/uncoarsen.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/uncoarsen.c.i
 .PHONY : uncoarsen.c.i
 
 uncoarsen.s: uncoarsen.c.s
@@ -1829,7 +1829,7 @@ uncoarsen.s: uncoarsen.c.s
 
 # target to generate assembly for a file
 uncoarsen.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/uncoarsen.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/uncoarsen.c.s
 .PHONY : uncoarsen.c.s
 
 vseprefine.o: vseprefine.c.o
@@ -1837,7 +1837,7 @@ vseprefine.o: vseprefine.c.o
 
 # target to build an object file
 vseprefine.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/vseprefine.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/vseprefine.c.o
 .PHONY : vseprefine.c.o
 
 vseprefine.i: vseprefine.c.i
@@ -1845,7 +1845,7 @@ vseprefine.i: vseprefine.c.i
 
 # target to preprocess a source file
 vseprefine.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/vseprefine.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/vseprefine.c.i
 .PHONY : vseprefine.c.i
 
 vseprefine.s: vseprefine.c.s
@@ -1853,7 +1853,7 @@ vseprefine.s: vseprefine.c.s
 
 # target to generate assembly for a file
 vseprefine.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/vseprefine.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/vseprefine.c.s
 .PHONY : vseprefine.c.s
 
 vsinfo.o: vsinfo.c.o
@@ -1861,7 +1861,7 @@ vsinfo.o: vsinfo.c.o
 
 # target to build an object file
 vsinfo.c.o:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/vsinfo.c.o
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/vsinfo.c.o
 .PHONY : vsinfo.c.o
 
 vsinfo.i: vsinfo.c.i
@@ -1869,7 +1869,7 @@ vsinfo.i: vsinfo.c.i
 
 # target to preprocess a source file
 vsinfo.c.i:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/vsinfo.c.i
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/vsinfo.c.i
 .PHONY : vsinfo.c.i
 
 vsinfo.s: vsinfo.c.s
@@ -1877,7 +1877,7 @@ vsinfo.s: vsinfo.c.s
 
 # target to generate assembly for a file
 vsinfo.c.s:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/vsinfo.c.s
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(MAKE) -f src/CMakeFiles/mtmetis.dir/build.make src/CMakeFiles/mtmetis.dir/vsinfo.c.s
 .PHONY : vsinfo.c.s
 
 # Help Target
@@ -2118,6 +2118,6 @@ help:
 # No rule that depends on this can have commands that come from listfiles
 # because they might be regenerated.
 cmake_check_build_system:
-	cd /home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64 && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
+	cd /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64 && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
 .PHONY : cmake_check_build_system
 

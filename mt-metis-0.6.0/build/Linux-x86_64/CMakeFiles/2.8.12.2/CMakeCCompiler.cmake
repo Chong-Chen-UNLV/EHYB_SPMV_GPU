@@ -1,13 +1,13 @@
-set(CMAKE_C_COMPILER "/share/apps/gnu/gcc-6.4.0/bin/gcc")
+set(CMAKE_C_COMPILER "/share/apps/intel-2016/compilers_and_libraries_2016.1.150/linux/bin/intel64/icc")
 set(CMAKE_C_COMPILER_ARG1 "")
-set(CMAKE_C_COMPILER_ID "GNU")
-set(CMAKE_C_COMPILER_VERSION "6.4.0")
+set(CMAKE_C_COMPILER_ID "Intel")
+set(CMAKE_C_COMPILER_VERSION "16.0.0.20151021")
 set(CMAKE_C_PLATFORM_ID "Linux")
 
 set(CMAKE_AR "/usr/bin/ar")
 set(CMAKE_RANLIB "/usr/bin/ranlib")
 set(CMAKE_LINKER "/usr/bin/ld")
-set(CMAKE_COMPILER_IS_GNUCC 1)
+set(CMAKE_COMPILER_IS_GNUCC )
 set(CMAKE_C_COMPILER_LOADED 1)
 set(CMAKE_C_COMPILER_WORKS TRUE)
 set(CMAKE_C_ABI_COMPILED TRUE)
@@ -48,8 +48,8 @@ endif()
 
 
 
-set(CMAKE_C_IMPLICIT_LINK_LIBRARIES "c")
-set(CMAKE_C_IMPLICIT_LINK_DIRECTORIES "/share/apps/gnu/gcc-6.4.0/lib/gcc/x86_64-pc-linux-gnu/6.4.0;/share/apps/gnu/gcc-6.4.0/lib64;/lib64;/usr/lib64;/share/apps2/intel-2016/compilers_and_libraries_2016.1.150/linux/ipp/lib/intel64;/share/apps2/intel-2016/compilers_and_libraries_2016.1.150/linux/compiler/lib/intel64;/share/apps2/intel-2016/compilers_and_libraries_2016.1.150/linux/mkl/lib/intel64;/share/apps2/intel-2016/compilers_and_libraries_2016.1.150/linux/tbb/lib/intel64/gcc4.4;/share/apps2/intel-2016/compilers_and_libraries_2016.1.150/linux/daal/lib/intel64_lin;/share/apps2/intel-2016/tbb/lib/intel64_lin/gcc4.4;/share/apps/gnu/gcc-6.4.0/lib")
+set(CMAKE_C_IMPLICIT_LINK_LIBRARIES "imf;svml;irng;m;ipgo;decimal;cilkrts;stdc++;irc;svml;c;irc_s;dl;c")
+set(CMAKE_C_IMPLICIT_LINK_DIRECTORIES "/share/apps/intel-2016/compilers_and_libraries_2016.1.150/linux/ipp/lib/intel64;/share/apps/intel-2016/compilers_and_libraries_2016.1.150/linux/compiler/lib/intel64;/share/apps/intel-2016/compilers_and_libraries_2016.1.150/linux/mkl/lib/intel64;/share/apps/intel-2016/compilers_and_libraries_2016.1.150/linux/tbb/lib/intel64/gcc4.4;/share/apps/intel-2016/compilers_and_libraries_2016.1.150/linux/daal/lib/intel64_lin;/share/apps/intel-2016/compilers_and_libraries_2016.1.150/linux/tbb/lib/intel64_lin/gcc4.4;/share/apps/intel-2016/compilers_and_libraries_2016.1.150/linux/compiler/lib/intel64_lin;/share/apps2/intel-2016/compilers_and_libraries_2016.1.150/linux/compiler/lib/intel64_lin;/share/apps/gnu/gcc-4_9-branch/lib/gcc/x86_64-unknown-linux-gnu/4.9.4;/share/apps/gnu/gcc-4_9-branch/lib64;/lib64;/usr/lib64;/share/apps/gnu/gcc-4_9-branch/lib;/lib;/usr/lib")
 set(CMAKE_C_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES "")
 
 

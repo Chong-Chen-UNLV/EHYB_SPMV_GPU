@@ -5,15 +5,12 @@
 #include "solver.h"
 #include <unistd.h>
 
-#define MAXthread 2 
-#define MAXthread2 6
-
-int *I_precond;
-int *J_precond;
+unsigned int *I_precond;
+unsigned int *J_precond;
 float *V_precond;
 
-bool GPU false;
-bool RODR false;
+bool GPU = false;
+bool RODR = false;
 
 void fspaiCPU(S *SInput);
 void fspai(S *SInput);	
@@ -21,21 +18,22 @@ void fspai(S *SInput);
 
 
 int main(int argc, char* argv[])
-{	
-	int totalNum=0;
-	int lowerNum=0;
-	int lowerNumPrecond=0;
-	int totalNumPrecond=0;
-	int totalNumPrecondP=0;
+{
+	unsigned int MAXthread = 2;	
+	unsigned int totalNum=0;
+	unsigned int lowerNum=0;
+	unsigned int lowerNumPrecond=0;
+	unsigned int totalNumPrecond=0;
+	unsigned int totalNumPrecondP=0;
 	int ret_code;
 	MM_typecode matcode,matcode2;
-	int MAXIter;
+	int MAXIter = 0;
 	FILE *f,*f2;
 
-	int dimension, N, bandwidth,bandwidthPrecond;   
-	int maxRowNum, maxRowNumPrecond, maxRowNumPrecondP;
-	int *I, *J;
-	int *lowerI, *lowerJ;
+	unsigned int dimension, N, bandwidth,bandwidthPrecond;   
+	unsigned int maxRowNum, maxRowNumPrecond, maxRowNumPrecondP;
+	unsigned int *I, *J;
+	unsigned int *lowerI, *lowerJ;
 	float *V;
 	float *lowerV;
 	float *x;
@@ -45,32 +43,33 @@ int main(int argc, char* argv[])
 	float result_error;
 	int finish;
 	char fileName[100];
+	fileName[0] = '\0';
 	char fileName2[100];
 	unsigned int blocks;
 	int oc;
 	int arg_val;
 	char* arg_str;
-
-	if(argc < 3) {  /* Check command line inputs */
-		printf("Usage: distribute [matrixFile] [iterNUm] [partitionNum]\n");
-		exit(0);
-	}		
-	while ((oc = getopt(argc, argv, "m:c:r:g:")) != -1) {
+			
+	while ((oc = getopt(argc, argv, "m:c:r:g:t:")) != -1) {
 		switch (oc) {
 			case 'm':
 				/* input matrix */
-				sprintf(fileName, "../read/%s.mtx", argv[1]);		
-				printf"filename is %s\n", 
+				sprintf(fileName, "../read/%s.mtx", optarg);		
+				printf("filename is %s\n", fileName);
 				break;
 			case 'c':
 				/* the number of cycles */
 				MAXIter = atoi(optarg);
 				break;
+			case 't':
+				/* the number of cycles */
+				MAXthread = atoi(optarg);
+				break;
 			case 'r':
 				if(atoi(optarg) == 1)
 					RODR = true;
 				break;
-			case 'g'
+			case 'g':
 				if(atoi(optarg) == 1)
 					GPU = true;
 				break;
@@ -80,12 +79,18 @@ int main(int argc, char* argv[])
 				exit(0);
 				break;
 			case '?':
-				printf("unrecongnized option\n")
+				printf("unrecongnized option\n");
+				break;
 			default:
 				printf("option/arguments error!\n");       /* error handling, see text */
 				exit(0);
 		}
 	}
+	if (fileName[0] == '\0' || MAXIter == 0){
+		printf("file name or max iteration number missing\n");
+		exit(0);
+	}
+
 	//---------------------------------read the matrix---------------------------
 	if ((f = fopen(fileName, "r")) == NULL) 
 		exit(1);
@@ -105,30 +110,33 @@ int main(int argc, char* argv[])
 	}
 
 	/* find out size of sparse matrix .... */
-
-	if ((ret_code = mm_read_mtx_crd_size(f, &dimension, &N, &lowerNum)) !=0)
+	int _dimension, _N, _lowerNum;
+	if ((ret_code = mm_read_mtx_crd_size(f, &_dimension, &_N, &_lowerNum)) !=0)
 		exit(1);	
+	dimension = _dimension,
+	N = _N;
+	lowerNum = _lowerNum;
 
 	/*The overall number of nozeros in this matrix*/
 	totalNum=lowerNum*2-dimension;
 	totalNumPrecond=lowerNum;
 	totalNumPrecondP = lowerNum;
 
-	size_t size0=lowerNum*sizeof(int);
+	size_t size0=lowerNum*sizeof(unsigned int);
 	size_t size1=lowerNum*sizeof(float);
-	size_t size2=totalNum*sizeof(int);
+	size_t size2=totalNum*sizeof(unsigned int);
 	size_t size3=totalNum*sizeof(float);
-	size_t size4=dimension*sizeof(int);
+	size_t size4=dimension*sizeof(unsigned int);
 	size_t size5=dimension*sizeof(float);
-	size_t size6=lowerNum*sizeof(int);
+	size_t size6=lowerNum*sizeof(unsigned int);
 	size_t size7=lowerNum*sizeof(float);
 
 
-	lowerJ=(int *) malloc(size0);
-	lowerI=(int *) malloc(size0);
+	lowerJ=(unsigned int *) malloc(size0);
+	lowerI=(unsigned int *) malloc(size0);
 	lowerV=(float *) malloc(size1);
-	I=(int *) malloc(size2);
-	J=(int *) malloc(size2);
+	I=(unsigned int *) malloc(size2);
+	J=(unsigned int *) malloc(size2);
 	V=(float *) malloc(size3);
 	x=(float *) malloc(size5);
 	y=(float *) malloc(size5);
@@ -136,18 +144,18 @@ int main(int argc, char* argv[])
 	x_compare=(float *) malloc(size5);
 	error_track=(float *) malloc(MAXIter*sizeof(float));
 
-	int *numInRowL;
-	int *row_idxL;
-	int *numInRowLP;
-	int *row_idxLP;	
-	int *numInRow;
+	unsigned int *numInRowL;
+	unsigned int *row_idxL;
+	unsigned int *numInRowLP;
+	unsigned int *row_idxLP;	
+	unsigned int *numInRow;
 
-	numInRowL=(int *) malloc(size4);
-	numInRowLP=(int *) malloc(size4);
-	row_idxL=(int *) malloc(size4 + sizeof(int));
-	row_idxLP=(int *) malloc(size4 + sizeof(int));
-	numInRow=(int *) malloc(size4);
-	int tempI, tempJ;
+	numInRowL=(unsigned int *) malloc(size4);
+	numInRowLP=(unsigned int *) malloc(size4);
+	row_idxL=(unsigned int *) malloc(size4 + sizeof(unsigned int));
+	row_idxLP=(unsigned int *) malloc(size4 + sizeof(unsigned int));
+	numInRow=(unsigned int *) malloc(size4);
+	unsigned int tempI, tempJ;
 	float tempV;
 	for (int i=0; i<lowerNum; i++)
 	{
@@ -166,7 +174,7 @@ int main(int argc, char* argv[])
 	}
 
 
-	int *row_idx=(int *)malloc((dimension+1)*sizeof(int));
+	unsigned int *row_idx=(unsigned int *)malloc((dimension+1)*sizeof(unsigned int));
 	maxRowNum=0;
 	maxRowNumPrecond=0;
 	maxRowNumPrecondP=0;
@@ -230,26 +238,36 @@ int main(int argc, char* argv[])
 	}	
 	/*-----------------do the reordering with metis/hmetis, determine the value------------*/
 	/*suffix _rodr means reordered*/		
-	int *I_rodr, *J_rodr,*part_boundary, *rodr_list;
+	unsigned int *I_rodr, *J_rodr,*part_boundary, *rodr_list;
 	float *V_rodr, *x_rodr, *y_rodr;
 	
 	if(RODR){
-		rodr_list = (int* )calloc(dimension, sizeof(int)); 
-		part_boundary = (int* )calloc((blocks + 1), sizeof(int)); 	
-		I_rodr = (int *) malloc(size2);
-		J_rodr = (int *) malloc(size2);
+		blocks = ceil(dimension/(shared_per_block/element_size));
+		printf("blocks is %d\n", blocks);
+		rodr_list = (unsigned int* )calloc(dimension, sizeof(unsigned int)); 
+		part_boundary = (unsigned int* )calloc((blocks + 1), sizeof(unsigned int)); 	
+		I_rodr = (unsigned int *) malloc(size2);
+		J_rodr = (unsigned int *) malloc(size2);
 		V_rodr = (float *) malloc(size3);
-		x_rodr = (float* )calloc(dimension, sizeof(int)); 
-		y_rodr = (float* )calloc(dimension, sizeof(int)); 
-		matrix_reorder(&dimension, totalNum, I, J, V, numInRow, I_rodr, J_rodr, V_rodr, rodr_list, part_boundary, blocks);
+		x_rodr = (float* )calloc(dimension, sizeof(float)); 
+		y_rodr = (float* )calloc(dimension, sizeof(float)); 
+		matrix_reorder(&dimension, totalNum, I, J, V, numInRow, row_idx,
+				 I_rodr, J_rodr, V_rodr, rodr_list, part_boundary, blocks);
 		vector_reorder(dimension, y, y_rodr, rodr_list);
-		update_numInRow(totalNum, dimension, I_rodr, J_rodr, V_rodr, numInRow, numInRowL, row_idx, row_idxL, diag);
+		update_numInRowL(totalNum, 
+			dimension, 
+			I_rodr, 
+			J_rodr, 
+			V_rodr, 
+			numInRowL,
+			row_idxL, 
+			diag);
 	}
 	/*---------------------read the preconditioner ------------------------------*/
 
 
-	int *I_precond=(int *) malloc(size6);
-	int *J_precond=(int *) malloc(size6);
+	unsigned int *I_precond=(unsigned int *) malloc(size6);
+	unsigned int *J_precond=(unsigned int *) malloc(size6);
 	float *V_precond=(float *) malloc(size7);	
 
 	/*int rt=pthread_barrier_init(&barr, NULL, MAXthread);
@@ -297,8 +315,8 @@ int main(int argc, char* argv[])
 	}
 	gettimeofday(&end1, NULL);	
 	printf("fspai CPU time is %ld us\n",(end1.tv_sec * 1000000 + end1.tv_usec)-(start1.tv_sec * 1000000 + start1.tv_usec));
-	int *I_precondP=(int *) malloc(size6);
-	int *J_precondP=(int *) malloc(size6);
+	unsigned int *I_precondP=(unsigned int *) malloc(size6);
+	unsigned int *J_precondP=(unsigned int *) malloc(size6);
 	float *V_precondP=(float *) malloc(size7);
 	
 	for (int i=0; i<totalNumPrecond; i++)
@@ -316,7 +334,7 @@ int main(int argc, char* argv[])
 	}
 
 
-	int realIter, pp, procNum;
+	unsigned int realIter, pp, procNum;
 	struct timeval start, end;
 
 #pragma omp parallel
@@ -374,7 +392,7 @@ int main(int argc, char* argv[])
 	{
 		//printf("Xeon_phi I is %d J %d is V is %f\n",I_precond[i+10000], J_precond[i+10000], V_precond[i+10000]);
 		//printf("CPU I is %d, J is %d, V is %f\n",I_precond2[i+10000],J_precond2[i+10000],V_precond2[i+10000]);
-		printf("at %d x is %d x_compare is  %f\n",i, x[i], x_compare[i]);
+		printf("at %d x is %f x_compare is  %f\n",i, x[i], x_compare[i]);
 	}
 	free(I);
 	free(J);

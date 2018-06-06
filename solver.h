@@ -2,26 +2,24 @@
 #define SOLVER_H
 
 #include <omp.h>
-void solverPrecondCPU(const int procNum, const int dimension, const int totalNum, const int *row_idx, const int *J, 
-		const float *V, const int totalNumPrecond, const int *row_idxL, 
-		const int *J_precond, const float *V_precond, const int totalNumPrecondP,
-		const int *row_idxLP, const int *J_precondP, const float *V_precondP, 
-		const float *vector_in, float *vector_out, const int MAXIter, int *realIter);
+void solverPrecondCPU(const unsigned int procNum, const unsigned int dimension, 
+		const unsigned int totalNum, const unsigned int *row_idx, const unsigned int *J, 
+		const float *V, const unsigned int totalNumPrecond, const unsigned int *row_idxL, 
+		const unsigned int *J_precond, const float *V_precond, const unsigned int totalNumPrecondP,
+		const unsigned int *row_idxLP, const unsigned int *J_precondP, const float *V_precondP, 
+		const float *vector_in, float *vector_out, const unsigned int MAXIter, unsigned int *realIter);
 
-void solverGPU_HYB(const int dimension, 
-		const int totalNum, const int* numInRow, 
-		const int *row_idx,  const int* I, const int *J, const float *V, 
-		const int totalNumPrecond, const int *numInRowL,
-		const int *row_idxL,  
-		const int *I_precond, const int *J_precond, const float *V_precond, 
-		const int totalNumPrecondP, const int *numInRowLP,
-		const int *row_idxLP,  
-		const int *I_precondP, const int *J_precondP, const float *V_precondP, 
+void solverGPU_HYB(const unsigned int dimension, 
+		const unsigned int totalNum, const unsigned int* numInRow, 
+		const unsigned int *row_idx,  const unsigned int* I, const unsigned int *J, const float *V, 
+		const unsigned int totalNumPrecond, const unsigned int *numInRowL,
+		const unsigned int *row_idxL,  
+		const unsigned int *I_precond, const unsigned int *J_precond, const float *V_precond, 
+		const unsigned int totalNumPrecondP, const unsigned int *numInRowLP,
+		const unsigned int *row_idxLP,  
+		const unsigned int *I_precondP, const unsigned int *J_precondP, const float *V_precondP, 
 		const float *vector_in, float *vector_out,  
-		const int MAXIter, int *realIter, const bool RODR, 
-		const int partition_size, const int* part_boundary);
-
-void solver(const int dimension, const int totalNum, const int *I, const int *J, const double *V, const double *vector_in, 
-			double *vector_out, double *error_track, int MAXIter);
+		const unsigned int MAXIter, unsigned int *realIter, const bool RODR, 
+		const unsigned int partition_size, const unsigned int* part_boundary);
 
 #endif

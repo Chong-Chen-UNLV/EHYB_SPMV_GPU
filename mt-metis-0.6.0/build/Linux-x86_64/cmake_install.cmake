@@ -1,8 +1,8 @@
-# Install script for directory: /home/cchen/matrix/partition/Metis/mt-metis-0.6.0
+# Install script for directory: /home/cchen/matrix/fast_PCG2/mt-metis-0.6.0
 
 # Set the install prefix
 IF(NOT DEFINED CMAKE_INSTALL_PREFIX)
-  SET(CMAKE_INSTALL_PREFIX "/usr/local")
+  SET(CMAKE_INSTALL_PREFIX "/home/cchen/matrix/fast_PCG2/mt-metis-0.6.0")
 ENDIF(NOT DEFINED CMAKE_INSTALL_PREFIX)
 STRING(REGEX REPLACE "/$" "" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 
@@ -34,9 +34,9 @@ ENDIF(NOT DEFINED CMAKE_INSTALL_SO_NO_EXE)
 
 IF(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
-  INCLUDE("/home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64/include/cmake_install.cmake")
-  INCLUDE("/home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64/wildriver/cmake_install.cmake")
-  INCLUDE("/home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64/src/cmake_install.cmake")
+  INCLUDE("/home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64/include/cmake_install.cmake")
+  INCLUDE("/home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64/wildriver/cmake_install.cmake")
+  INCLUDE("/home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64/src/cmake_install.cmake")
 
 ENDIF(NOT CMAKE_INSTALL_LOCAL_ONLY)
 
@@ -46,7 +46,7 @@ ELSE(CMAKE_INSTALL_COMPONENT)
   SET(CMAKE_INSTALL_MANIFEST "install_manifest.txt")
 ENDIF(CMAKE_INSTALL_COMPONENT)
 
-FILE(WRITE "/home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64/${CMAKE_INSTALL_MANIFEST}" "")
+FILE(WRITE "/home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64/${CMAKE_INSTALL_MANIFEST}" "")
 FOREACH(file ${CMAKE_INSTALL_MANIFEST_FILES})
-  FILE(APPEND "/home/cchen/matrix/partition/Metis/mt-metis-0.6.0/build/Linux-x86_64/${CMAKE_INSTALL_MANIFEST}" "${file}\n")
+  FILE(APPEND "/home/cchen/matrix/fast_PCG2/mt-metis-0.6.0/build/Linux-x86_64/${CMAKE_INSTALL_MANIFEST}" "${file}\n")
 ENDFOREACH(file)

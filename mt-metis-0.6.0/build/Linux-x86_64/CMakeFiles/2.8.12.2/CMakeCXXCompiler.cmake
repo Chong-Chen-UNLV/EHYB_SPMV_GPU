@@ -1,7 +1,7 @@
-set(CMAKE_CXX_COMPILER "/share/apps/gnu/gcc-6.4.0/bin/g++")
+set(CMAKE_CXX_COMPILER "/share/apps/gnu/gcc-4_9-branch/bin/c++")
 set(CMAKE_CXX_COMPILER_ARG1 "")
 set(CMAKE_CXX_COMPILER_ID "GNU")
-set(CMAKE_CXX_COMPILER_VERSION "6.4.0")
+set(CMAKE_CXX_COMPILER_VERSION "4.9.4")
 set(CMAKE_CXX_PLATFORM_ID "Linux")
 
 set(CMAKE_AR "/usr/bin/ar")
@@ -50,7 +50,7 @@ endif()
 
 
 set(CMAKE_CXX_IMPLICIT_LINK_LIBRARIES "stdc++;m;c")
-set(CMAKE_CXX_IMPLICIT_LINK_DIRECTORIES "/share/apps/gnu/gcc-6.4.0/lib/gcc/x86_64-pc-linux-gnu/6.4.0;/share/apps/gnu/gcc-6.4.0/lib64;/lib64;/usr/lib64;/share/apps2/intel-2016/compilers_and_libraries_2016.1.150/linux/ipp/lib/intel64;/share/apps2/intel-2016/compilers_and_libraries_2016.1.150/linux/compiler/lib/intel64;/share/apps2/intel-2016/compilers_and_libraries_2016.1.150/linux/mkl/lib/intel64;/share/apps2/intel-2016/compilers_and_libraries_2016.1.150/linux/tbb/lib/intel64/gcc4.4;/share/apps2/intel-2016/compilers_and_libraries_2016.1.150/linux/daal/lib/intel64_lin;/share/apps2/intel-2016/tbb/lib/intel64_lin/gcc4.4;/share/apps/gnu/gcc-6.4.0/lib")
+set(CMAKE_CXX_IMPLICIT_LINK_DIRECTORIES "/share/apps/gnu/gcc-4_9-branch/lib/gcc/x86_64-unknown-linux-gnu/4.9.4;/share/apps/gnu/gcc-4_9-branch/lib64;/lib64;/usr/lib64;/share/apps/intel-2016/compilers_and_libraries_2016.1.150/linux/ipp/lib/intel64;/share/apps/intel-2016/compilers_and_libraries_2016.1.150/linux/compiler/lib/intel64;/share/apps/intel-2016/compilers_and_libraries_2016.1.150/linux/mkl/lib/intel64;/share/apps/intel-2016/compilers_and_libraries_2016.1.150/linux/tbb/lib/intel64/gcc4.4;/share/apps/intel-2016/compilers_and_libraries_2016.1.150/linux/daal/lib/intel64_lin;/share/apps/intel-2016/compilers_and_libraries_2016.1.150/linux/tbb/lib/intel64_lin/gcc4.4;/share/apps/intel-2016/compilers_and_libraries_2016.1.150/linux/compiler/lib/intel64_lin;/share/apps/gnu/gcc-4_9-branch/lib")
 set(CMAKE_CXX_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES "")
 
 
