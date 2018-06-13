@@ -377,16 +377,16 @@ void solverPrecondCPU(const unsigned int procNum, const unsigned int dimension,
 		const float *V, const unsigned int totalNumPrecond, const unsigned int *row_idxL, 
 		const unsigned int *J_precond, const float *V_precond, const unsigned int totalNumPrecondP,
 		const unsigned int *row_idxLP, const unsigned int *J_precondP, const float *V_precondP, 
-		const float *vector_in, float *vector_out, const unsigned int MAXIter, unsigned int *realIter)
-{
-	size_t size0 =dimension*sizeof(float);
-	float *rk=(float *)malloc(size0);
+		const float *vector_in, float *vector_out, const unsigned int MAXIter, unsigned int *realIter){
 
+	size_t size0 =dimension*sizeof(float);
+	printf("malloc twice?\n");
 	float *zk=(float *)malloc(size0);
 	float *zk1=(float *)malloc(size0);
 	float *pk=(float *)malloc(size0);
 	float *bp=(float *)malloc(size0);
-
+	float *rk=(float *)malloc(size0);
+	
 	float alphak = 0,betak = 0,dotp0 = 0, dotrz0 = 0,dotrz1 = 0,doth = 0,alphak_1 = 0,dotr0 = 0;
 
 	//float dotz0,dotz0_compare;
@@ -449,30 +449,45 @@ void solverPrecondCPU(const unsigned int procNum, const unsigned int dimension,
 
 	unsigned int rank;
 	float tempV;
-#pragma omp parallel private(rank,tempV)
+	/*for(unsigned int i = 0; i < dimension; ++i){
+		zk1_compare[i] = 0;
+		zk_compare[i] = 0;
+	}
+	
+	for (unsigned int i = 0; i < dimension; ++i){
+		tempV=0;
+		a=row_idxL[i];
+		b=row_idxL[i+1];
+		for (unsigned int j=a;j<b;j++){
+			tempV+=V_precond[j]*rk[J_precond[j]];
+		}
+		zk1_compare[i]+=tempV;
+		//if (rank==4&&i<precond_boundary[4]+64) printf("tempV is %f\n",tempV);
+	}*/
+	#pragma omp parallel private(rank,tempV, a, b)
 	{
 		rank=omp_get_thread_num();
 		for (unsigned int i=precond_boundary[rank];i<precond_boundary[rank+1];i++){
 			tempV=0;
 			a=row_idxL[i];
 			b=row_idxL[i+1];
-#pragma simd
 			for (unsigned int j=a;j<b;j++){
 				tempV+=V_precond[j]*rk[J_precond[j]];
 			}
 			zk1[i]+=tempV;
+			//if(abs(zk1[i] - zk1_compare[i]) > 0.001)
+				//printf("at %d parallel computing error with serial %f parallel %f\n", i, zk1_compare[i], zk1[i]);
 			//if (rank==4&&i<precond_boundary[4]+64) printf("tempV is %f\n",tempV);
 		}
 	}		
 
-#pragma omp parallel private(rank,tempV)
+	#pragma omp parallel private(rank,tempV, a, b)
 	{
 		rank=omp_get_thread_num();
 		for (unsigned int i=precondP_boundary[rank];i<precondP_boundary[rank+1];i++){
 			tempV=0;
 			a=row_idxLP[i];
 			b=row_idxLP[i+1];
-#pragma simd
 			for (unsigned int j=a;j<b;j++)
 				tempV+=V_precondP[j]*zk1[J_precondP[j]];
 			zk[i]+=tempV;
@@ -481,7 +496,7 @@ void solverPrecondCPU(const unsigned int procNum, const unsigned int dimension,
 	}				
 
 	//initialize_all(dimension,pk_d,bp_d,x_d,zk_d,vector_in_d);
-#pragma omp parallel for
+	#pragma omp parallel for
 	for (unsigned int i=0;i<dimension;i++){
 		pk[i]=zk[i];
 		bp[i]=0;
@@ -490,7 +505,7 @@ void solverPrecondCPU(const unsigned int procNum, const unsigned int dimension,
 
 
 	//cublasSdot(handle, dimension,vector_in_d,1,vector_in_d,1,&doth);
-	//#pragma omp parallel for reduction(+:doth)
+	#pragma omp parallel for reduction(+:doth)
 	for (unsigned int i=0;i<dimension;i++){
 		doth+=vector_in[i]*vector_in[i];
 	}
@@ -508,7 +523,7 @@ void solverPrecondCPU(const unsigned int procNum, const unsigned int dimension,
 		/*#pragma omp parallel for
 		  for (unsigned int i=0;i<totalNum_1;i++)
 		  bp[I_1[i]]+=V_1[i]*pk[J_1[i]];*/
-#pragma omp parallel private(rank,tempV,start2, end2)
+		#pragma omp parallel private(rank,tempV, a, b)
 		{
 			rank=omp_get_thread_num();
 			//gettimeofday(&start2, NULL);
@@ -516,7 +531,6 @@ void solverPrecondCPU(const unsigned int procNum, const unsigned int dimension,
 				tempV=0;
 				a=row_idx[i];
 				b=row_idx[i+1];
-#pragma simd
 				for (unsigned int j=a;j<b;j++){
 					tempV+=V[j]*pk[J[j]];
 				}
@@ -527,13 +541,13 @@ void solverPrecondCPU(const unsigned int procNum, const unsigned int dimension,
 		}
 
 		dotp0=0;
-#pragma omp parallel for reduction(+:dotp0)
+		#pragma omp parallel for reduction(+:dotp0)
 		for (unsigned int i=0;i<dimension;i++)
 			dotp0+=bp[i]*pk[i];
 
 		//r_k*z_k
 		dotrz0=0;
-#pragma omp parallel for reduction(+:dotrz0)
+		#pragma omp parallel for reduction(+:dotrz0)
 		for (unsigned int i=0;i<dimension;i++)
 			dotrz0+=rk[i]*zk[i];
 
@@ -542,7 +556,7 @@ void solverPrecondCPU(const unsigned int procNum, const unsigned int dimension,
 
 		//update x_k to x_k+1, x=x+alphak*p;
 		//update r_k to r_k+1, r=r-alphak*bp;
-#pragma omp parallel for
+		#pragma omp parallel for
 		for (unsigned int i=0;i<dimension;i++){
 			vector_out[i]+=alphak*pk[i];
 			rk[i]+=alphak_1*bp[i];
@@ -551,14 +565,13 @@ void solverPrecondCPU(const unsigned int procNum, const unsigned int dimension,
 		}
 
 		//SpMV: zk=inv(m)*rk
-#pragma omp parallel private(rank,tempV)
+		#pragma omp parallel private(rank,tempV, a, b)
 		{
 			rank=omp_get_thread_num();
 			for (unsigned int i=precond_boundary[rank];i<precond_boundary[rank+1];i++){
 				tempV=0;
 				a=row_idxL[i];
 				b=row_idxL[i+1];
-#pragma simd
 				for (unsigned int j=a;j<b;j++){
 					tempV+=V_precond[j]*rk[J_precond[j]];
 				}
@@ -567,14 +580,13 @@ void solverPrecondCPU(const unsigned int procNum, const unsigned int dimension,
 			}
 		}		
 
-#pragma omp parallel private(rank,tempV)
+		#pragma omp parallel private(rank,tempV, a, b)
 		{
 			rank=omp_get_thread_num();
 			for (unsigned int i=precondP_boundary[rank];i<precondP_boundary[rank+1];i++){
 				tempV=0;
 				a=row_idxLP[i];
 				b=row_idxLP[i+1];
-#pragma simd
 				for (unsigned int j=a;j<b;j++)
 					tempV+=V_precondP[j]*zk1[J_precondP[j]];
 				zk[i]+=tempV;
@@ -584,19 +596,18 @@ void solverPrecondCPU(const unsigned int procNum, const unsigned int dimension,
 
 		//r_k+1 * z_k+1
 		dotrz1=0;
-#pragma omp parallel for reduction (+:dotrz1)
 		for (unsigned int i=0;i<dimension;i++)
 			dotrz1+=rk[i]*zk[i];
 		betak=dotrz1/dotrz0;
 		//printf("dotp0 is %f, dotrz0 is %f dotrz1 is %f, betak is %f and alphak is %f at iter %d\n", dotp0, dotrz0,dotrz1,betak, alphak, iter);
 		//p=r+gamak*p;
-#pragma omp parallel for
+		#pragma omp parallel for
 		for (unsigned int i=0;i<dimension;i++){
 			pk[i]=zk[i]+betak*pk[i];
 			bp[i]=0;
 		}
 		dotr0=0;
-#pragma omp parallel for reduction (+:dotr0)
+		#pragma omp parallel for reduction (+:dotr0)
 		for (unsigned int i=0;i<dimension;i++)
 			dotr0+=rk[i]*rk[i];
 		//printf("dotr0 is %f\n",dotrz1);		

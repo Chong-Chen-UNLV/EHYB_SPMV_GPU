@@ -261,10 +261,10 @@ int main(int argc, char* argv[])
 			V_rodr, 
 			numInRowL,
 			row_idxL, 
+			row_idxLP,
 			diag);
 	}
 	/*---------------------read the preconditioner ------------------------------*/
-
 
 	unsigned int *I_precond=(unsigned int *) malloc(size6);
 	unsigned int *J_precond=(unsigned int *) malloc(size6);
@@ -308,7 +308,7 @@ int main(int argc, char* argv[])
 	gettimeofday(&start1, NULL);
 	omp_set_num_threads(MAXthread);
 	int rank;
-#pragma omp parallel private(rank)
+	#pragma omp parallel private(rank)
 	{
 		rank=omp_get_thread_num();
 		fspaiCPU(&Sthread[rank]);
@@ -333,13 +333,12 @@ int main(int argc, char* argv[])
 		numInRowLP[tempI]+=1;
 	}
 
-
 	unsigned int realIter, pp, procNum;
 	struct timeval start, end;
 
-#pragma omp parallel
+	#pragma omp parallel
 	{
-#pragma omp master
+		#pragma omp master
 		{
 			procNum=omp_get_num_threads();
 		}
@@ -367,20 +366,22 @@ int main(int argc, char* argv[])
 					y, x, MAXIter, &realIter, false, blocks, NULL);
 		}
 	}
-	else{
+	else if(!GPU){
 		if(RODR){
 			solverPrecondCPU(procNum, dimension, totalNum, row_idx, J_rodr, V_rodr, totalNumPrecond, 
 					row_idxL, J_precond, V_precond,totalNumPrecondP, 
 					row_idxLP, J_precondP, V_precondP, 
 					y_rodr, x_rodr, MAXIter, &realIter);
 		}
-		else{
+		else if(!RODR){
 			solverPrecondCPU(procNum, dimension, totalNum, row_idx, J, V, totalNumPrecond, 
 					row_idxL, J_precond, V_precond,totalNumPrecondP, 
 					row_idxLP, J_precondP, V_precondP, 
 					y, x, MAXIter, &realIter);
 		}
+		else;
 	}
+	else;
 	//solverPrecondGPU_CUSPARSE(dimension, totalNum, *row_idx, *J, *V, totalNumPrecond, *row_idxL, *J_precond, *V_precond, 
 	//	totalNumPrecondP, *row_idxLP, *J_precondP, *V_precondP, *y, *x, MAXIter, *realIter);
 		

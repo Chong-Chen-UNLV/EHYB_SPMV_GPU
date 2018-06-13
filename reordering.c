@@ -93,9 +93,8 @@ void matrix_reorder(const unsigned int* dimension_in, const unsigned int totalNu
 		rodr_list[i] = perm_idx;
 		part_filled[partVec[i]]+=1;
 	}	
-	part_boundary[0] = 0;
-	for(int i=1; i <= nparts; i++){
-		part_boundary[i] = part_boundary[i-1] + part_filled[i];
+	for(int i = 0; i <= nparts; i++){
+		part_boundary[i] = partBias[i];
 	}
 	//reordering need two iteration
 	for(int i = 0; i < totalNum; i++){
@@ -113,8 +112,8 @@ void matrix_reorder(const unsigned int* dimension_in, const unsigned int totalNu
 		tempIdx = row_idx[tempI] + numInRow[tempI];
 		I_rodr[tempIdx] = tempI;
 		J_rodr[tempIdx] = tempJ;
-		if(tempIdx == 0)
-			printf("V is %f\n", V[i]);
+		if(tempI == tempJ && V[i] == 0)
+			printf("error happend tempIdx is with tempI V is %f\n", tempIdx, tempI, V[i]);
 		V_rodr[tempIdx] = V[i];
 		numInRow[tempI] += 1;
 	}	
@@ -134,7 +133,7 @@ void vector_reorder(const unsigned int dimension, const float* v_in,
 void vector_recover(const unsigned int dimension, const float* v_rodr, float* v, const unsigned int* rodr_list){
 	unsigned int* rodr_list_recover= (unsigned int*) malloc(dimension*sizeof(unsigned int));
 	for(int i=0; i < dimension; i++) rodr_list_recover[rodr_list[i]] = i;	
-	for(int i=0; i < dimension; i++) v[rodr_list_recover[i]] = v[i];	
+	for(int i=0; i < dimension; i++) v[rodr_list_recover[i]] = v_rodr[i];	
 	free(rodr_list_recover);
 }
 
@@ -145,25 +144,35 @@ void update_numInRowL(const unsigned int totalNum,
 			float* V_rodr, 
 			unsigned int* numInRowL,
 			unsigned int* row_idxL, 
+			unsigned int* row_idxLP,
 			float* diag){
 	
+	unsigned int* numInRowLP_ = (unsigned int*)malloc(dimension*sizeof(unsigned int));
 	for(unsigned int i = 0; i < dimension; ++i){
 		numInRowL[i] = 0;		
+		numInRowLP_[i] = 0;		
 		row_idxL[i] = 0;
+		row_idxLP[i] = 0;
 	}
 	row_idxL[dimension] = 0;
+	row_idxLP[dimension] = 0;
 
 	for(unsigned int i=0; i< totalNum; i++){
 		if(I_rodr[i] == J_rodr[i]){
 			diag[I_rodr[i]] = V_rodr[i];
 			numInRowL[I_rodr[i]] += 1;	
+			numInRowLP_[I_rodr[i]] += 1;	
 		}
-		else if(I_rodr[i] > J_rodr[i]){
+		else if(I_rodr[i] < J_rodr[i]){
 			numInRowL[I_rodr[i]] += 1;	
 		}
-		else;
+		else{
+			numInRowLP_[I_rodr[i]] += 1;	
+		}
 	}
 	for(unsigned int i = 1; i <= dimension; ++i){
 		row_idxL[i]=row_idxL[i-1]+numInRowL[i-1];
+		row_idxLP[i]=row_idxLP[i-1]+numInRowLP_[i-1];
 	}
+	free(numInRowLP_);
 }

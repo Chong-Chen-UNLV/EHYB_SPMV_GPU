@@ -16,6 +16,7 @@ void update_numInRowL(const unsigned int totalNum,
 			float* V_rodr, 
 			unsigned int* numInRowL,
 			unsigned int* row_idxL, 
+			unsigned int* row_idxLP, 
 			float* diag);
 
 void vector_reorder(const unsigned int dimension, const float* v_in, float* v_rodr, const unsigned int* rodr_list);
