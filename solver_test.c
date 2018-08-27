@@ -11,6 +11,7 @@ float *V_precond;
 
 bool GPU = false;
 bool RODR = false;
+bool RLOCK = false;
 
 void fspaiCPU(S *SInput);
 void fspai(S *SInput);	
@@ -69,6 +70,9 @@ int main(int argc, char* argv[])
 				if(atoi(optarg) == 1)
 					RODR = true;
 				break;
+			case 'b':
+				if(atoi(optarg) == 1)
+					BLOCK = true;
 			case 'g':
 				if(atoi(optarg) == 1)
 					GPU = true;
@@ -201,13 +205,14 @@ int main(int argc, char* argv[])
 	if (numInRow[dimension-1]>maxRowNum) maxRowNum=numInRow[dimension-1];
 	if (numInRowL[dimension-1]>maxRowNumPrecond) maxRowNumPrecond=numInRowL[dimension-1];	
 	if (numInRowLP[dimension-1]>maxRowNumPrecondP) maxRowNumPrecondP=numInRowLP[dimension-1];
+	printf("maxRowNum is %d, maxRowNumPr is %d, maxRowNumPrecondP is %d\n", maxRowNum, maxRowNumPrecond, maxRowNumPrecondP);
 	numInRow[dimension-1]=0;
 	numInRowLP[dimension-1]=0;
 	for (int i=0;i<dimension;i++)
 	{		
 		srand(i);
-		x_compare[i]=(float) (rand()%200-100)/100;
-		//x_compare[i]=1;
+		//x_compare[i]=(float) (rand()%200-100)/100;
+		x_compare[i]=1;
 	}
 	int index1, index2;
 
@@ -251,6 +256,11 @@ int main(int argc, char* argv[])
 		V_rodr = (float *) malloc(size3);
 		x_rodr = (float* )calloc(dimension, sizeof(float)); 
 		y_rodr = (float* )calloc(dimension, sizeof(float)); 
+		/*NOTICE: maxRowNum and maxRowNum for preconditioners do not needed 
+		to be updated. When we do reordering, all elements of certain row
+		will be re arranged to SAME different row according to rodr_list
+		so the maxRowNum should be same, only occured in different row number
+		*/
 		matrix_reorder(&dimension, totalNum, I, J, V, numInRow, row_idx,
 				 I_rodr, J_rodr, V_rodr, rodr_list, part_boundary, blocks);
 		vector_reorder(dimension, y, y_rodr, rodr_list);
@@ -332,7 +342,7 @@ int main(int argc, char* argv[])
 		V_precondP[index1]=tempV;
 		numInRowLP[tempI]+=1;
 	}
-
+	
 	unsigned int realIter, pp, procNum;
 	struct timeval start, end;
 
@@ -348,20 +358,20 @@ int main(int argc, char* argv[])
 		/*please notice that we need transfer the format of matrix to HYB, so we need I, J, V completely
 	   	for GPU solver, for CPU solver, no format change is applied, so we only need row_idx**/
 		if(RODR){
-			solverGPU_HYB(dimension, totalNum, numInRow, 
+			solverGPU_HYB(dimension, totalNum, numInRow, maxRowNum, 
 					row_idx, I_rodr, J_rodr, V_rodr, 
-					totalNumPrecond, numInRowL, 
+					totalNumPrecond, numInRowL, maxRowNumPrecond,
 					row_idxL, I_precond, J_precond, V_precond,
-					totalNumPrecondP, numInRowLP, 
+					totalNumPrecondP, numInRowLP, maxRowNumPrecondP,
 					row_idxLP, I_precondP, J_precondP, V_precondP, 
 					y_rodr, x_rodr, MAXIter, &realIter, true, blocks, part_boundary);
 		}
 		else{
-			solverGPU_HYB(dimension, totalNum, numInRow, 
+			solverGPU_HYB(dimension, totalNum, numInRow, maxRowNum,
 					row_idx, I, J, V, 
-					totalNumPrecond, numInRowL, 
+					totalNumPrecond, numInRowL, maxRowNumPrecond,
 					row_idxL, I_precond, J_precond, V_precond,
-					totalNumPrecondP, numInRowLP, 
+					totalNumPrecondP, numInRowLP, maxRowNumPrecondP,
 					row_idxLP, I_precondP, J_precondP, V_precondP, 
 					y, x, MAXIter, &realIter, false, blocks, NULL);
 		}

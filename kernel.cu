@@ -4,7 +4,7 @@
 
 #define blockSize 512	
 #define threadSize 512
-#define ELL_threadSize 2048 
+#define ELL_threadSize 1024
 #define blockSize2 16
 #define threadSize2 512
 #define WARP_SIZE 32
@@ -77,12 +77,39 @@ __global__ void ELL_kernel(const unsigned int num_rows, const unsigned int cal_r
 		for (unsigned int n=0; n< num_cols_per_row; n++){
 			unsigned int col=indices[num_rows * n + row];
 			float val=data[num_rows*n+row];
-			
+
 			if (val != 0)
 				dot += val* x[col-bias0];
-			}
-			y[row+bias1]+=dot;
 		}
+		y[row+bias1]+=dot;
+	}
+}
+
+__global__ void ELL_kernel_block(const unsigned int num_rows, const unsigned int cal_rows, 
+			const unsigned int* num_cols_per_row_vec, const unsigned int* block_data_bias_vec,  
+			const unsigned int *indices, const float *data, const float * x, float * y, 
+			const unsigned int bias0, const unsigned int bias1){
+	
+	unsigned int block_idx = blockIdx.x; 
+	unsigned int thread_idx = threadIdx.x; 
+	unsigned int num_cols_per_row;  
+	unsigned int block_data_bias;
+	
+	unsigned int row= blockDim.x*blockIdx.x+threadIdx.x;
+	if(row < cal_rows){
+		num_cols_per_row = num_cols_per_row_vec[block_idx];//cache will work when every threads read same global address
+		block_data_bias = block_data_bias_vec[block_idx];
+		float dot =0;
+		for (unsigned int n=0; n< num_cols_per_row; n++){
+			data_idx = block_data_bias + ELL_blockSize*n + thread_idx;
+			unsigned int col=indices[data_idx];
+			float val=data[data_idx];
+
+			if (val != 0)
+				dot += val* x[col-bias0];
+		}
+		y[row+bias1]+=dot;
+	}
 }
 
 /* bias0 and bias1 is reserved for future distributed version*/
@@ -224,7 +251,7 @@ __global__ void COO_level2(const int * temp_rows,
 	{
 		if (threadIdx.x!=(threadSize2-1))
 		{
-			if (rows[threadIdx.x]>=p) y[rows[threadIdx.x]-p] += vals[threadIdx.x];
+			if (rows[threadIdx.x]>=0 && rows[threadIdx.x]>=p) y[rows[threadIdx.x]-p] += vals[threadIdx.x];
 		}
 		else
 		{
@@ -246,23 +273,25 @@ __global__ void COO_level3(const unsigned int num,
 	for (i=0;i<num-1;i++)
 	{
 		if (temp_rows[i]!=temp_rows[i+1])
-			if (temp_rows[i]>=p) y[temp_rows[i]-p] +=temp_vals[i];
+			if (temp_rows[i]>=0 && temp_rows[i]>=p) y[temp_rows[i]-p] +=temp_vals[i];
 		else if (temp_rows[i]==temp_rows[i+1])
 			temp_vals[i+1]=temp_vals[i+1]+temp_vals[i]; //don't forget update the values! also at most situation (sparse matrix) it is unnecessary	
 	}
 	/*the last elements of input data will not disturb by any other elements, so update the output directly*/
-	if (temp_rows[i]>=p) y[temp_rows[i]-p] +=temp_vals[i];
+	if (temp_rows[i]>=0 && temp_rows[i]>=p) 
+		y[temp_rows[i]-p] +=temp_vals[i];
 }
 
 /*The single thread version of reduction*/
-__global__ void COO_level2_serial(const unsigned int * temp_rows,
+__global__ void COO_level2_serial(const int * temp_rows,
                               const float * temp_vals,
                                     float * y,const unsigned int p)
 {
 	unsigned int i=0;
 	for (i=0;i<(blockSize*threadSize/WARP_SIZE);i++)
 	{
-		if (temp_rows[i]>=p) y[temp_rows[i]-p]+=temp_vals[i];
+		if (temp_rows[i]>=0 && temp_rows[i]>=p) 
+			y[temp_rows[i]-p]+=temp_vals[i];
 	}
 }
 
@@ -273,18 +302,22 @@ __global__ void COO_level2_serial2(const int * temp_rows,
 	unsigned int i=0;
 	for (i=0;i<(blockSize2*threadSize2/WARP_SIZE);i++)
 	{
-		if (temp_rows[i]>=p) y[temp_rows[i]-p]+=temp_vals[i];
+		
+	if (temp_rows[i]>=0 && temp_rows[i]>=p) 
+ 		y[temp_rows[i]-p]+=temp_vals[i];
 	}
 }
 
-__global__ void COO_level2_serial3(const unsigned int num, const unsigned int * temp_rows,
+__global__ void COO_level2_serial3(const unsigned int num, const int * temp_rows,
                               const float * temp_vals,
                                     float * y,const unsigned int p)
 {
 	unsigned int i=0;
 	for (i=0;i<num;i++)
 	{
-		if (temp_rows[i]>=p) y[temp_rows[i]-p]+=temp_vals[i];
+		
+	if (temp_rows[i]>=0 && temp_rows[i]>=p) 
+ 		y[temp_rows[i]-p]+=temp_vals[i];
 	}
 }
 
@@ -334,22 +367,48 @@ void initialDeviceArray(unsigned int num, float *x)
 
 
 
-void matrix_vectorELL(const unsigned int num_rows, const unsigned int cal_rows, const unsigned int num_cols_per_row,  const unsigned int *J,
+void matrix_vectorELL(const unsigned int num_rows, const unsigned int cal_rows, 
+			const unsigned int num_cols_per_row,  const unsigned int *J,
  			const float *V, const float *x, float *y, const unsigned int bias0, const unsigned int bias1, 
 			const bool RODR, const unsigned int rodr_blocks, const unsigned int* part_boundary_d)
 {
 	/*bias0 is for x and bias1 is for y, in precond solver, x, y may have different start point, 
 		bias0 is "absolut bias", bias 1 is relative bias*/
 	unsigned int ELL_blocks = ceil((float) num_rows/ELL_threadSize);
-	//printf("blocks is %d\n",blocks);
+	//printf("ELL_blocks is %d\n", ELL_blocks);
 	//bind_x(x);
 	if(RODR){
 		
 		ELL_cached_kernel<<<rodr_blocks, ELL_threadSize>>>(num_rows, num_cols_per_row, J,
  			V, x,y, bias0, bias1, part_boundary_d);	
+	} else { 
+		ELL_kernel<<<ELL_blocks, ELL_threadSize>>>(num_rows, cal_rows, num_cols_per_row, J, V, x,y, bias0, bias1);
+	}
+	//unbind_x(x);
+	
+}
+
+void matrix_vectorELL_block(const unsigned int num_rows, const unsigned int cal_rows, 
+			const unsigned int* num_cols_per_row_vec, 
+			const unsigned int* block_data_bias_vec,    
+			const unsigned int *J,
+ 			const float *V, const float *x, float *y, const unsigned int bias0, const unsigned int bias1, 
+			const bool RODR, const unsigned int rodr_blocks, const unsigned int* part_boundary_d)
+{
+	/*bias0 is for x and bias1 is for y, in precond solver, x, y may have different start point, 
+		bias0 is "absolut bias", bias 1 is relative bias*/
+	unsigned int ELL_blocks = ceil((float) num_rows/ELL_threadSize);
+	//printf("ELL_blocks is %d\n", ELL_blocks);
+	//bind_x(x);
+	if(RODR){
+		
+		ELL_cached_kernel_block<<<rodr_blocks, ELL_threadSize>>>(num_rows, num_cols_per_row_vec, 
+			block_data_bias_vec,
+			J, V, x, y, bias0, bias1, part_boundary_d);
 	}
 	else
-		ELL_kernel<<<ELL_blocks, ELL_threadSize>>>(num_rows, cal_rows, num_cols_per_row, J, V, x,y, bias0, bias1);
+		ELL_kernel_block<<<ELL_blocks, ELL_threadSize>>>(num_rows, cal_rows, num_cols_per_row_vec, 
+			block_data_bias_vec, J, V, x,y, bias0, bias1);
 	//unbind_x(x);
 	
 }
@@ -358,8 +417,8 @@ void matrix_vectorCOO(const unsigned int num_nozeros_compensation, unsigned int 
 {
 	/*bias0 is for input vector, bias1 is for output vector, different from the ELL format both bias0 and bias1 is absolut bias*/
 	unsigned int interval_size2;
-	interval_size2=ceil(((float) num_nozeros_compensation)/(blockSize2*threadSize/WARP_SIZE));//for data with 2 million elements, we have interval size 200	
-	//printf("intervalSize is %d\n",interval_size2 );
+	interval_size2=ceil(((float) num_nozeros_compensation)/(blockSize*threadSize/WARP_SIZE));//for data with 2 million elements, we have interval size 200	
+	//printf("num_nozeros_compensation is %d, intervalSize is %d\n",num_nozeros_compensation, interval_size2 );
 	if (interval_size2>2*32)
 	{
 		//512*512
