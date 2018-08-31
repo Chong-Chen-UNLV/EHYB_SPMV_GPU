@@ -2,20 +2,20 @@
 #include "solver.h"
 #include "convert.h"
 
-void solver(const unsigned int dimension, const unsigned int totalNum, const unsigned int *I, const unsigned int *J, const float *V, const float *vector_in, 
-			float *vector_out, float *error_track, unsigned int MAXIter)
+void solver(const unsigned int dimension, const unsigned int totalNum, const unsigned int *I, const unsigned int *J, const double *V, const double *vector_in, 
+			double *vector_out, double *error_track, unsigned int MAXIter)
 {
 	//This function treat y as input and x as output, (solve the equation Ax=y) y is the vector we already known, x is the vector we are looking for
-	float dotp0,dotr0,dotr1,doth;
-	size_t size1=dimension*sizeof(float);
-	float *bp=(float *) malloc(size1);
-	float *pk=(float *) malloc(size1);
-	float *rk=(float *) malloc(size1);
-	//float *x=(float *) malloc(size1);
+	double dotp0,dotr0,dotr1,doth;
+	size_t size1=dimension*sizeof(double);
+	double *bp=(double *) malloc(size1);
+	double *pk=(double *) malloc(size1);
+	double *rk=(double *) malloc(size1);
+	//double *x=(double *) malloc(size1);
 	unsigned int i;
-	float threshold=0.0000001;
+	double threshold=0.0000001;
 	unsigned int iter=0;
-	float error,alphak,gamak;
+	double error,alphak,gamak;
 	error=1000;
 	//initialize
 	doth=0;
@@ -69,110 +69,110 @@ void solver(const unsigned int dimension, const unsigned int totalNum, const uns
 
 void solverGPU_HYB(const unsigned int dimension, 
 		const unsigned int totalNum, const unsigned int* numInRow, unsigned int maxRowNum,
-		const unsigned int *row_idx,  const unsigned int* I, const unsigned int *J, const float *V, 
+		const unsigned int *row_idx,  const unsigned int* I, const unsigned int *J, const double *V, 
 		const unsigned int totalNumPrecond, const unsigned int *numInRowL, unsigned int maxRowNumPrecond,
 		const unsigned int *row_idxL,  
-		const unsigned int *I_precond, const unsigned int *J_precond, const float *V_precond, 
+		const unsigned int *I_precond, const unsigned int *J_precond, const double *V_precond, 
 		const unsigned int totalNumPrecondP, const unsigned int *numInRowLP, unsigned int maxRowNumPrecondP,
 		const unsigned int *row_idxLP,  
-		const unsigned int *I_precondP, const unsigned int *J_precondP, const float *V_precondP, 
-		const float *vector_in, float *vector_out,  
-		const unsigned int MAXIter, unsigned int *realIter, const bool RODR, const bool BLOCK,
+		const unsigned int *I_precondP, const unsigned int *J_precondP, const double *V_precondP, 
+		const double *vector_in, double *vector_out,  
+		const unsigned int MAXIter, unsigned int *realIter,  const unsigned int cb,
 		const unsigned int partition_size, const unsigned int* part_boundary)
 {
 
 	unsigned int *colELL, *I_COO, *J_COO, ELL_width, ELL_widthL, ELL_widthLP;
-	float* matrixELL, *V_COO;
+	double* matrixELL, *V_COO;
 	unsigned int totalNumCOO; 
 	unsigned int *col_d;
-	float *V_d;
+	double *V_d;
 	unsigned int *I_COO_d, *J_COO_d;
-	float *V_COO_d;
+	double *V_COO_d;
 	COO2ELL(I,J,V,&colELL,&matrixELL,&I_COO, &J_COO, &V_COO, 
 		numInRow, row_idx, totalNum, dimension, &totalNumCOO, maxRowNum, &ELL_width);
 	cudaMalloc((void **) &col_d,ELL_width*dimension*sizeof(unsigned int));
-	cudaMalloc((void **) &V_d,ELL_width*dimension*sizeof(float));
+	cudaMalloc((void **) &V_d,ELL_width*dimension*sizeof(double));
 	cudaMemcpy(col_d,colELL,dimension*ELL_width*sizeof(unsigned int),cudaMemcpyHostToDevice);
-	cudaMemcpy(V_d,matrixELL,dimension*ELL_width*sizeof(float),cudaMemcpyHostToDevice);
+	cudaMemcpy(V_d,matrixELL,dimension*ELL_width*sizeof(double),cudaMemcpyHostToDevice);
 	printf("ELL_width is %d, and totalNumCOO is %d\n", ELL_width, totalNumCOO);
 	if (totalNumCOO>0){
 		cudaMalloc((void **) &I_COO_d,totalNumCOO*sizeof(unsigned int));
 		cudaMalloc((void **) &J_COO_d,totalNumCOO*sizeof(unsigned int));
-		cudaMalloc((void **) &V_COO_d,totalNumCOO*sizeof(float));	
+		cudaMalloc((void **) &V_COO_d,totalNumCOO*sizeof(double));	
 		cudaMemcpy(I_COO_d,I_COO,totalNumCOO*sizeof(unsigned int),cudaMemcpyHostToDevice);
 		cudaMemcpy(J_COO_d,J_COO,totalNumCOO*sizeof(unsigned int),cudaMemcpyHostToDevice);
-		cudaMemcpy(V_COO_d,V_COO,totalNumCOO*sizeof(float),cudaMemcpyHostToDevice);
+		cudaMemcpy(V_COO_d,V_COO,totalNumCOO*sizeof(double),cudaMemcpyHostToDevice);
 	}	
 /*matrix L'*/
 	unsigned int *colELL_precond, *I_COO_L, *J_COO_L;
-	float* matrixELL_precond, *V_COO_L;
+	double* matrixELL_precond, *V_COO_L;
 	unsigned int totalNumCOO_L;
 	unsigned int *col_precond_d;
-	float *V_precond_d;
+	double *V_precond_d;
 	unsigned int *I_COO_L_d, *J_COO_L_d;
-	float *V_COO_L_d;
+	double *V_COO_L_d;
 	COO2ELL(I_precond,J_precond,V_precond,&colELL_precond, &matrixELL_precond, 
 		&I_COO_L, &J_COO_L, &V_COO_L, numInRowL, row_idxL, totalNumPrecond, 
 		dimension, &totalNumCOO_L, maxRowNumPrecond, &ELL_widthL);
 	cudaMalloc((void **) &col_precond_d,ELL_widthL*dimension*sizeof(unsigned int));
-	cudaMalloc((void **) &V_precond_d,ELL_widthL*dimension*sizeof(float));	
+	cudaMalloc((void **) &V_precond_d,ELL_widthL*dimension*sizeof(double));	
 	cudaMemcpy(col_precond_d,colELL_precond,dimension*ELL_widthL*sizeof(unsigned int),cudaMemcpyHostToDevice);
-	cudaMemcpy(V_precond_d,matrixELL_precond,dimension*ELL_widthL*sizeof(float),cudaMemcpyHostToDevice);
+	cudaMemcpy(V_precond_d,matrixELL_precond,dimension*ELL_widthL*sizeof(double),cudaMemcpyHostToDevice);
 	printf("ELL_widthL is %d, and totalNumCOO_L is %d\n", ELL_widthL, totalNumCOO_L);
 	if (totalNumCOO_L>0){
 		cudaMalloc((void **) &I_COO_L_d,totalNumCOO_L*sizeof(unsigned int));
 		cudaMalloc((void **) &J_COO_L_d,totalNumCOO_L*sizeof(unsigned int));
-		cudaMalloc((void **) &V_COO_L_d,totalNumCOO_L*sizeof(float));		
+		cudaMalloc((void **) &V_COO_L_d,totalNumCOO_L*sizeof(double));		
 		cudaMemcpy(I_COO_L_d,I_COO_L,totalNumCOO_L*sizeof(unsigned int),cudaMemcpyHostToDevice);
 		cudaMemcpy(J_COO_L_d,J_COO_L,totalNumCOO_L*sizeof(unsigned int),cudaMemcpyHostToDevice);
-		cudaMemcpy(V_COO_L_d,V_COO_L,totalNumCOO_L*sizeof(float),cudaMemcpyHostToDevice);
+		cudaMemcpy(V_COO_L_d,V_COO_L,totalNumCOO_L*sizeof(double),cudaMemcpyHostToDevice);
 	}	
 	/*matrix L*/
 	unsigned int *colELL_precondP, *I_COO_LP, *J_COO_LP;
-	float* matrixELL_precondP, *V_COO_LP;
+	double* matrixELL_precondP, *V_COO_LP;
 	unsigned int totalNumCOO_LP;
 	unsigned int *col_precondP_d;
-	float *V_precondP_d;
+	double *V_precondP_d;
 	unsigned int *I_COO_LP_d, *J_COO_LP_d;
-	float *V_COO_LP_d;
+	double *V_COO_LP_d;
 
 	COO2ELL(I_precondP,J_precondP,V_precondP,&colELL_precondP, &matrixELL_precondP, 
 		&I_COO_LP, &J_COO_LP, &V_COO_LP, numInRowLP, row_idxLP, totalNumPrecond, 
 		dimension, &totalNumCOO_LP, maxRowNumPrecondP, &ELL_widthLP);
 	printf("ELL_widthLP is %d, and totalNumCOO_LP is %d\n", ELL_widthLP, totalNumCOO_LP);
 	cudaMalloc((void **) &col_precondP_d, ELL_widthLP*dimension*sizeof(unsigned int));
-	cudaMalloc((void **) &V_precondP_d, ELL_widthLP*dimension*sizeof(float));	
+	cudaMalloc((void **) &V_precondP_d, ELL_widthLP*dimension*sizeof(double));	
 	cudaMemcpy(col_precondP_d,colELL_precondP,dimension*ELL_widthLP*sizeof(unsigned int),cudaMemcpyHostToDevice);
-	cudaMemcpy(V_precondP_d,matrixELL_precondP,dimension*ELL_widthLP*sizeof(float),cudaMemcpyHostToDevice);
+	cudaMemcpy(V_precondP_d,matrixELL_precondP,dimension*ELL_widthLP*sizeof(double),cudaMemcpyHostToDevice);
 	if (totalNumCOO_LP>0){
 		cudaMalloc((void **) &I_COO_LP_d,totalNumCOO_LP*sizeof(unsigned int));
 		cudaMalloc((void **) &J_COO_LP_d,totalNumCOO_LP*sizeof(unsigned int));
-		cudaMalloc((void **) &V_COO_LP_d,totalNumCOO_LP*sizeof(float));		
+		cudaMalloc((void **) &V_COO_LP_d,totalNumCOO_LP*sizeof(double));		
 		cudaMemcpy(I_COO_LP_d,I_COO_LP,totalNumCOO_LP*sizeof(unsigned int),cudaMemcpyHostToDevice);
 		cudaMemcpy(J_COO_LP_d,J_COO_LP,totalNumCOO_LP*sizeof(unsigned int),cudaMemcpyHostToDevice);
-		cudaMemcpy(V_COO_LP_d,V_COO_LP,totalNumCOO_LP*sizeof(float),cudaMemcpyHostToDevice);
+		cudaMemcpy(V_COO_LP_d,V_COO_LP,totalNumCOO_LP*sizeof(double),cudaMemcpyHostToDevice);
 	}
 
-	size_t size0=dimension*sizeof(float);
-	float *rk_d;//r0 and r1
-	float *pk_d;//p0 and p1
-	float *bp_d;
-	float *zk_d;
-	float *zk1_d;
-	float *x_d;
+	size_t size0=dimension*sizeof(double);
+	double *rk_d;//r0 and r1
+	double *pk_d;//p0 and p1
+	double *bp_d;
+	double *zk_d;
+	double *zk1_d;
+	double *x_d;
 	unsigned int* part_boundary_d;
 	
-	float *rk=(float *)malloc(size0);
-	float *zk=(float *)malloc(size0);
-	float *zk_1=(float *)malloc(size0);
+	double *rk=(double *)malloc(size0);
+	double *zk=(double *)malloc(size0);
+	double *zk_1=(double *)malloc(size0);
 	
-	float *vector_in_d;
-	float alphak,betak,dotp0, dotrz0,dotrz1,doth,alphak_1,dotr0;
+	double *vector_in_d;
+	double alphak,betak,dotp0, dotrz0,dotrz1,doth,alphak_1,dotr0;
 	
-	//float dotz0,dotz0_compare;
+	//double dotz0,dotz0_compare;
 	
-	float error=10000;
-	float threshold;
+	double error=10000;
+	double threshold;
 	cudaMalloc((void **) &rk_d,size0);
 	cudaMalloc((void **) &pk_d,size0);
 	cudaMalloc((void **) &zk_d,size0);
@@ -197,6 +197,7 @@ void solverGPU_HYB(const unsigned int dimension,
 	
 	cublasHandle_t handle;
 	cublasCreate(&handle);			
+	
 	if(!BLOCK){
 		if(RODR){
 			matrix_vectorELL(dimension, dimension, ELL_widthL, col_precond_d,V_precond_d,rk_d,zk1_d,0,0,
@@ -217,7 +218,7 @@ void solverGPU_HYB(const unsigned int dimension,
 		}
 	}
 
-	cudaMemcpy(zk_1, zk1_d, dimension*sizeof(float), cudaMemcpyDeviceToHost);
+	cudaMemcpy(zk_1, zk1_d, dimension*sizeof(double), cudaMemcpyDeviceToHost);
 		for(int i = 0; i < 10; ++i)
 			printf("zk1[%d] of GPU result is %f\n", i, zk_1[i]);
 
@@ -248,7 +249,7 @@ void solverGPU_HYB(const unsigned int dimension,
 	
 	
 	cublasSdot(handle, dimension,vector_in_d,1,vector_in_d,1,&doth);
-	float errorNorm=sqrt(doth);
+	double errorNorm=sqrt(doth);
 	unsigned int iter=0;
 	struct timeval start1, end1;
 	struct timeval start2, end2;
@@ -282,7 +283,7 @@ void solverGPU_HYB(const unsigned int dimension,
 		cublasSdot(handle,dimension,rk_d,1,zk_d,1,&dotrz0);
 		/*cudaMemcpy(rk, rk_d, size0, cudaMemcpyDeviceToHost);
 		cudaMemcpy(zk, zk_d, size0, cudaMemcpyDeviceToHost);
-		float dotrz0_compare=0;
+		double dotrz0_compare=0;
 		for (unsigned int k=0;k<dimension;k++)
 		{
 			dotrz0_compare=dotrz0_compare+rk[k]*zk[k];
@@ -378,31 +379,31 @@ void solverGPU_HYB(const unsigned int dimension,
 	free(zk_1);
 	free(rk);
 	gettimeofday(&end1, NULL);	
-	float timeByMs=((end1.tv_sec * 1000000 + end1.tv_usec)-(start1.tv_sec * 1000000 + start1.tv_usec))/1000;
+	double timeByMs=((end1.tv_sec * 1000000 + end1.tv_usec)-(start1.tv_sec * 1000000 + start1.tv_usec))/1000;
 	printf("iter is %d, time is %f ms, GPU Gflops is %f\n ",iter, timeByMs, (1e-9*(totalNum*4+14*dimension)*1000*iter)/timeByMs);
 }
 
 void solverPrecondCPU(const unsigned int procNum, const unsigned int dimension, 
 		const unsigned int totalNum, const unsigned int *row_idx, const unsigned int *J, 
-		const float *V, const unsigned int totalNumPrecond, const unsigned int *row_idxL, 
-		const unsigned int *J_precond, const float *V_precond, const unsigned int totalNumPrecondP,
-		const unsigned int *row_idxLP, const unsigned int *J_precondP, const float *V_precondP, 
-		const float *vector_in, float *vector_out, const unsigned int MAXIter, unsigned int *realIter){
+		const double *V, const unsigned int totalNumPrecond, const unsigned int *row_idxL, 
+		const unsigned int *J_precond, const double *V_precond, const unsigned int totalNumPrecondP,
+		const unsigned int *row_idxLP, const unsigned int *J_precondP, const double *V_precondP, 
+		const double *vector_in, double *vector_out, const unsigned int MAXIter, unsigned int *realIter){
 
-	size_t size0 =dimension*sizeof(float);
+	size_t size0 =dimension*sizeof(double);
 	printf("malloc twice?\n");
-	float *zk=(float *)malloc(size0);
-	float *zk1=(float *)malloc(size0);
-	float *pk=(float *)malloc(size0);
-	float *bp=(float *)malloc(size0);
-	float *rk=(float *)malloc(size0);
+	double *zk=(double *)malloc(size0);
+	double *zk1=(double *)malloc(size0);
+	double *pk=(double *)malloc(size0);
+	double *bp=(double *)malloc(size0);
+	double *rk=(double *)malloc(size0);
 	
-	float alphak = 0,betak = 0,dotp0 = 0, dotrz0 = 0,dotrz1 = 0,doth = 0,alphak_1 = 0,dotr0 = 0;
+	double alphak = 0,betak = 0,dotp0 = 0, dotrz0 = 0,dotrz1 = 0,doth = 0,alphak_1 = 0,dotr0 = 0;
 
-	//float dotz0,dotz0_compare;
+	//double dotz0,dotz0_compare;
 
-	float error=10000;
-	float threshold;
+	double error=10000;
+	double threshold;
 
 	for (unsigned int i=0;i<dimension;i++){
 		zk[i]=0;
@@ -422,9 +423,9 @@ void solverPrecondCPU(const unsigned int procNum, const unsigned int dimension,
 
 	unsigned int stride, stridePrecond,stridePrecondP;
 
-	stride=ceil((float)totalNum/procNum);
-	stridePrecond=ceil((float)totalNumPrecond/procNum);
-	stridePrecondP=ceil((float)totalNumPrecondP/procNum);
+	stride=ceil((double)totalNum/procNum);
+	stridePrecond=ceil((double)totalNumPrecond/procNum);
+	stridePrecondP=ceil((double)totalNumPrecondP/procNum);
 	unsigned int bias, biasPrecond,biasPrecondP;
 
 	bias=1;
@@ -458,7 +459,7 @@ void solverPrecondCPU(const unsigned int procNum, const unsigned int dimension,
 	  zk1[I_precond[i]]+=V_precond[i]*rk[J_precond[i]];*/
 
 	unsigned int rank;
-	float tempV;
+	double tempV;
 	/*for(unsigned int i = 0; i < dimension; ++i){
 		zk1_compare[i] = 0;
 		zk_compare[i] = 0;
@@ -519,7 +520,7 @@ void solverPrecondCPU(const unsigned int procNum, const unsigned int dimension,
 	for (unsigned int i=0;i<dimension;i++){
 		doth+=vector_in[i]*vector_in[i];
 	}
-	float errorNorm=sqrt(doth);
+	double errorNorm=sqrt(doth);
 	//printf("errorNorm is %f\n",errorNorm);
 	unsigned int iter=0;
 	
@@ -637,7 +638,7 @@ void solverPrecondCPU(const unsigned int procNum, const unsigned int dimension,
 
 	gettimeofday(&end1, NULL);	
 	printf("Solver Xeon_phi time is %ld us\n",(end1.tv_sec * 1000000 + end1.tv_usec)-(start1.tv_sec * 1000000 + start1.tv_usec));
-	float timeByMs=((end1.tv_sec * 1000000 + end1.tv_usec)-(start1.tv_sec * 1000000 + start1.tv_usec))/1000;
+	double timeByMs=((end1.tv_sec * 1000000 + end1.tv_usec)-(start1.tv_sec * 1000000 + start1.tv_usec))/1000;
 	printf("iter is %d, Xeon_Phi Gflops is %f\n ",iter, (1e-9*(totalNum*4+14*dimension)*1000*iter)/timeByMs);
 
 

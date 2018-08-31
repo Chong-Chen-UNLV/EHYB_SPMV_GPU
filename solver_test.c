@@ -7,12 +7,12 @@
 
 unsigned int *I_precond;
 unsigned int *J_precond;
-float *V_precond;
-
-bool GPU = false;
-bool RODR = false;
-bool RLOCK = false;
-
+double *V_precond;
+typedef struct _cb{
+	bool GPU = false;
+	bool RODR = false;
+	bool BLOCK = false;
+}cb_s;
 void fspaiCPU(S *SInput);
 void fspai(S *SInput);	
 
@@ -35,13 +35,13 @@ int main(int argc, char* argv[])
 	unsigned int maxRowNum, maxRowNumPrecond, maxRowNumPrecondP;
 	unsigned int *I, *J;
 	unsigned int *lowerI, *lowerJ;
-	float *V;
-	float *lowerV;
-	float *x;
-	float *y;
-	float *x_compare;
-	float *error_track;
-	float result_error;
+	double *V;
+	double *lowerV;
+	double *x;
+	double *y;
+	double *x_compare;
+	double *error_track;
+	double result_error;
 	int finish;
 	char fileName[100];
 	fileName[0] = '\0';
@@ -50,6 +50,7 @@ int main(int argc, char* argv[])
 	int oc;
 	int arg_val;
 	char* arg_str;
+	cb_s cb;
 			
 	while ((oc = getopt(argc, argv, "m:c:r:g:t:")) != -1) {
 		switch (oc) {
@@ -68,14 +69,14 @@ int main(int argc, char* argv[])
 				break;
 			case 'r':
 				if(atoi(optarg) == 1)
-					RODR = true;
+					cb.RODR = true;
 				break;
 			case 'b':
 				if(atoi(optarg) == 1)
-					BLOCK = true;
+					cb.BLOCK = true;
 			case 'g':
 				if(atoi(optarg) == 1)
-					GPU = true;
+					cb.GPU = true;
 				break;
 			case ':':
 				       /* error handling, see text */
@@ -127,26 +128,26 @@ int main(int argc, char* argv[])
 	totalNumPrecondP = lowerNum;
 
 	size_t size0=lowerNum*sizeof(unsigned int);
-	size_t size1=lowerNum*sizeof(float);
+	size_t size1=lowerNum*sizeof(double);
 	size_t size2=totalNum*sizeof(unsigned int);
-	size_t size3=totalNum*sizeof(float);
+	size_t size3=totalNum*sizeof(double);
 	size_t size4=dimension*sizeof(unsigned int);
-	size_t size5=dimension*sizeof(float);
+	size_t size5=dimension*sizeof(double);
 	size_t size6=lowerNum*sizeof(unsigned int);
-	size_t size7=lowerNum*sizeof(float);
+	size_t size7=lowerNum*sizeof(double);
 
 
 	lowerJ=(unsigned int *) malloc(size0);
 	lowerI=(unsigned int *) malloc(size0);
-	lowerV=(float *) malloc(size1);
+	lowerV=(double *) malloc(size1);
 	I=(unsigned int *) malloc(size2);
 	J=(unsigned int *) malloc(size2);
-	V=(float *) malloc(size3);
-	x=(float *) malloc(size5);
-	y=(float *) malloc(size5);
-	float *diag=(float *) malloc(size5);
-	x_compare=(float *) malloc(size5);
-	error_track=(float *) malloc(MAXIter*sizeof(float));
+	V=(double *) malloc(size3);
+	x=(double *) malloc(size5);
+	y=(double *) malloc(size5);
+	double *diag=(double *) malloc(size5);
+	x_compare=(double *) malloc(size5);
+	error_track=(double *) malloc(MAXIter*sizeof(double));
 
 	unsigned int *numInRowL;
 	unsigned int *row_idxL;
@@ -160,10 +161,10 @@ int main(int argc, char* argv[])
 	row_idxLP=(unsigned int *) malloc(size4 + sizeof(unsigned int));
 	numInRow=(unsigned int *) malloc(size4);
 	unsigned int tempI, tempJ;
-	float tempV;
+	double tempV;
 	for (int i=0; i<lowerNum; i++)
 	{
-		fscanf(f, "%d %d %f\n", &tempI, &tempJ, &tempV);
+		fscanf(f, "%d %d %lg\n", &tempI, &tempJ, &tempV);
 		lowerJ[i]=tempJ-1;  /* adjust from 1-based to 0-based */
 		lowerI[i]=tempI-1;
 		lowerV[i]=tempV;
@@ -211,7 +212,7 @@ int main(int argc, char* argv[])
 	for (int i=0;i<dimension;i++)
 	{		
 		srand(i);
-		//x_compare[i]=(float) (rand()%200-100)/100;
+		//x_compare[i]=(double) (rand()%200-100)/100;
 		x_compare[i]=1;
 	}
 	int index1, index2;
@@ -244,7 +245,7 @@ int main(int argc, char* argv[])
 	/*-----------------do the reordering with metis/hmetis, determine the value------------*/
 	/*suffix _rodr means reordered*/		
 	unsigned int *I_rodr, *J_rodr,*part_boundary, *rodr_list;
-	float *V_rodr, *x_rodr, *y_rodr;
+	double *V_rodr, *x_rodr, *y_rodr;
 	
 	if(RODR){
 		blocks = ceil(dimension/(shared_per_block/element_size));
@@ -253,9 +254,9 @@ int main(int argc, char* argv[])
 		part_boundary = (unsigned int* )calloc((blocks + 1), sizeof(unsigned int)); 	
 		I_rodr = (unsigned int *) malloc(size2);
 		J_rodr = (unsigned int *) malloc(size2);
-		V_rodr = (float *) malloc(size3);
-		x_rodr = (float* )calloc(dimension, sizeof(float)); 
-		y_rodr = (float* )calloc(dimension, sizeof(float)); 
+		V_rodr = (double *) malloc(size3);
+		x_rodr = (double* )calloc(dimension, sizeof(double)); 
+		y_rodr = (double* )calloc(dimension, sizeof(double)); 
 		/*NOTICE: maxRowNum and maxRowNum for preconditioners do not needed 
 		to be updated. When we do reordering, all elements of certain row
 		will be re arranged to SAME different row according to rodr_list
@@ -278,7 +279,7 @@ int main(int argc, char* argv[])
 
 	unsigned int *I_precond=(unsigned int *) malloc(size6);
 	unsigned int *J_precond=(unsigned int *) malloc(size6);
-	float *V_precond=(float *) malloc(size7);	
+	double *V_precond=(double *) malloc(size7);	
 
 	/*int rt=pthread_barrier_init(&barr, NULL, MAXthread);
 	  rt=pthread_barrier_init(&barr1, NULL, MAXthread);*/
@@ -327,7 +328,7 @@ int main(int argc, char* argv[])
 	printf("fspai CPU time is %ld us\n",(end1.tv_sec * 1000000 + end1.tv_usec)-(start1.tv_sec * 1000000 + start1.tv_usec));
 	unsigned int *I_precondP=(unsigned int *) malloc(size6);
 	unsigned int *J_precondP=(unsigned int *) malloc(size6);
-	float *V_precondP=(float *) malloc(size7);
+	double *V_precondP=(double *) malloc(size7);
 	
 	for (int i=0; i<totalNumPrecond; i++)
 	{
@@ -437,7 +438,7 @@ int main(int argc, char* argv[])
 	//interval2=(end_time2-start_time2)*1000/CLOCKS_PER_SEC;
 
 	//printf("time consuming CPU is %f, time consuming GPU is %f, speedup is %f\n", interval1, interval2, interval1/interval2);
-	//float Gflop=(totalNum*4+12*dimension)/interval1*1000*MAXIter;
+	//double Gflop=(totalNum*4+12*dimension)/interval1*1000*MAXIter;
 	//printf("error is %f, total num is %d, time is %f ms, Gflops is %f, final error is %f\n",result_error/dimension, totalNum, interval1, Gflop, error_track[MAXIter-1]*1000);
 	return 0;
 }

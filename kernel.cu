@@ -11,9 +11,9 @@
 
 
 /*the device function for level 2 reduce*/
-__device__ void segreduce_block(const int * idx, float * val)
+__device__ void segreduce_block(const int * idx, double * val)
 {
-    float left = 0;
+    double left = 0;
     if( threadIdx.x >=   1 && idx[threadIdx.x] == idx[threadIdx.x -   1] ) { left = val[threadIdx.x -   1]; } __syncthreads(); val[threadIdx.x] += left; left = 0; __syncthreads();  
     if( threadIdx.x >=   2 && idx[threadIdx.x] == idx[threadIdx.x -   2] ) { left = val[threadIdx.x -   2]; } __syncthreads(); val[threadIdx.x] += left; left = 0; __syncthreads();
     if( threadIdx.x >=   4 && idx[threadIdx.x] == idx[threadIdx.x -   4] ) { left = val[threadIdx.x -   4]; } __syncthreads(); val[threadIdx.x] += left; left = 0; __syncthreads();
@@ -27,7 +27,7 @@ __device__ void segreduce_block(const int * idx, float * val)
 }
 
 __device__ 
-float get_val(const unsigned int idx, const unsigned int scope1, const unsigned int scope2,  const float *vec, volatile float* cached_vec){
+double get_val(const unsigned int idx, const unsigned int scope1, const unsigned int scope2,  const double *vec, volatile double* cached_vec){
 	if(idx > scope1 && idx < scope2)
 		return cached_vec[idx - scope1];
 	else
@@ -35,17 +35,17 @@ float get_val(const unsigned int idx, const unsigned int scope1, const unsigned 
 }
 
 /*kernel function for initialize*/
-__global__ void kernelInitialize(const unsigned int num, float *x)
+__global__ void kernelInitialize(const unsigned int num, double *x)
 {
 	unsigned int idx=blockDim.x * blockIdx.x+ threadIdx.x;
 	
 	for (unsigned int n=idx;n<num;n+=BASE) x[n]=0;
 }
 
-__global__ void kernelInitializeAll(const unsigned int num, float *pk, float *bp, float *x, float *zk, const float *vector_in)
+__global__ void kernelInitializeAll(const unsigned int num, double *pk, double *bp, double *x, double *zk, const double *vector_in)
 {
 	unsigned int idx=blockDim.x * blockIdx.x+ threadIdx.x;
-	float temp;
+	double temp;
 	for (unsigned int n=idx;n<num;n+=BASE) 
 	{
 		temp=zk[n];
@@ -55,10 +55,10 @@ __global__ void kernelInitializeAll(const unsigned int num, float *pk, float *bp
 	}
 }
 
-__global__ void kernelInitializeR(const unsigned int num,float *rk, const float *vector_in)
+__global__ void kernelInitializeR(const unsigned int num,double *rk, const double *vector_in)
 {
 	unsigned int idx=blockDim.x * blockIdx.x+ threadIdx.x;
-	float temp;
+	double temp;
 	for (unsigned int n=idx;n<num;n+=BASE) 
 	{
 		temp=vector_in[n];
@@ -68,15 +68,15 @@ __global__ void kernelInitializeR(const unsigned int num,float *rk, const float 
 
 //for ELL format matrix, output y=data*x
 __global__ void ELL_kernel(const unsigned int num_rows, const unsigned int cal_rows, const unsigned int num_cols_per_row,
-			const unsigned int *indices, const float *data, const float * x, float * y, 
+			const unsigned int *indices, const double *data, const double * x, double * y, 
 			const unsigned int bias0, const unsigned int bias1)
 {
 	unsigned int row= blockDim.x*blockIdx.x+threadIdx.x;
 	if (row<cal_rows){
-		float dot =0;
+		double dot =0;
 		for (unsigned int n=0; n< num_cols_per_row; n++){
 			unsigned int col=indices[num_rows * n + row];
-			float val=data[num_rows*n+row];
+			double val=data[num_rows*n+row];
 
 			if (val != 0)
 				dot += val* x[col-bias0];
@@ -87,7 +87,7 @@ __global__ void ELL_kernel(const unsigned int num_rows, const unsigned int cal_r
 
 __global__ void ELL_kernel_block(const unsigned int num_rows, const unsigned int cal_rows, 
 			const unsigned int* num_cols_per_row_vec, const unsigned int* block_data_bias_vec,  
-			const unsigned int *indices, const float *data, const float * x, float * y, 
+			const unsigned int *indices, const double *data, const double * x, double * y, 
 			const unsigned int bias0, const unsigned int bias1){
 	
 	unsigned int block_idx = blockIdx.x; 
@@ -99,11 +99,11 @@ __global__ void ELL_kernel_block(const unsigned int num_rows, const unsigned int
 	if(row < cal_rows){
 		num_cols_per_row = num_cols_per_row_vec[block_idx];//cache will work when every threads read same global address
 		block_data_bias = block_data_bias_vec[block_idx];
-		float dot =0;
+		double dot =0;
 		for (unsigned int n=0; n< num_cols_per_row; n++){
-			data_idx = block_data_bias + ELL_blockSize*n + thread_idx;
+			data_idx = block_data_bias + ELL_threadSize*n + thread_idx;
 			unsigned int col=indices[data_idx];
-			float val=data[data_idx];
+			double val=data[data_idx];
 
 			if (val != 0)
 				dot += val* x[col-bias0];
@@ -115,15 +115,15 @@ __global__ void ELL_kernel_block(const unsigned int num_rows, const unsigned int
 /* bias0 and bias1 is reserved for future distributed version*/
 __global__ void ELL_cached_kernel(const unsigned int num_rows,  
 				const unsigned int num_cols_per_row, 
-				const unsigned int *indices, const float *data, const float * x,
-				float * y, const unsigned int bias0, 
+				const unsigned int *indices, const double *data, const double * x,
+				double * y, const unsigned int bias0, 
 				const unsigned int bias1, const unsigned int* part_boundary)
 {
 	unsigned int x_idx = blockDim.x*blockIdx.x+threadIdx.x;
-	__shared__ volatile float cached_vec[vector_cache_size];  
+	__shared__ volatile double cached_vec[vector_cache_size];  
 	unsigned int vec_start = part_boundary[blockIdx.x] + bias0;
 	unsigned int vec_end = part_boundary[blockIdx.x + 1] + bias0;
-	float val, dot;
+	double val, dot;
 	unsigned int col;
 
 	for (unsigned int i = x_idx; i < vector_cache_size; i += ELL_threadSize){
@@ -143,12 +143,12 @@ __global__ void ELL_cached_kernel(const unsigned int num_rows,
 //for COO format matrix, output y=data*x
 //the basic idea is come from
 __global__ void COO_level1(const unsigned int num_nozeros, const unsigned int interval_size, 
-				const unsigned int *I, const unsigned int *J, const float *V, 
-				const float *x, float *y, int *temp_rows, 
-				float *temp_vals, const unsigned int xp,const unsigned int yp)
+				const unsigned int *I, const unsigned int *J, const double *V, 
+				const double *x, double *y, int *temp_rows, 
+				double *temp_vals, const unsigned int xp,const unsigned int yp)
 {
 	__shared__ volatile int rows[48*threadSize/WARP_SIZE];  //why using 48? because we need 16 additional junk elements
-	__shared__ volatile float vals[threadSize];
+	__shared__ volatile double vals[threadSize];
 	
 	unsigned int thread_id = blockDim.x*blockIdx.x + threadIdx.x;
 	unsigned int thread_lane= threadIdx.x & (WARP_SIZE-1); //great idea! think about it
@@ -179,8 +179,8 @@ __global__ void COO_level1(const unsigned int num_nozeros, const unsigned int in
 	while (n< interval_end)
 	{
 		unsigned int row =I[n];
-		//float val=V[n]*fetch_x(J[n], x);
-		float val=V[n]*x[J[n]-xp];
+		//double val=V[n]*fetch_x(J[n], x);
+		double val=V[n]*x[J[n]-xp];
 		
 		if (thread_lane==0)
 		{
@@ -223,14 +223,14 @@ temp_rows will be 512*512/32=8192, this is a fix number
 So, we should set this device function's blockSize=512/32=16, threadSize=512*/
 
 __global__ void COO_level2(const int * temp_rows,
-                       	const float * temp_vals,
+                       	const double * temp_vals,
 			int * temp_rows2,
-			float * temp_vals2,
-                       	float * y, const unsigned int p)
+			double * temp_vals2,
+                       	double * y, const unsigned int p)
 /*The bias is */									
 {
     __shared__ int rows[threadSize2 + 1];    
-    __shared__ float vals[threadSize2 + 1];
+    __shared__ double vals[threadSize2 + 1];
 	unsigned int idx_t=threadIdx.x;
 	unsigned int idx_g=blockDim.x*blockIdx.x+threadIdx.x;
 	
@@ -265,8 +265,8 @@ __global__ void COO_level2(const int * temp_rows,
 //no sychronize between blocks, so we need to restart another kernel function
 __global__ void COO_level3(const unsigned int num,
                             const int * temp_rows,
-                            float * temp_vals,
-                            float * y,const unsigned int p)
+                            double * temp_vals,
+                            double * y,const unsigned int p)
 {
 	/*only 16 elements, single thread is enough*/
 	unsigned int i=0;
@@ -284,8 +284,8 @@ __global__ void COO_level3(const unsigned int num,
 
 /*The single thread version of reduction*/
 __global__ void COO_level2_serial(const int * temp_rows,
-                              const float * temp_vals,
-                                    float * y,const unsigned int p)
+                              const double * temp_vals,
+                                    double * y,const unsigned int p)
 {
 	unsigned int i=0;
 	for (i=0;i<(blockSize*threadSize/WARP_SIZE);i++)
@@ -296,8 +296,8 @@ __global__ void COO_level2_serial(const int * temp_rows,
 }
 
 __global__ void COO_level2_serial2(const int * temp_rows,
-                              const float * temp_vals,
-                                    float * y, const unsigned int p)
+                              const double * temp_vals,
+                                    double * y, const unsigned int p)
 {
 	unsigned int i=0;
 	for (i=0;i<(blockSize2*threadSize2/WARP_SIZE);i++)
@@ -309,8 +309,8 @@ __global__ void COO_level2_serial2(const int * temp_rows,
 }
 
 __global__ void COO_level2_serial3(const unsigned int num, const int * temp_rows,
-                              const float * temp_vals,
-                                    float * y,const unsigned int p)
+                              const double * temp_vals,
+                                    double * y,const unsigned int p)
 {
 	unsigned int i=0;
 	for (i=0;i<num;i++)
@@ -321,7 +321,7 @@ __global__ void COO_level2_serial3(const unsigned int num, const int * temp_rows
 	}
 }
 
-__global__ void COO_level1_serial(const unsigned int num, unsigned int *I, unsigned int *J, float *V, float *x, float *y, const unsigned int xp, const unsigned int yp)
+__global__ void COO_level1_serial(const unsigned int num, unsigned int *I, unsigned int *J, double *V, double *x, double *y, const unsigned int xp, const unsigned int yp)
 {
 	unsigned int i=0;
 	for (i=0;i<num;i++)
@@ -331,7 +331,7 @@ __global__ void COO_level1_serial(const unsigned int num, unsigned int *I, unsig
 }
 
 //y=x+gamak*y
-__global__ void kernelMyxpy(const unsigned int dimension, float gamak, const float *x, float *y)
+__global__ void kernelMyxpy(const unsigned int dimension, double gamak, const double *x, double *y)
 {
 	unsigned int idx=blockDim.x*blockIdx.x+threadIdx.x;
 	unsigned int n=idx;
@@ -341,26 +341,26 @@ __global__ void kernelMyxpy(const unsigned int dimension, float gamak, const flo
 	}
 }
 extern "C"
-void initialize_all(const unsigned int dimension, float *pk_d, float *bp_d, float *x, float *zk, const float *vector_in_d)
+void initialize_all(const unsigned int dimension, double *pk_d, double *bp_d, double *x, double *zk, const double *vector_in_d)
 {
 	kernelInitializeAll<<<blockSize,threadSize>>>(dimension, pk_d, bp_d, x, zk, vector_in_d);
 }
 
-void initialize_bp(unsigned int num, float *x)
+void initialize_bp(unsigned int num, double *x)
 {
 	kernelInitialize<<<blockSize,threadSize>>>(num,x);
 }
 
-void initialize_r(unsigned int num, float *rk, float *vector_in)
+void initialize_r(unsigned int num, double *rk, double *vector_in)
 {
 	kernelInitializeR<<<blockSize,threadSize>>>(num,rk,vector_in);
 }
-void myxpy(const unsigned int dimension, float gamak, const float *x, float *y)
+void myxpy(const unsigned int dimension, double gamak, const double *x, double *y)
 {
 	kernelMyxpy<<<blockSize,threadSize>>>(dimension,gamak,x,y);
 }
 
-void initialDeviceArray(unsigned int num, float *x)
+void initialDeviceArray(unsigned int num, double *x)
 {
 	kernelInitialize<<<512,512>>>(num,x);
 }
@@ -369,12 +369,12 @@ void initialDeviceArray(unsigned int num, float *x)
 
 void matrix_vectorELL(const unsigned int num_rows, const unsigned int cal_rows, 
 			const unsigned int num_cols_per_row,  const unsigned int *J,
- 			const float *V, const float *x, float *y, const unsigned int bias0, const unsigned int bias1, 
+ 			const double *V, const double *x, double *y, const unsigned int bias0, const unsigned int bias1, 
 			const bool RODR, const unsigned int rodr_blocks, const unsigned int* part_boundary_d)
 {
 	/*bias0 is for x and bias1 is for y, in precond solver, x, y may have different start point, 
 		bias0 is "absolut bias", bias 1 is relative bias*/
-	unsigned int ELL_blocks = ceil((float) num_rows/ELL_threadSize);
+	unsigned int ELL_blocks = ceil((double) num_rows/ELL_threadSize);
 	//printf("ELL_blocks is %d\n", ELL_blocks);
 	//bind_x(x);
 	if(RODR){
@@ -392,12 +392,12 @@ void matrix_vectorELL_block(const unsigned int num_rows, const unsigned int cal_
 			const unsigned int* num_cols_per_row_vec, 
 			const unsigned int* block_data_bias_vec,    
 			const unsigned int *J,
- 			const float *V, const float *x, float *y, const unsigned int bias0, const unsigned int bias1, 
+ 			const double *V, const double *x, double *y, const unsigned int bias0, const unsigned int bias1, 
 			const bool RODR, const unsigned int rodr_blocks, const unsigned int* part_boundary_d)
 {
 	/*bias0 is for x and bias1 is for y, in precond solver, x, y may have different start point, 
 		bias0 is "absolut bias", bias 1 is relative bias*/
-	unsigned int ELL_blocks = ceil((float) num_rows/ELL_threadSize);
+	unsigned int ELL_blocks = ceil((double) num_rows/ELL_threadSize);
 	//printf("ELL_blocks is %d\n", ELL_blocks);
 	//bind_x(x);
 	if(RODR){
@@ -413,25 +413,25 @@ void matrix_vectorELL_block(const unsigned int num_rows, const unsigned int cal_
 	
 }
 
-void matrix_vectorCOO(const unsigned int num_nozeros_compensation, unsigned int *I, unsigned int *J, float *V, float *x_d, float *y_d, unsigned int bias0, unsigned int bias1)
+void matrix_vectorCOO(const unsigned int num_nozeros_compensation, unsigned int *I, unsigned int *J, double *V, double *x_d, double *y_d, unsigned int bias0, unsigned int bias1)
 {
 	/*bias0 is for input vector, bias1 is for output vector, different from the ELL format both bias0 and bias1 is absolut bias*/
 	unsigned int interval_size2;
-	interval_size2=ceil(((float) num_nozeros_compensation)/(blockSize*threadSize/WARP_SIZE));//for data with 2 million elements, we have interval size 200	
+	interval_size2=ceil(((double) num_nozeros_compensation)/(blockSize*threadSize/WARP_SIZE));//for data with 2 million elements, we have interval size 200	
 	//printf("num_nozeros_compensation is %d, intervalSize is %d\n",num_nozeros_compensation, interval_size2 );
 	if (interval_size2>2*32)
 	{
 		//512*512
 		size_t sizeKernel0=(blockSize*threadSize/WARP_SIZE)*sizeof(unsigned int);
-		size_t sizeKernel1=(blockSize*threadSize/WARP_SIZE)*sizeof(float);		
+		size_t sizeKernel1=(blockSize*threadSize/WARP_SIZE)*sizeof(double);		
 		int *temp_rows1;
-		float *temp_vals1;
+		double *temp_vals1;
 		int *temp_rows2;
-		float *temp_vals2;
+		double *temp_vals2;
 		cudaMalloc((void**)&temp_rows1, sizeKernel0);
 		cudaMalloc((void**)&temp_vals1, sizeKernel1);
 		cudaMalloc((void**)&temp_rows2, blockSize2*sizeof(unsigned int));
-		cudaMalloc((void**)&temp_vals2, blockSize2*sizeof(float));
+		cudaMalloc((void**)&temp_vals2, blockSize2*sizeof(double));
 		COO_level1<<<blockSize,threadSize>>>(num_nozeros_compensation,interval_size2, 
 					I, J, V, x_d, y_d, temp_rows1, temp_vals1, bias0, bias1);
 		COO_level2<<<blockSize2,threadSize2>>>(temp_rows1,temp_vals1,temp_rows2,temp_vals2,y_d, bias1);
@@ -444,9 +444,9 @@ void matrix_vectorCOO(const unsigned int num_nozeros_compensation, unsigned int 
 		//16*512
 		//printf("situation 2 happened!\n");
 		size_t sizeKernel2=(blockSize2*threadSize2/WARP_SIZE)*sizeof(unsigned int);
-		size_t sizeKernel3=(blockSize2*threadSize2/WARP_SIZE)*sizeof(float);
+		size_t sizeKernel3=(blockSize2*threadSize2/WARP_SIZE)*sizeof(double);
 		int *temp_rows3;
-		float *temp_vals3;
+		double *temp_vals3;
 		cudaMalloc((void**)&temp_rows3, sizeKernel2);
 		cudaMalloc((void**)&temp_vals3, sizeKernel3);
 		COO_level1<<<blockSize2,threadSize2>>>(num_nozeros_compensation, interval_size2, 
@@ -457,11 +457,11 @@ void matrix_vectorCOO(const unsigned int num_nozeros_compensation, unsigned int 
 	/*else if (interval_size2>4)
 	{
 		//16*32
-		unsigned int iterval_size3=ceil((float) num_nozeros_compensation/(512*2/32));
+		unsigned int iterval_size3=ceil((double) num_nozeros_compensation/(512*2/32));
 		unsigned int *temp_rows4;
-		float *temp_vals4;
+		double *temp_vals4;
 		cudaMalloc((void**)&temp_rows4, 32*sizeof(unsigned int));
-		cudaMalloc((void**)&temp_vals4, 32*sizeof(float));		
+		cudaMalloc((void**)&temp_vals4, 32*sizeof(double));		
 		COO_level1<<<2,512>>>(num_nozeros_compensation, iterval_size3, I,J,V,x_d,y_d,temp_rows4,temp_vals4,bias0,bias1);
 		//16 calculation excuted serially
 		COO_level2_serial3<<<1,1>>>(32, temp_rows4,temp_vals4,y_d, bias1);		
@@ -475,7 +475,7 @@ void matrix_vectorCOO(const unsigned int num_nozeros_compensation, unsigned int 
 	
 }
 
-/*void matrix_vectorHYP(const unsigned int num_rows, const unsigned int max, const unsigned int *J, const float *V, unsigned int NumCOO, unsigned int *I_COO, unsigned int *J_COO, float *V_COO, )
+/*void matrix_vectorHYP(const unsigned int num_rows, const unsigned int max, const unsigned int *J, const double *V, unsigned int NumCOO, unsigned int *I_COO, unsigned int *J_COO, double *V_COO, )
 {
 	matrix_vectorELL();
 	matrix_vectorCOO();

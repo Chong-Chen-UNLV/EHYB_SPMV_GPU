@@ -14,17 +14,17 @@
 
 /*reorder function with I_rodr, J_rodr, v_rodr, rodr_list as output*/
 void matrix_reorder(const unsigned int* dimension_in, const unsigned int totalNum, 
-		const unsigned int* I, const unsigned int* J, const float* V, 
+		const unsigned int* I, const unsigned int* J, const double* V, 
 		unsigned int* numInRow, unsigned int* row_idx, 
 		unsigned int* I_rodr, unsigned int* J_rodr, 
-		float* V_rodr, unsigned int* rodr_list, unsigned int* part_boundary,
+		double* V_rodr, unsigned int* rodr_list, unsigned int* part_boundary,
 		const unsigned int nparts){
 
 	printf("nparts is %d\n", nparts);
 	unsigned int dimension = *dimension_in;
 	unsigned int *colVal = (unsigned int *) malloc(totalNum*sizeof(unsigned int));
 	int tempI, tempIdx, tempJ;
-	float tempV;
+	double tempV;
 	/*transfer the COO format to CSR format, do the partitioning*/
 	for(int i= 1; i <= dimension; i++){
 		numInRow[i-1] = 0;
@@ -50,7 +50,7 @@ void matrix_reorder(const unsigned int* dimension_in, const unsigned int totalNu
 	double* options = mtmetis_init_options();
 	
 	int ncon = 1;
-	float ubvec = 1;
+	double ubvec = 1;
 	options[MTMETIS_OPTION_NTHREADS] = 8;
 	mtmetis_wgt_type r_edgecut;
 	struct timeval start, end;
@@ -126,11 +126,11 @@ void matrix_reorder(const unsigned int* dimension_in, const unsigned int totalNu
 	free(part_filled);
 }
 
-void vector_reorder(const unsigned int dimension, const float* v_in, 
-			float* v_rodr, const unsigned int* rodr_list){
+void vector_reorder(const unsigned int dimension, const double* v_in, 
+			double* v_rodr, const unsigned int* rodr_list){
 	for(int i=0; i < dimension; i++) v_rodr[rodr_list[i]] = v_in[i];	
 }
-void vector_recover(const unsigned int dimension, const float* v_rodr, float* v, const unsigned int* rodr_list){
+void vector_recover(const unsigned int dimension, const double* v_rodr, double* v, const unsigned int* rodr_list){
 	unsigned int* rodr_list_recover= (unsigned int*) malloc(dimension*sizeof(unsigned int));
 	for(int i=0; i < dimension; i++) rodr_list_recover[rodr_list[i]] = i;	
 	for(int i=0; i < dimension; i++) v[rodr_list_recover[i]] = v_rodr[i];	
@@ -141,11 +141,11 @@ void update_numInRowL(const unsigned int totalNum,
 			const unsigned int dimension, 
 			unsigned int* I_rodr, 
 			unsigned int* J_rodr, 
-			float* V_rodr, 
+			double* V_rodr, 
 			unsigned int* numInRowL,
 			unsigned int* row_idxL, 
 			unsigned int* row_idxLP,
-			float* diag){
+			double* diag){
 	
 	unsigned int* numInRowLP_ = (unsigned int*)malloc(dimension*sizeof(unsigned int));
 	for(unsigned int i = 0; i < dimension; ++i){
