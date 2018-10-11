@@ -2,11 +2,10 @@
 
 #define BASE 262144 //1024*1024
 
-#define blockSize 512	
-#define threadSize 512
-#define ELL_threadSize 1024
-#define blockSize2 16
-#define threadSize2 512
+#define block_size 512	
+#define thread_size 512
+#define block_size2 16
+#define thread_size2 512
 #define WARP_SIZE 32
 
 
@@ -101,7 +100,7 @@ __global__ void ELL_kernel_block(const unsigned int num_rows, const unsigned int
 		block_data_bias = block_data_bias_vec[block_idx];
 		double dot =0;
 		for (unsigned int n=0; n< num_cols_per_row; n++){
-			data_idx = block_data_bias + ELL_threadSize*n + thread_idx;
+			data_idx = block_data_bias + ELL_thread_size*n + thread_idx;
 			unsigned int col=indices[data_idx];
 			double val=data[data_idx];
 
@@ -126,10 +125,10 @@ __global__ void ELL_cached_kernel(const unsigned int num_rows,
 	double val, dot;
 	unsigned int col;
 
-	for (unsigned int i = x_idx; i < vector_cache_size; i += ELL_threadSize){
+	for (unsigned int i = x_idx; i < vector_cache_size; i += ELL_thread_size){
 		cached_vec[i] = x[i + vec_start];
 	}
-	for(unsigned int row = x_idx; row < vec_end; row += ELL_threadSize){
+	for(unsigned int row = x_idx; row < vec_end; row += ELL_thread_size){
 		dot =0;
 		for (unsigned int n=0; n< num_cols_per_row; n++){
 			col=indices[num_rows*n + row];
@@ -147,8 +146,8 @@ __global__ void COO_level1(const unsigned int num_nozeros, const unsigned int in
 				const double *x, double *y, int *temp_rows, 
 				double *temp_vals, const unsigned int xp,const unsigned int yp)
 {
-	__shared__ volatile int rows[48*threadSize/WARP_SIZE];  //why using 48? because we need 16 additional junk elements
-	__shared__ volatile double vals[threadSize];
+	__shared__ volatile int rows[48*thread_size/WARP_SIZE];  //why using 48? because we need 16 additional junk elements
+	__shared__ volatile double vals[thread_size];
 	
 	unsigned int thread_id = blockDim.x*blockIdx.x + threadIdx.x;
 	unsigned int thread_lane= threadIdx.x & (WARP_SIZE-1); //great idea! think about it
@@ -218,9 +217,9 @@ __global__ void COO_level1(const unsigned int num_nozeros, const unsigned int in
 /* The second level of the segmented reduction operation
 Why we need second level of reduction? because the program running at different block can not be sychronized 
 Notice the number of input elements is fixed, and the number is relatively much small than the dimension of matrixs
-consider blockSize=512, threadSize=512 (i.e. 512 block, each block has 512 threads) and wrapSize=32 the dimension of
+consider block_size=512, thread_size=512 (i.e. 512 block, each block has 512 threads) and wrapSize=32 the dimension of
 temp_rows will be 512*512/32=8192, this is a fix number
-So, we should set this device function's blockSize=512/32=16, threadSize=512*/
+So, we should set this device function's block_size=512/32=16, thread_size=512*/
 
 __global__ void COO_level2(const int * temp_rows,
                        	const double * temp_vals,
@@ -229,15 +228,15 @@ __global__ void COO_level2(const int * temp_rows,
                        	double * y, const unsigned int p)
 /*The bias is */									
 {
-    __shared__ int rows[threadSize2 + 1];    
-    __shared__ double vals[threadSize2 + 1];
+    __shared__ int rows[thread_size2 + 1];    
+    __shared__ double vals[thread_size2 + 1];
 	unsigned int idx_t=threadIdx.x;
 	unsigned int idx_g=blockDim.x*blockIdx.x+threadIdx.x;
 	
     if (threadIdx.x == 0)
     {
-        rows[threadSize2] =  -1;
-        vals[threadSize2] =   0;
+        rows[thread_size2] =  -1;
+        vals[thread_size2] =   0;
 	temp_rows2[blockIdx.x]=-1;
     }
     	
@@ -249,7 +248,7 @@ __global__ void COO_level2(const int * temp_rows,
 	
 	if (rows[threadIdx.x] != rows[threadIdx.x + 1])
 	{
-		if (threadIdx.x!=(threadSize2-1))
+		if (threadIdx.x!=(thread_size2-1))
 		{
 			if (rows[threadIdx.x]>=0 && rows[threadIdx.x]>=p) y[rows[threadIdx.x]-p] += vals[threadIdx.x];
 		}
@@ -288,7 +287,7 @@ __global__ void COO_level2_serial(const int * temp_rows,
                                     double * y,const unsigned int p)
 {
 	unsigned int i=0;
-	for (i=0;i<(blockSize*threadSize/WARP_SIZE);i++)
+	for (i=0;i<(block_size*thread_size/WARP_SIZE);i++)
 	{
 		if (temp_rows[i]>=0 && temp_rows[i]>=p) 
 			y[temp_rows[i]-p]+=temp_vals[i];
@@ -300,7 +299,7 @@ __global__ void COO_level2_serial2(const int * temp_rows,
                                     double * y, const unsigned int p)
 {
 	unsigned int i=0;
-	for (i=0;i<(blockSize2*threadSize2/WARP_SIZE);i++)
+	for (i=0;i<(block_size2*thread_size2/WARP_SIZE);i++)
 	{
 		
 	if (temp_rows[i]>=0 && temp_rows[i]>=p) 
@@ -343,28 +342,27 @@ __global__ void kernelMyxpy(const unsigned int dimension, double gamak, const do
 extern "C"
 void initialize_all(const unsigned int dimension, double *pk_d, double *bp_d, double *x, double *zk, const double *vector_in_d)
 {
-	kernelInitializeAll<<<blockSize,threadSize>>>(dimension, pk_d, bp_d, x, zk, vector_in_d);
+	kernelInitializeAll<<<block_size,thread_size>>>(dimension, pk_d, bp_d, x, zk, vector_in_d);
 }
 
 void initialize_bp(unsigned int num, double *x)
 {
-	kernelInitialize<<<blockSize,threadSize>>>(num,x);
+	kernelInitialize<<<block_size,thread_size>>>(num,x);
 }
 
 void initialize_r(unsigned int num, double *rk, double *vector_in)
 {
-	kernelInitializeR<<<blockSize,threadSize>>>(num,rk,vector_in);
+	kernelInitializeR<<<block_size,thread_size>>>(num,rk,vector_in);
 }
 void myxpy(const unsigned int dimension, double gamak, const double *x, double *y)
 {
-	kernelMyxpy<<<blockSize,threadSize>>>(dimension,gamak,x,y);
+	kernelMyxpy<<<block_size,thread_size>>>(dimension,gamak,x,y);
 }
 
 void initialDeviceArray(unsigned int num, double *x)
 {
 	kernelInitialize<<<512,512>>>(num,x);
 }
-
 
 
 void matrix_vectorELL(const unsigned int num_rows, const unsigned int cal_rows, 
@@ -374,15 +372,15 @@ void matrix_vectorELL(const unsigned int num_rows, const unsigned int cal_rows,
 {
 	/*bias0 is for x and bias1 is for y, in precond solver, x, y may have different start point, 
 		bias0 is "absolut bias", bias 1 is relative bias*/
-	unsigned int ELL_blocks = ceil((double) num_rows/ELL_threadSize);
+	unsigned int ELL_blocks = ceil((double) num_rows/ELL_rodr_thread_size);
 	//printf("ELL_blocks is %d\n", ELL_blocks);
 	//bind_x(x);
 	if(RODR){
 		
-		ELL_cached_kernel<<<rodr_blocks, ELL_threadSize>>>(num_rows, num_cols_per_row, J,
+		ELL_cached_kernel<<<rodr_blocks, ELL_rodr_thread_size>>>(num_rows, num_cols_per_row, J,
  			V, x,y, bias0, bias1, part_boundary_d);	
 	} else { 
-		ELL_kernel<<<ELL_blocks, ELL_threadSize>>>(num_rows, cal_rows, num_cols_per_row, J, V, x,y, bias0, bias1);
+		ELL_kernel<<<ELL_blocks, ELL_thread_size>>>(num_rows, cal_rows, num_cols_per_row, J, V, x,y, bias0, bias1);
 	}
 	//unbind_x(x);
 	
@@ -397,17 +395,17 @@ void matrix_vectorELL_block(const unsigned int num_rows, const unsigned int cal_
 {
 	/*bias0 is for x and bias1 is for y, in precond solver, x, y may have different start point, 
 		bias0 is "absolut bias", bias 1 is relative bias*/
-	unsigned int ELL_blocks = ceil((double) num_rows/ELL_threadSize);
+	unsigned int ELL_blocks = ceil((double) num_rows/ELL_thread_size);
 	//printf("ELL_blocks is %d\n", ELL_blocks);
 	//bind_x(x);
 	if(RODR){
 		
-		ELL_cached_kernel_block<<<rodr_blocks, ELL_threadSize>>>(num_rows, num_cols_per_row_vec, 
+		ELL_cached_kernel_block<<<rodr_blocks, ELL_thread_size>>>(num_rows, num_cols_per_row_vec, 
 			block_data_bias_vec,
 			J, V, x, y, bias0, bias1, part_boundary_d);
 	}
 	else
-		ELL_kernel_block<<<ELL_blocks, ELL_threadSize>>>(num_rows, cal_rows, num_cols_per_row_vec, 
+		ELL_kernel_block<<<ELL_blocks, ELL_thread_size>>>(num_rows, cal_rows, num_cols_per_row_vec, 
 			block_data_bias_vec, J, V, x,y, bias0, bias1);
 	//unbind_x(x);
 	
@@ -417,25 +415,25 @@ void matrix_vectorCOO(const unsigned int num_nozeros_compensation, unsigned int 
 {
 	/*bias0 is for input vector, bias1 is for output vector, different from the ELL format both bias0 and bias1 is absolut bias*/
 	unsigned int interval_size2;
-	interval_size2=ceil(((double) num_nozeros_compensation)/(blockSize*threadSize/WARP_SIZE));//for data with 2 million elements, we have interval size 200	
+	interval_size2=ceil(((double) num_nozeros_compensation)/(block_size*thread_size/WARP_SIZE));//for data with 2 million elements, we have interval size 200	
 	//printf("num_nozeros_compensation is %d, intervalSize is %d\n",num_nozeros_compensation, interval_size2 );
 	if (interval_size2>2*32)
 	{
 		//512*512
-		size_t sizeKernel0=(blockSize*threadSize/WARP_SIZE)*sizeof(unsigned int);
-		size_t sizeKernel1=(blockSize*threadSize/WARP_SIZE)*sizeof(double);		
+		size_t sizeKernel0=(block_size*thread_size/WARP_SIZE)*sizeof(unsigned int);
+		size_t sizeKernel1=(block_size*thread_size/WARP_SIZE)*sizeof(double);		
 		int *temp_rows1;
 		double *temp_vals1;
 		int *temp_rows2;
 		double *temp_vals2;
 		cudaMalloc((void**)&temp_rows1, sizeKernel0);
 		cudaMalloc((void**)&temp_vals1, sizeKernel1);
-		cudaMalloc((void**)&temp_rows2, blockSize2*sizeof(unsigned int));
-		cudaMalloc((void**)&temp_vals2, blockSize2*sizeof(double));
-		COO_level1<<<blockSize,threadSize>>>(num_nozeros_compensation,interval_size2, 
+		cudaMalloc((void**)&temp_rows2, block_size2*sizeof(unsigned int));
+		cudaMalloc((void**)&temp_vals2, block_size2*sizeof(double));
+		COO_level1<<<block_size,thread_size>>>(num_nozeros_compensation,interval_size2, 
 					I, J, V, x_d, y_d, temp_rows1, temp_vals1, bias0, bias1);
-		COO_level2<<<blockSize2,threadSize2>>>(temp_rows1,temp_vals1,temp_rows2,temp_vals2,y_d, bias1);
-		COO_level3<<<1,1>>>(blockSize2,temp_rows2,temp_vals2,y_d, bias1);
+		COO_level2<<<block_size2,thread_size2>>>(temp_rows1,temp_vals1,temp_rows2,temp_vals2,y_d, bias1);
+		COO_level3<<<1,1>>>(block_size2,temp_rows2,temp_vals2,y_d, bias1);
 		//COO_level2_serial<<<1,1>>>(temp_rows1,temp_vals1,y_d, bias1);
 	}
 	else if (interval_size2>1)
@@ -443,13 +441,13 @@ void matrix_vectorCOO(const unsigned int num_nozeros_compensation, unsigned int 
 	{
 		//16*512
 		//printf("situation 2 happened!\n");
-		size_t sizeKernel2=(blockSize2*threadSize2/WARP_SIZE)*sizeof(unsigned int);
-		size_t sizeKernel3=(blockSize2*threadSize2/WARP_SIZE)*sizeof(double);
+		size_t sizeKernel2=(block_size2*thread_size2/WARP_SIZE)*sizeof(unsigned int);
+		size_t sizeKernel3=(block_size2*thread_size2/WARP_SIZE)*sizeof(double);
 		int *temp_rows3;
 		double *temp_vals3;
 		cudaMalloc((void**)&temp_rows3, sizeKernel2);
 		cudaMalloc((void**)&temp_vals3, sizeKernel3);
-		COO_level1<<<blockSize2,threadSize2>>>(num_nozeros_compensation, interval_size2, 
+		COO_level1<<<block_size2,thread_size2>>>(num_nozeros_compensation, interval_size2, 
 				I, J, V, x_d, y_d, temp_rows3, temp_vals3, bias0, bias1);
 		//512 calculation excuted serially
 		COO_level2_serial2<<<1,1>>>(temp_rows3,temp_vals3,y_d, bias1);		
