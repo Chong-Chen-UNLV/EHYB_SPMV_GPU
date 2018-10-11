@@ -8,11 +8,7 @@
 unsigned int *I_precond;
 unsigned int *J_precond;
 double *V_precond;
-typedef struct _cb{
-	bool GPU = false;
-	bool RODR = false;
-	bool BLOCK = false;
-}cb_s;
+
 void fspaiCPU(S *SInput);
 void fspai(S *SInput);	
 
@@ -365,7 +361,7 @@ int main(int argc, char* argv[])
 					row_idxL, I_precond, J_precond, V_precond,
 					totalNumPrecondP, numInRowLP, maxRowNumPrecondP,
 					row_idxLP, I_precondP, J_precondP, V_precondP, 
-					y_rodr, x_rodr, MAXIter, &realIter, true, blocks, part_boundary);
+					y_rodr, x_rodr, MAXIter, &realIter, cb, blocks, part_boundary);
 		}
 		else{
 			solverGPU_HYB(dimension, totalNum, numInRow, maxRowNum,
@@ -374,7 +370,7 @@ int main(int argc, char* argv[])
 					row_idxL, I_precond, J_precond, V_precond,
 					totalNumPrecondP, numInRowLP, maxRowNumPrecondP,
 					row_idxLP, I_precondP, J_precondP, V_precondP, 
-					y, x, MAXIter, &realIter, false, blocks, NULL);
+					y, x, MAXIter, &realIter, cb, blocks, NULL);
 		}
 	}
 	else if(!GPU){

@@ -27,8 +27,7 @@ void solver(const unsigned int dimension, const unsigned int totalNum, const uns
 		bp[i]=0;
 		doth=doth+vector_in[i]*vector_in[i];
 	}
-	if (doth>0)
-	{
+	if (doth>0){
 		while (error>threshold&&iter<MAXIter){
 			dotp0=0;
 			dotr0=0;
@@ -77,7 +76,7 @@ void solverGPU_HYB(const unsigned int dimension,
 		const unsigned int *row_idxLP,  
 		const unsigned int *I_precondP, const unsigned int *J_precondP, const double *V_precondP, 
 		const double *vector_in, double *vector_out,  
-		const unsigned int MAXIter, unsigned int *realIter,  const unsigned int cb,
+		const unsigned int MAXIter, unsigned int *realIter,  const cb_s cb,
 		const unsigned int partition_size, const unsigned int* part_boundary)
 {
 
@@ -86,14 +85,26 @@ void solverGPU_HYB(const unsigned int dimension,
 	unsigned int totalNumCOO; 
 	unsigned int *col_d;
 	double *V_d;
+	bool RODR, BOLCK;
 	unsigned int *I_COO_d, *J_COO_d;
 	double *V_COO_d;
-	COO2ELL(I,J,V,&colELL,&matrixELL,&I_COO, &J_COO, &V_COO, 
-		numInRow, row_idx, totalNum, dimension, &totalNumCOO, maxRowNum, &ELL_width);
+	RODR = cb.RODR;
+	BLOCK = cb.BLOCK;
+	if(BLOCK){
+		
+		COO2ELL_block();
+	} else {
+		COO2ELL(I,J,V,&colELL,&matrixELL,&I_COO, &J_COO, &V_COO, 
+			numInRow, row_idx, totalNum, dimension, &totalNumCOO, maxRowNum, &ELL_width);
+	}
+	
 	cudaMalloc((void **) &col_d,ELL_width*dimension*sizeof(unsigned int));
 	cudaMalloc((void **) &V_d,ELL_width*dimension*sizeof(double));
 	cudaMemcpy(col_d,colELL,dimension*ELL_width*sizeof(unsigned int),cudaMemcpyHostToDevice);
 	cudaMemcpy(V_d,matrixELL,dimension*ELL_width*sizeof(double),cudaMemcpyHostToDevice);
+	if(BLOCK){
+		
+	}
 	printf("ELL_width is %d, and totalNumCOO is %d\n", ELL_width, totalNumCOO);
 	if (totalNumCOO>0){
 		cudaMalloc((void **) &I_COO_d,totalNumCOO*sizeof(unsigned int));

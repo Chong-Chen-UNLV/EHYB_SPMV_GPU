@@ -2,6 +2,13 @@
 #define SOLVER_H
 
 #include <omp.h>
+
+typedef struct _cb{
+	bool GPU = false;
+	bool RODR = false;
+	bool BLOCK = false;
+}cb_s;
+
 void solverPrecondCPU(const unsigned int procNum, const unsigned int dimension, 
 		const unsigned int totalNum, const unsigned int *row_idx, const unsigned int *J, 
 		const float *V, const unsigned int totalNumPrecond, const unsigned int *row_idxL, 
@@ -19,7 +26,7 @@ void solverGPU_HYB(const unsigned int dimension,
 		const unsigned int *row_idxLP,  
 		const unsigned int *I_precondP, const unsigned int *J_precondP, const float *V_precondP, 
 		const float *vector_in, float *vector_out,  
-		const unsigned int MAXIter, unsigned int *realIter, const bool RODR, const bool BLOCK,
+		const unsigned int MAXIter, unsigned int *realIter, const cb_s cb, 
 		const unsigned int partition_size, const unsigned int* part_boundary);
 
 #endif
