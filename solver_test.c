@@ -7,7 +7,6 @@
 
 unsigned int *I_precond;
 unsigned int *J_precond;
-double *V_precond;
 
 void fspaiCPU(S *SInput);
 void fspai(S *SInput);	
@@ -47,6 +46,7 @@ int main(int argc, char* argv[])
 	int arg_val;
 	char* arg_str;
 	cb_s cb;
+    init_cb(cb);
 			
 	while ((oc = getopt(argc, argv, "m:c:r:g:t:")) != -1) {
 		switch (oc) {
@@ -243,7 +243,7 @@ int main(int argc, char* argv[])
 	unsigned int *I_rodr, *J_rodr,*part_boundary, *rodr_list;
 	double *V_rodr, *x_rodr, *y_rodr;
 	
-	if(RODR){
+	if(cb.RODR){
 		blocks = ceil(dimension/(shared_per_block/element_size));
 		printf("blocks is %d\n", blocks);
 		rodr_list = (unsigned int* )calloc(dimension, sizeof(unsigned int)); 
@@ -275,7 +275,7 @@ int main(int argc, char* argv[])
 
 	unsigned int *I_precond=(unsigned int *) malloc(size6);
 	unsigned int *J_precond=(unsigned int *) malloc(size6);
-	double *V_precond=(double *) malloc(size7);	
+	float* V_precond=(double *) malloc(size7);	
 
 	/*int rt=pthread_barrier_init(&barr, NULL, MAXthread);
 	  rt=pthread_barrier_init(&barr1, NULL, MAXthread);*/
@@ -284,15 +284,15 @@ int main(int argc, char* argv[])
 
 	for (int t=0;t<MAXthread;t++)
 	{
-		if(RODR){
+		if(cb.RODR){
 			Sthread[t].I=I_rodr;
 			Sthread[t].J=J_rodr;
-			Sthread[t].V=V_rodr;
+			Sthread[t].V=(float) V_rodr;
 		}
 		else{
 			Sthread[t].I=I;
 			Sthread[t].J=J;
-			Sthread[t].V=V;
+			Sthread[t].V=(float) V;
 		}
 		Sthread[t].I_precond=I_precond;
 		Sthread[t].J_precond=J_precond;
@@ -302,7 +302,7 @@ int main(int argc, char* argv[])
 		Sthread[t].row_idx=row_idx;
 		Sthread[t].numInRowPrecond=numInRowL;
 		Sthread[t].row_idxPrecond=row_idxL;
-		Sthread[t].diag=diag;
+		Sthread[t].diag = (float) diag;
 		if (t==0) Sthread[t].colStart=0;
 		else Sthread[t].colStart=(dimension/MAXthread)*t;
 		if (t==MAXthread-1) Sthread[t].colEnd=dimension;
@@ -354,7 +354,7 @@ int main(int argc, char* argv[])
 	if(GPU){
 		/*please notice that we need transfer the format of matrix to HYB, so we need I, J, V completely
 	   	for GPU solver, for CPU solver, no format change is applied, so we only need row_idx**/
-		if(RODR){
+		if(cb.RODR){
 			solverGPU_HYB(dimension, totalNum, numInRow, maxRowNum, 
 					row_idx, I_rodr, J_rodr, V_rodr, 
 					totalNumPrecond, numInRowL, maxRowNumPrecond,
@@ -374,13 +374,13 @@ int main(int argc, char* argv[])
 		}
 	}
 	else if(!GPU){
-		if(RODR){
+		if(cb.RODR){
 			solverPrecondCPU(procNum, dimension, totalNum, row_idx, J_rodr, V_rodr, totalNumPrecond, 
 					row_idxL, J_precond, V_precond,totalNumPrecondP, 
 					row_idxLP, J_precondP, V_precondP, 
 					y_rodr, x_rodr, MAXIter, &realIter);
 		}
-		else if(!RODR){
+		else if(!cb.RODR){
 			solverPrecondCPU(procNum, dimension, totalNum, row_idx, J, V, totalNumPrecond, 
 					row_idxL, J_precond, V_precond,totalNumPrecondP, 
 					row_idxLP, J_precondP, V_precondP, 
@@ -392,7 +392,7 @@ int main(int argc, char* argv[])
 	//solverPrecondGPU_CUSPARSE(dimension, totalNum, *row_idx, *J, *V, totalNumPrecond, *row_idxL, *J_precond, *V_precond, 
 	//	totalNumPrecondP, *row_idxLP, *J_precondP, *V_precondP, *y, *x, MAXIter, *realIter);
 		
-	if(RODR){
+	if(cb.RODR){
 		vector_recover(dimension,  x_rodr, x, rodr_list);
 	}
 
@@ -416,7 +416,7 @@ int main(int argc, char* argv[])
 	free(lowerV);
 	free(x);
 	free(y);
-	if(RODR){
+	if(cb.RODR){
 		free(y_rodr);
 		free(I_rodr);
 		free(J_rodr);

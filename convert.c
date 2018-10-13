@@ -90,8 +90,7 @@ static void ELL_block_wid_vec_gen(unsigned int* num_cols_vec, unsigned int* size
 	unsigned int local_end;
 	*size_COO = 0;
 	int block_nonZ;
-	unsigned int ELL_blocks = ceil(((float) (dimension))/ELL_rodr_thread_size);
-	for(unsigned int row = 0; row < dimension; row += ELL_blocks){
+	for(unsigned int row = 0; row < dimension; row += ELL_rodr_thread_size){
 		block_idx = row/ELL_rodr_thread_size;
 		if (row + ELL_rodr_thread_size <= dimension){
 			local_end = row + ELL_rodr_thread_size;	
@@ -122,20 +121,17 @@ static void ELL_block_wid_vec_gen(unsigned int* num_cols_vec, unsigned int* size
 
 static void COO2ELL_block_core(int* colELL, double* matrixELL,
 		int* I_COO, int* J_COO, double* V_COO, 
-		unsigned int* num_cols_vec, 
+		const unsigned int* nonzero_vec, const  unsigned int local_num_of_row, 
+        const unsigned int* ELL_block_bias_vec, 
 		const int* row_local, const int* col_local, const double* matrix_local){ 
 
 	unsigned int irregular=0;
-	unsigned int ELL_blocks = ceil( ((double)row_local)/ELL_threadSize);
-	unsigned int *ELL_bias_vec = (unsigned int*) malloc(sizeof(unsigned int)*ELL_blocks);
-	ELL_bias_vec[0] = 0;
-	for (unsigned int blk = 1; blk < ELL_block_size; ++blk ){
-		ELL_bias_vec[blk] = num_cols_vec[blk]*ELL_threadSize + ELL_bias_vec[blk - 1]
-	}
+	unsigned int ELL_rodr_blocks = ceil( ((float) local_num_of_row)/ELL_rodr_thread_size);
 	for (unsigned int row = 0; row < loc_num_of_row; row += ELL_blockSize){
 		unsigned int block_idx = row/ELL_blockSize;
 		unsigned int num_cols = num_cols_vec[block_idx];
-		unsigned int ELL_bias = block_ELL_bias_vec[block_idx]; 
+		unsigned int ELL_bias = ELL_block_bias_vec[block_idx];
+        unsigned int num_bias = row_idx[row_local[0]]; 
 		
 		for(i = row; i < row + ELL_blockSize; ++i){
 			unsigned int row_val = i + row_bias;
@@ -175,20 +171,22 @@ static void COO2ELL_block_core(int* colELL, double* matrixELL,
 			}
 		}
 	}
-	free(ELL_bias_vec);
 }
 
 static void update_ELL_block_bias_vec(unsigned int block_num, unsigned int* ELL_block_wid_vec, unsigned int* ELL_block_bias_vec){
-	for(unsigned int i = 0; i < block_num; ++i){
-
+	ELL_block_bias_vec[0] = 0;
+	for(unsigned int i = 1; i < block_num; ++i){
+		ELL_block_bias_vec[i] = ELL_block_bias_vec[i-1] + ELL_block_wid_vec[i-1]*ELL_rodr_thread_size;	
 	}	
 }
 
+/*parameters, first line: output of HYB related parameters, 2nd line: output of HYB matrices, 3rd line:input of local COO matrix 
+4th line: CSR indeces (didn't include values), 5th line: input variables*/
 void COO2ELL_block(unsigned int* num_cols_vec, unsigned int *size_COO, unsigned int* block_ELL_bias_vec, 
-		double **matrixELL, unsigned int **I_COO, unsigned int **J_COO, double **V_COO,
-		const unsigned int *row_local, const unsigned int *col_local, const double* matrix_local, unsigned int **colELL,
-		const unsigned int *nonzero_vec, 
-		const unsigned int *row_idx, const unsigned int localMatrixSize, const unsigned int loc_num_of_row, 
+		unsigned int **colELL, double **matrixELL, unsigned int **I_COO, unsigned int **J_COO, double **V_COO,
+		const unsigned int *row_local, const unsigned int *col_local, const double* matrix_local, 
+		const unsigned int *row_idx, const unsigned int *nonzero_vec, 
+		const unsigned int localMatrixSize, const unsigned int loc_num_of_row, 
 		unsigned int *sizeOut, unsigned max_in, unsigned int *max_out){
 
 
@@ -213,7 +211,7 @@ void COO2ELL_block(unsigned int* num_cols_vec, unsigned int *size_COO, unsigned 
 	row_idx += ELL_block_size;
 	COO2ELL_block_core(colELL, matrixELL,
 			I_COO, J_COO, V_COO, 
-			num_cols_vec, block_ELL_bias, 
+			nonzero_vec, block_ELL_bias, local_num_of_row, 
 			row_local, col_local, matrix_local);
 	
 	if (maxRowNum > max_in){
