@@ -90,13 +90,13 @@ static void ELL_block_wid_vec_gen(unsigned int* num_cols_vec, unsigned int* size
 	unsigned int local_end;
 	*size_COO = 0;
 	int block_nonZ;
-	for(unsigned int row = 0; row < dimension; row += ELL_rodr_thread_size){
-		block_idx = row/ELL_rodr_thread_size;
-		if (row + ELL_rodr_thread_size <= dimension){
-			local_end = row + ELL_rodr_thread_size;	
-			block_nonZ = row_idx[row + ELL_rodr_thread_size] - row_idx[row];
+	for(unsigned int row = 0; row < dimension; row += ELL_thread_size){
+		block_idx = row/ELL_thread_size;
+		if (row + ELL_thread_size <= dimension){
+			local_end = row + ELL_thread_size;	
+			block_nonZ = row_idx[row + ELL_thread_size] - row_idx[row];
 			if(block_nonz > max_col) max_col = block_nonz;
-			avg_local = ceil(((float) block_nonz))/ELL_rodr_thread_size;
+			avg_local = ceil(((float) block_nonz))/ELL_thread_size;
 		}else{
 			local_end = dimension;
 			block_nonz = row_idx[dimension] - row_idx[row];
@@ -126,7 +126,7 @@ static void COO2ELL_block_core(int* colELL, double* matrixELL,
 		const int* row_local, const int* col_local, const double* matrix_local){ 
 
 	unsigned int irregular=0;
-	unsigned int ELL_rodr_blocks = ceil( ((float) local_num_of_row)/ELL_rodr_thread_size);
+	unsigned int ELL_rodr_blocks = ceil( ((float) local_num_of_row)/ELL_thread_size);
 	for (unsigned int row = 0; row < loc_num_of_row; row += ELL_blockSize){
 		unsigned int block_idx = row/ELL_blockSize;
 		unsigned int num_cols = num_cols_vec[block_idx];
@@ -176,7 +176,7 @@ static void COO2ELL_block_core(int* colELL, double* matrixELL,
 static void update_ELL_block_bias_vec(unsigned int block_num, unsigned int* ELL_block_wid_vec, unsigned int* ELL_block_bias_vec){
 	ELL_block_bias_vec[0] = 0;
 	for(unsigned int i = 1; i < block_num; ++i){
-		ELL_block_bias_vec[i] = ELL_block_bias_vec[i-1] + ELL_block_wid_vec[i-1]*ELL_rodr_thread_size;	
+		ELL_block_bias_vec[i] = ELL_block_bias_vec[i-1] + ELL_block_wid_vec[i-1]*ELL_thread_size;	
 	}	
 }
 

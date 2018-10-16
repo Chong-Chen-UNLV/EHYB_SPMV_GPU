@@ -83,7 +83,24 @@ __global__ void ELL_kernel(const unsigned int num_rows, const unsigned int cal_r
 		y[row+bias1]+=dot;
 	}
 }
+/*
+__global__ void ELL_kernel_float(const unsigned int num_rows, const unsigned int cal_rows, const unsigned int num_cols_per_row,
+			const unsigned int *indices, const float* data, const double * x, double * y, 
+			const unsigned int bias0, const unsigned int bias1)
+{
+	unsigned int row= blockDim.x*blockIdx.x+threadIdx.x;
+	if (row<cal_rows){
+		double dot =0;
+		for (unsigned int n=0; n< num_cols_per_row; n++){
+			unsigned int col=indices[num_rows * n + row];
+			double val=data[num_rows*n+row];
 
+			if (val != 0)
+				dot += val* x[col-bias0];
+		}
+		y[row+bias1]+=dot;
+	}
+}*/
 __global__ void ELL_kernel_block(const unsigned int num_rows, const unsigned int cal_rows, 
 			const unsigned int* num_cols_per_row_vec, const unsigned int* block_data_bias_vec,  
 			const unsigned int *indices, const double *data, const double * x, double * y, 
@@ -139,6 +156,35 @@ __global__ void ELL_cached_kernel(const unsigned int num_rows,
 		y[row+bias1] = dot;
 	}		
 }
+/*
+__global__ void ELL_cached_kernel_float(const unsigned int num_rows,  
+				const unsigned int num_cols_per_row, 
+				const unsigned int *indices, const float* data, const double * x,
+				double * y, const unsigned int bias0, 
+				const unsigned int bias1, const unsigned int* part_boundary)
+{
+	unsigned int x_idx = blockDim.x*blockIdx.x+threadIdx.x;
+	__shared__ volatile double cached_vec[vector_cache_size];  
+	unsigned int vec_start = part_boundary[blockIdx.x] + bias0;
+	unsigned int vec_end = part_boundary[blockIdx.x + 1] + bias0;
+	double val, dot;
+	unsigned int col;
+
+	for (unsigned int i = x_idx; i < vector_cache_size; i += ELL_thread_size){
+		cached_vec[i] = x[i + vec_start];
+	}
+	for(unsigned int row = x_idx; row < vec_end; row += ELL_thread_size){
+		dot =0;
+		for (unsigned int n=0; n< num_cols_per_row; n++){
+			col=indices[num_rows*n + row];
+			val=data[num_rows*n + row];
+			if (val != 0)
+				dot += val*get_val(col, vec_start, vec_start + vector_cache_size, x, cached_vec);
+		}
+		y[row+bias1] = dot;
+	}		
+}*/
+
 //for COO format matrix, output y=data*x
 //the basic idea is come from
 __global__ void COO_level1(const unsigned int num_nozeros, const unsigned int interval_size, 
@@ -372,12 +418,12 @@ void matrix_vectorELL(const unsigned int num_rows, const unsigned int cal_rows,
 {
 	/*bias0 is for x and bias1 is for y, in precond solver, x, y may have different start point, 
 		bias0 is "absolut bias", bias 1 is relative bias*/
-	unsigned int ELL_blocks = ceil((double) num_rows/ELL_rodr_thread_size);
+	unsigned int ELL_blocks = ceil((double) num_rows/ELL_thread_size);
 	//printf("ELL_blocks is %d\n", ELL_blocks);
 	//bind_x(x);
 	if(RODR){
 		
-		ELL_cached_kernel<<<rodr_blocks, ELL_rodr_thread_size>>>(num_rows, num_cols_per_row, J,
+		ELL_cached_kernel<<<rodr_blocks, ELL_thread_size>>>(num_rows, num_cols_per_row, J,
  			V, x,y, bias0, bias1, part_boundary_d);	
 	} else { 
 		ELL_kernel<<<ELL_blocks, ELL_thread_size>>>(num_rows, cal_rows, num_cols_per_row, J, V, x,y, bias0, bias1);
@@ -385,6 +431,27 @@ void matrix_vectorELL(const unsigned int num_rows, const unsigned int cal_rows,
 	//unbind_x(x);
 	
 }
+
+/*void matrix_vectorELL_float(const unsigned int num_rows, const unsigned int cal_rows, 
+			const unsigned int num_cols_per_row,  const unsigned int *J,
+ 			const float* V, const double *x, double *y, const unsigned int bias0, const unsigned int bias1, 
+			const bool RODR, const unsigned int rodr_blocks, const unsigned int* part_boundary_d)
+{
+	/*bias0 is for x and bias1 is for y, in precond solver, x, y may have different start point,
+		bias0 is "absolut bias", bias 1 is relative bias*
+	unsigned int ELL_blocks = ceil((double) num_rows/ELL_thread_size);
+	//printf("ELL_blocks is %d\n", ELL_blocks);
+	//bind_x(x);
+	if(RODR){
+		
+		ELL_cached_kernel_float<<<rodr_blocks, ELL_thread_size>>>(num_rows, num_cols_per_row, J,
+ 			V, x,y, bias0, bias1, part_boundary_d);	
+	} else { 
+		ELL_kernel_float<<<ELL_blocks, ELL_thread_size>>>(num_rows, cal_rows, num_cols_per_row, J, V, x,y, bias0, bias1);
+	}
+	//unbind_x(x);
+	
+}*/
 
 void matrix_vectorELL_block(const unsigned int num_rows, const unsigned int cal_rows, 
 			const unsigned int* num_cols_per_row_vec, 

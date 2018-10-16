@@ -8,7 +8,7 @@ inline int qs_compare(const void *A, const void *B){
 	if(A_->idx < B_->idx) return -1;
 }
 
-void quickSort(unsigned int *J, float *V, unsigned int num, unsigned int *outJ, float *outV, Sort_S *sortedS){
+void quickSort(unsigned int *J, double *V, unsigned int num, unsigned int *outJ, double *outV, Sort_S *sortedS){
 	//input is the unsorted J point, output is the sorted J and V
 	int i,j,k;
 	for (i=0;i<num;i++){
@@ -25,13 +25,13 @@ void quickSort(unsigned int *J, float *V, unsigned int num, unsigned int *outJ, 
 	}
 }
 
-void insertSort(unsigned int *J, float *V, unsigned int num, unsigned int *outJ, float *outV)
+void insertSort(unsigned int *J, double *V, unsigned int num, unsigned int *outJ, double *outV)
 {
 	//input is the unsorted J point, output is the sorted J and V
 
 	unsigned int tempJ,tempMap;
 	int i,j,k;
-	float tempV;
+	double tempV;
 	for (i=0;i<num;i++){
 		outJ[i]=0;
 		outV[i]=0;
@@ -64,21 +64,21 @@ void insertSort(unsigned int *J, float *V, unsigned int num, unsigned int *outJ,
 		}
 	}
 }
-/*float for preconditioner generating only*/
-void solverCPU(const unsigned int dimension, const unsigned int totalNum, const unsigned int *I, const unsigned int *J, const float*V, const float *vector_in, 
-			float *vector_out, float *error_track, int MAXIter, int *realIter)
+/*double for preconditioner generating only*/
+void solverCPU(const unsigned int dimension, const unsigned int totalNum, const unsigned int *I, const unsigned int *J, const double*V, const double *vector_in, 
+			double *vector_out, double *error_track, int MAXIter, int *realIter)
 {
 	//This function treat y as input and x as output, (solve the equation Ax=y) y is the vector we already known, x is the vector we are looking for
-	float dotp0,dotr0,dotr1,doth;
-	size_t size1=dimension*sizeof(float);
-	float *bp=(float *) malloc(size1);
-	float *pk=(float *) malloc(size1);
-	float *rk=(float *) malloc(size1);
-	//float *x=(float *) malloc(size1);
+	double dotp0,dotr0,dotr1,doth;
+	size_t size1=dimension*sizeof(double);
+	double *bp=(double *) malloc(size1);
+	double *pk=(double *) malloc(size1);
+	double *rk=(double *) malloc(size1);
+	//double *x=(double *) malloc(size1);
 	int i;
-	float threshold=0.0000001;
+	double threshold=0.0000001;
 	int iter=0;
-	float error,alphak,gamak;
+	double error,alphak,gamak;
 	error=1000;
 	//initialize
 	doth=0;
@@ -134,28 +134,28 @@ void solverCPU(const unsigned int dimension, const unsigned int totalNum, const 
 
 
 void fspaiCPU(S *SInput)
-/*void fspai(int *I, int *J, float *V, int *I_precond, int *J_precond, float *V_precond, const int maxRowNum, const int *numInRow, 
-			const int *row_idx, const int *numInRowPrecond, const int *row_idxPrecond, const float *diag, int colStart, int colEnd)*/
+/*void fspai(int *I, int *J, double *V, int *I_precond, int *J_precond, double *V_precond, const int maxRowNum, const int *numInRow, 
+			const int *row_idx, const int *numInRowPrecond, const int *row_idxPrecond, const double *diag, int colStart, int colEnd)*/
 /* totalNum: number of matrix, dimension: size of vector, I: row index, J: column index, V: matrix value, *_precond: preconditioner index and value
 */
 {
 	unsigned int *I=SInput->I;
 	unsigned int *J=SInput->J;
-	float *V=SInput->V;
+	double *V=SInput->V;
 	unsigned int *I_precond=SInput->I_precond;
 	unsigned int *J_precond=SInput->J_precond;
-	float *V_precond=SInput->V_precond;
+	double *V_precond=SInput->V_precond;
 	unsigned int maxRowNum=SInput->maxRowNum;
 	unsigned int *numInRow=SInput->numInRow;
 	unsigned int *row_idx=SInput->row_idx;
 	unsigned int *numInRowPrecond=SInput->numInRowPrecond;
 	unsigned int *row_idxPrecond=SInput->row_idxPrecond;
-	float *diag=SInput->diag;
+	double *diag=SInput->diag;
 	unsigned int colStart=SInput->colStart; 
 	unsigned int colEnd=SInput->colEnd;
 	unsigned int id=SInput->id;
 	
-	float *sortedV= (float *)malloc(maxRowNum*sizeof(float));
+	double *sortedV= (double *)malloc(maxRowNum*sizeof(double));
 	unsigned int *sortedJ=(unsigned int *)malloc(maxRowNum*sizeof(unsigned int));
 	Sort_S *sortedS = (Sort_S *)malloc(maxRowNum*sizeof(Sort_S));
 	
@@ -179,18 +179,18 @@ void fspaiCPU(S *SInput)
 	//printf("fspai first finish\n");
 	
 	int subMatrixNum;
-	float *subMatrix=(float *) malloc(maxRowNum*maxRowNum*sizeof(float));
+	double *subMatrix=(double *) malloc(maxRowNum*maxRowNum*sizeof(double));
 	unsigned int *subI=(unsigned int *) malloc(maxRowNum*maxRowNum*sizeof(unsigned int));
 	unsigned int *subJ=(unsigned int *) malloc(maxRowNum*maxRowNum*sizeof(unsigned int));
-	float *yk=(float *)malloc(maxRowNum*sizeof(float));
-	float *xk=(float *)malloc(maxRowNum*sizeof(float));
+	double *yk=(double *)malloc(maxRowNum*sizeof(double));
+	double *xk=(double *)malloc(maxRowNum*sizeof(double));
 	unsigned int *tempJ=(unsigned int *)malloc(maxRowNum*sizeof(unsigned int));
 	
 	int iterNum;
 	iterNum=100;
-	float *error=(float *)malloc(iterNum*sizeof(float));
-	float AY;
-	float Lk;
+	double *error=(double *)malloc(iterNum*sizeof(double));
+	double AY;
+	double Lk;
 	int subRowIndex, index1,index2,index3;
 	int tempCol,colIndex;
 	//Complete computation in each column seperately
