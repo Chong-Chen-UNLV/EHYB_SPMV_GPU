@@ -15,7 +15,7 @@
 #include <cuda_runtime_api.h>
 #include <cuda.h>
 
-#define ELL_thread_size 1024 
+#define ELL_threadSize 1024 
 
 #define shared_per_block (24*1024)
 #define element_size 4 //if single precision, 4, if double precision, 8 

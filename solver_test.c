@@ -12,7 +12,6 @@ void fspaiCPU(S *SInput);
 void fspai(S *SInput);	
 
 
-
 int main(int argc, char* argv[])
 {
 	unsigned int MAXthread = 2;	
@@ -240,7 +239,7 @@ int main(int argc, char* argv[])
 	}	
 	/*-----------------do the reordering with metis/hmetis, determine the value------------*/
 	/*suffix _rodr means reordered*/		
-	unsigned int *I_rodr, *J_rodr,*part_boundary, *rodr_list;
+	unsigned int *I_rodr, *J_rodr, *part_boundary, *rodr_list;
 	double *V_rodr, *x_rodr, *y_rodr;
 	
 	if(cb.RODR){
@@ -352,25 +351,25 @@ int main(int argc, char* argv[])
 	}
 	printf("thread num is %d\n",procNum);
 	if(cb.GPU){
-		/*please notice that we need transfer the format of matrix to HYB, so we need I, J, V completely
+        /*please notice that we need transfer the format of matrix to HYB, so we need I, J, V completely
 	   	for GPU solver, for CPU solver, no format change is applied, so we only need row_idx**/
-		if(cb.RODR){
-			solverGPU_HYB(dimension, totalNum, numInRow, maxRowNum, 
-					row_idx, I_rodr, J_rodr, V_rodr, 
-					totalNumPrecond, numInRowL, maxRowNumPrecond,
-					row_idxL, I_precond, J_precond, V_precond,
-					totalNumPrecondP, numInRowLP, maxRowNumPrecondP,
-					row_idxLP, I_precondP, J_precondP, V_precondP, 
-					y_rodr, x_rodr, MAXIter, &realIter, cb, blocks, part_boundary);
+        matrixCOO_S matrix, matrix_precond, matrix_precondP;
+        if(cb.RODR){
+            init_matrixCOO_S(matrix, dimension, totalNum, maxRowNum, row_idx, numInRow, I_rodr, J_rodr, V_rodr);
+        }
+        else{
+            int* part_boundary = NULL;
+            init_matrixCOO_S(&matrix, dimension, totalNum, maxRowNum, row_idx, numInRow, I, J, V);
+        }
+        init_matrixCOO_S(&matrix_preocnd, dimension, totalNumPrecond, maxRowNumL, row_idxL, numInRowL, I_precond, J_precond, V_precond);
+        init_matrixCOO_S(&matrix_preocndP, dimension, totalNumPrecondP, maxRowNumLP, row_idxLP, numInRowLP, I_precondP, J_precondP, V_precondP);
+        if(cb.RODR){
+            solverGPU_HYB(&matrix, &matrixPrecond, &matrix_precondP
+                    y_rodr, x_rodr, MAXIter, &realIter, cb, blocks, part_boundary);
 		}
 		else{
-			solverGPU_HYB(dimension, totalNum, numInRow, maxRowNum,
-					row_idx, I, J, V, 
-					totalNumPrecond, numInRowL, maxRowNumPrecond,
-					row_idxL, I_precond, J_precond, V_precond,
-					totalNumPrecondP, numInRowLP, maxRowNumPrecondP,
-					row_idxLP, I_precondP, J_precondP, V_precondP, 
-					y, x, MAXIter, &realIter, cb, blocks, NULL);
+            solverGPU_HYB(&matrix, &matrixPrecond, &matrix_precondP
+                    y_rodr, x_rodr, MAXIter, &realIter, cb, blocks, part_boundary);
 		}
 	}
 	else if(!(cb.GPU)){

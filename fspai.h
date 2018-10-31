@@ -16,16 +16,16 @@ typedef struct _S
 {
 	unsigned int *I;
 	unsigned int *J;
-	float *V;
+	double *V;
 	unsigned int *I_precond;
 	unsigned int *J_precond;
-	float *V_precond;
+	double *V_precond;
 	unsigned int maxRowNum;
 	unsigned int *numInRow;	
 	unsigned int *row_idx;
 	unsigned int *numInRowPrecond;
 	unsigned int *row_idxPrecond; 
-	float *diag;
+	double *diag;
 	unsigned int colStart;
 	unsigned int colEnd;
 	unsigned int id;
