@@ -164,6 +164,10 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrixPrecond,
     unsigned int ELL_blocks;
     unsigned int *ELL_block_cols_vec, *ELL_block_cols_vec_d;    
     unsigned int *ELL_block_bias_vec, *ELL_block_bias_vec_d;	
+	unsigned int *ELL_block_cols_vec_L, *ELL_block_cols_vec_L_d;    
+    unsigned int *ELL_block_bias_vec_L, *ELL_block_bias_vec_L_d;
+	unsigned int *ELL_block_cols_vec_LP, *ELL_block_cols_vec_LP_d;    
+    unsigned int *ELL_block_bias_vec_LP, *ELL_block_bias_vec_LP_d;
     unsigned int totalNumCOO, totalNumCOO_L, totalNumCOO_LP;
     if(BLOCK){
         //block ELL test
@@ -201,36 +205,29 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrixPrecond,
 	double *V_COO_L_d;
 
     if(BLOCK){
-		COO2ELL_block(ELL_block_cols_vec, &totalNumCOO, ELL_block_bias_vec, 
-				&colELL, &matrixELL, &I_COO, &J_COO, &V_COO,
-				I, J, V, 
-				row_idx, numInRow, 
-				totalNum, dimension, 
-				&totalNumCOO);
-        COO2ELL_block(ELL_block_cols_vec, &totalNumCOO_L, ELL_block_bias_vec, 
-                &colELL, &matrixELL, &I_COO, &J_COO, &V_COO,
-                I, J, V, 
-                row_idx, numInRow, 
-                totalNumPrecond, dimension, 
-                &totalNumCOO);
-
-    }
-
-	COO2ELL(I_precond,J_precond,V_precond,&colELL_precond, &matrixELL_precond, 
-		&I_COO_L, &J_COO_L, &V_COO_L, numInRowL, row_idxL, totalNumPrecond, 
-		dimension, &totalNumCOO_L, maxRowNumPrecond, &ELL_widthL);
-	cudaMalloc((void **) &col_precond_d,ELL_widthL*dimension*sizeof(unsigned int));
-	cudaMalloc((void **) &V_precond_d,ELL_widthL*dimension*sizeof(double));	
-	cudaMemcpy(col_precond_d,colELL_precond,dimension*ELL_widthL*sizeof(unsigned int),cudaMemcpyHostToDevice);
-	cudaMemcpy(V_precond_d,matrixELL_precond,dimension*ELL_widthL*sizeof(double),cudaMemcpyHostToDevice);
-	printf("ELL_widthL is %d, and totalNumCOO_L is %d\n", ELL_widthL, totalNumCOO_L);
+		ELL_block_cols_vec_L = (unsigned int*)malloc(ELL_blocks*sizeof(unsigned int));  
+        ELL_block_bias_vec_L = (unsigned int*)malloc(ELL_blocks*sizeof(unsigned int));
+		COO2ELL_block(&totalNumCOOL, ELL_block_cols_vec_L, ELL_block_bias_vec_L,
+				&colELL_precond, &matrixELL_precond, &I_COO_L, &J_COO_L, &V_COO_L,
+				I_precond, J_precond, V_precond, 
+				row_idx, numInRowL, 
+				totalNumL, dimension);
+		ELL_cuda_malloc_trans_data_block(&col_precond_d, &V_precond_d, 
+				&ELL_block_cols_vec_L_d, &ELL_block_bias_vec_L_d,
+				colELL_precond, matrixELL_precond,
+				ELL_block_cols_vec_L, ELL_block_bias_vec_L,
+				dimension);
+	} else {
+		COO2ELL(I_precond,J_precond,V_precond,&colELL_precond, &matrixELL_precond, 
+				&I_COO_L, &J_COO_L, &V_COO_L, numInRowL, row_idxL, totalNumPrecond, 
+				dimension, &totalNumCOO_L, maxRowNumPrecond, &ELL_widthL);
+        ELL_cuda_malloc_trans_data(dimension, ELL_widthL, &V_precond_d, &col_precond_d, colELL_precond, matrixELL_precond);
+	}
+	//printf("ELL_widthL is %d, and totalNumCOO_L is %d\n", ELL_widthL, totalNumCOO_L);
 	if (totalNumCOO_L>0){
-		cudaMalloc((void **) &I_COO_L_d,totalNumCOO_L*sizeof(unsigned int));
-		cudaMalloc((void **) &J_COO_L_d,totalNumCOO_L*sizeof(unsigned int));
-		cudaMalloc((void **) &V_COO_L_d,totalNumCOO_L*sizeof(double));		
-		cudaMemcpy(I_COO_L_d,I_COO_L,totalNumCOO_L*sizeof(unsigned int),cudaMemcpyHostToDevice);
-		cudaMemcpy(J_COO_L_d,J_COO_L,totalNumCOO_L*sizeof(unsigned int),cudaMemcpyHostToDevice);
-		cudaMemcpy(V_COO_L_d,V_COO_L,totalNumCOO_L*sizeof(double),cudaMemcpyHostToDevice);
+		COO_cuda_malloc_trans_data(&I_COO_L_d, &J_COO_L_d, &V_COO_L_d, 
+				I_COO_L, J_COO_L, V_COO_L, 
+				dimension, totalNumCOO_L);
 	}	
 	/*matrix L*/
 	unsigned int *colELL_precondP, *I_COO_LP, *J_COO_LP;
@@ -240,24 +237,33 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrixPrecond,
 	double *V_precondP_d;
 	unsigned int *I_COO_LP_d, *J_COO_LP_d;
 	double *V_COO_LP_d;
-
-	COO2ELL(I_precondP,J_precondP,V_precondP,&colELL_precondP, &matrixELL_precondP, 
-		&I_COO_LP, &J_COO_LP, &V_COO_LP, numInRowLP, row_idxLP, totalNumPrecond, 
-		dimension, &totalNumCOO_LP, maxRowNumPrecondP, &ELL_widthLP);
-	printf("ELL_widthLP is %d, and totalNumCOO_LP is %d\n", ELL_widthLP, totalNumCOO_LP);
-	cudaMalloc((void **) &col_precondP_d, ELL_widthLP*dimension*sizeof(unsigned int));
-	cudaMalloc((void **) &V_precondP_d, ELL_widthLP*dimension*sizeof(double));	
-	cudaMemcpy(col_precondP_d,colELL_precondP,dimension*ELL_widthLP*sizeof(unsigned int),cudaMemcpyHostToDevice);
-	cudaMemcpy(V_precondP_d,matrixELL_precondP,dimension*ELL_widthLP*sizeof(double),cudaMemcpyHostToDevice);
-	if (totalNumCOO_LP>0){
-		cudaMalloc((void **) &I_COO_LP_d,totalNumCOO_LP*sizeof(unsigned int));
-		cudaMalloc((void **) &J_COO_LP_d,totalNumCOO_LP*sizeof(unsigned int));
-		cudaMalloc((void **) &V_COO_LP_d,totalNumCOO_LP*sizeof(double));		
-		cudaMemcpy(I_COO_LP_d,I_COO_LP,totalNumCOO_LP*sizeof(unsigned int),cudaMemcpyHostToDevice);
-		cudaMemcpy(J_COO_LP_d,J_COO_LP,totalNumCOO_LP*sizeof(unsigned int),cudaMemcpyHostToDevice);
-		cudaMemcpy(V_COO_LP_d,V_COO_LP,totalNumCOO_LP*sizeof(double),cudaMemcpyHostToDevice);
+	if(BLOCK){
+		ELL_block_cols_vec_LP = (unsigned int*)malloc(ELL_blocks*sizeof(unsigned int));  
+		ELL_block_bias_vec_LP = (unsigned int*)malloc(ELL_blocks*sizeof(unsigned int));
+		COO2ELL_block(&totalNumCOOLP, ELL_block_cols_vec_LP, ELL_block_bias_vec_LP,
+				&colELL_precondP, &matrixELL_precondP, &I_COO_LP, &J_COO_LP, &V_COO_LP,
+				I_precondP, J_precondP, V_precondP, 
+				row_idxLP, numInRowLP, 
+				totalNumLP, dimension);
+		ELL_cuda_malloc_trans_data_block(&col_precondP_d, &V_precondP_d, 
+				&ELL_block_cols_vec_LP_d, &ELL_block_bias_vec_LP_d,
+				colELL_precondP, matrixELL_precondP,
+				ELL_block_cols_vec_LP, ELL_block_bias_vec_LP,
+				dimension);
+	} else {
+		COO2ELL(I_precondP,J_precondP,V_precondP,&colELL_precondP, &matrixELL_precondP, 
+				&I_COO_LP, &J_COO_LP, &V_COO_LP, numInRowLP, row_idxLP, totalNumPrecondP, 
+				dimension, &totalNumCOO_LP, maxRowNumPrecondP, &ELL_widthLP);
+		ELL_cuda_malloc_trans_data(dimension, ELL_widthLP, &V_precondP_d, &col_precondP_d, colELL_precondP, matrixELL_precondP);
 	}
-
+	//printf("ELL_widthL is %d, and totalNumCOO_L is %d\n", ELL_widthL, totalNumCOO_L);
+	if (totalNumCOO_LP>0){
+		COO_cuda_malloc_trans_data(&I_COO_LP_d, &J_COO_LP_d, &V_COO_LP_d, 
+				I_COO_LP, J_COO_LP, V_COO_LP, 
+				dimension, totalNumCOO_LP);
+	}
+	
+	//printf("ELL_widthLP is %d, and totalNumCOO_LP is %d\n", ELL_widthLP, totalNumCOO_LP);
 	size_t size0=dimension*sizeof(double);
 	double *rk_d;//r0 and r1
 	double *pk_d;//p0 and p1
@@ -297,8 +303,6 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrixPrecond,
 	initialize_bp(dimension,zk_d);
 	initialize_bp(dimension,zk1_d);
 	initialize_r(dimension, rk_d, vector_in_d);
-		
-
 	
 	cublasHandle_t handle;
 	cublasCreate(&handle);			
