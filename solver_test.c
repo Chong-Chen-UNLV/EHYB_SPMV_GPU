@@ -5,12 +5,6 @@
 #include "solver.h"
 #include <unistd.h>
 
-unsigned int *I_precond;
-unsigned int *J_precond;
-
-void fspaiCPU(S *SInput);
-void fspai(S *SInput);	
-
 
 int main(int argc, char* argv[])
 {
@@ -22,11 +16,11 @@ int main(int argc, char* argv[])
 	unsigned int totalNumPrecondP=0;
 	int ret_code;
 	MM_typecode matcode,matcode2;
-	int MAXIter = 0;
+	unsigned int MAXIter = 0;
 	FILE *f,*f2;
 
 	unsigned int dimension, N, bandwidth,bandwidthPrecond;   
-	unsigned int maxRowNum, maxRowNumPrecond, maxRowNumPrecondP;
+	unsigned int maxRowNum, maxRowNumL, maxRowNumLP;
 	unsigned int *I, *J;
 	unsigned int *lowerI, *lowerJ;
 	double *V;
@@ -45,7 +39,7 @@ int main(int argc, char* argv[])
 	int arg_val;
 	char* arg_str;
 	cb_s cb;
-    init_cb(cb);
+    init_cb(&cb);
 			
 	while ((oc = getopt(argc, argv, "m:c:r:g:t:")) != -1) {
 		switch (oc) {
@@ -176,8 +170,8 @@ int main(int argc, char* argv[])
 
 	unsigned int *row_idx=(unsigned int *)malloc((dimension+1)*sizeof(unsigned int));
 	maxRowNum=0;
-	maxRowNumPrecond=0;
-	maxRowNumPrecondP=0;
+	maxRowNumL=0;
+	maxRowNumLP=0;
 	row_idx[0] = 0;
 	row_idxL[0] = 0;
 	row_idxLP[0] = 0;
@@ -186,10 +180,10 @@ int main(int argc, char* argv[])
 
 		if (numInRow[i-1]>maxRowNum)
 			maxRowNum=numInRow[i-1];
-		if (numInRowL[i-1]>maxRowNumPrecond)
-			maxRowNumPrecond=numInRowL[i-1];
-		if (numInRowLP[i-1]>maxRowNumPrecondP)
-			maxRowNumPrecondP=numInRowLP[i-1];			
+		if (numInRowL[i-1]>maxRowNumL)
+			maxRowNumL=numInRowL[i-1];
+		if (numInRowLP[i-1]>maxRowNumLP)
+			maxRowNumLP=numInRowLP[i-1];			
 
 		row_idx[i]=row_idx[i-1]+numInRow[i-1];
 		row_idxL[i]=row_idxL[i-1]+numInRowL[i-1];
@@ -199,9 +193,9 @@ int main(int argc, char* argv[])
 		//determine y
 	}	
 	if (numInRow[dimension-1]>maxRowNum) maxRowNum=numInRow[dimension-1];
-	if (numInRowL[dimension-1]>maxRowNumPrecond) maxRowNumPrecond=numInRowL[dimension-1];	
-	if (numInRowLP[dimension-1]>maxRowNumPrecondP) maxRowNumPrecondP=numInRowLP[dimension-1];
-	printf("maxRowNum is %d, maxRowNumPr is %d, maxRowNumPrecondP is %d\n", maxRowNum, maxRowNumPrecond, maxRowNumPrecondP);
+	if (numInRowL[dimension-1]>maxRowNumL) maxRowNumL=numInRowL[dimension-1];	
+	if (numInRowLP[dimension-1]>maxRowNumLP) maxRowNumLP=numInRowLP[dimension-1];
+	printf("maxRowNum is %d, maxRowNumPr is %d, maxRowNumLP is %d\n", maxRowNum, maxRowNumL, maxRowNumLP);
 	numInRow[dimension-1]=0;
 	numInRowLP[dimension-1]=0;
 	for (int i=0;i<dimension;i++)
@@ -355,20 +349,20 @@ int main(int argc, char* argv[])
 	   	for GPU solver, for CPU solver, no format change is applied, so we only need row_idx**/
         matrixCOO_S matrix, matrix_precond, matrix_precondP;
         if(cb.RODR){
-            init_matrixCOO_S(matrix, dimension, totalNum, maxRowNum, row_idx, numInRow, I_rodr, J_rodr, V_rodr);
+            init_matrixCOO_S(&matrix, dimension, totalNum, maxRowNum, row_idx, numInRow, I_rodr, J_rodr, V_rodr);
         }
         else{
             int* part_boundary = NULL;
             init_matrixCOO_S(&matrix, dimension, totalNum, maxRowNum, row_idx, numInRow, I, J, V);
         }
-        init_matrixCOO_S(&matrix_preocnd, dimension, totalNumPrecond, maxRowNumL, row_idxL, numInRowL, I_precond, J_precond, V_precond);
-        init_matrixCOO_S(&matrix_preocndP, dimension, totalNumPrecondP, maxRowNumLP, row_idxLP, numInRowLP, I_precondP, J_precondP, V_precondP);
+        init_matrixCOO_S(&matrix_precond, dimension, totalNumPrecond, maxRowNumL, row_idxL, numInRowL, I_precond, J_precond, V_precond);
+        init_matrixCOO_S(&matrix_precondP, dimension, totalNumPrecondP, maxRowNumLP, row_idxLP, numInRowLP, I_precondP, J_precondP, V_precondP);
         if(cb.RODR){
-            solverGPU_HYB(&matrix, &matrixPrecond, &matrix_precondP
+            solverGPU_HYB(&matrix, &matrix_precond, &matrix_precondP,
                     y_rodr, x_rodr, MAXIter, &realIter, cb, blocks, part_boundary);
 		}
 		else{
-            solverGPU_HYB(&matrix, &matrixPrecond, &matrix_precondP
+            solverGPU_HYB(&matrix, &matrix_precond, &matrix_precondP,
                     y_rodr, x_rodr, MAXIter, &realIter, cb, blocks, part_boundary);
 		}
 	}

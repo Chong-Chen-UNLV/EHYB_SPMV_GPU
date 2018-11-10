@@ -72,4 +72,6 @@ void solverCPU(const unsigned int dimension, const unsigned int totalNum,
 		const double *V, const double *vector_in, 
 		double *vector_out, double *error_track, int MAXIter, int *realIter);	
 	
+void fspaiCPU(S *SInput);
+void fspai(S *SInput);
 #endif

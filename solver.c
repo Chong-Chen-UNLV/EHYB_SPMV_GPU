@@ -106,6 +106,7 @@ static void COO_cuda_malloc_trans_data(unsigned int** I_COO_d, unsigned int** J_
 	cudaMemcpy(J_COO_d,J_COO,totalNumCOO*sizeof(unsigned int),cudaMemcpyHostToDevice);
 	cudaMemcpy(V_COO_d,V_COO,totalNumCOO*sizeof(double),cudaMemcpyHostToDevice);
 }
+
 void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrixPrecond, 
                 matrixCOO_S* localMatrixPrecondP,
         		const double *vector_in, double *vector_out,  

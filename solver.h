@@ -18,12 +18,13 @@ typedef struct _matrixCOO_S{
     unsigned int* I;
     unsigned int* J;
     double* V;
-}matrixCOO_S
+}matrixCOO_S;
 
-void inline init_cb(cb_s in){
-    in.GPU = false;
-    in.RODR = false; 
-    in.BLOCK = false;
+inline void init_cb(cb_s* in_s)
+{
+    in_s->GPU = false;
+    in_s->RODR = false; 
+    in_s->BLOCK = false;
 }
 
 inline void init_matrixCOO_S(matrixCOO_S* matrix, unsigned int totalNum, 
@@ -50,6 +51,6 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrixPrecond,
                 matrixCOO_S* localMatrixPrecondP,
         		const double *vector_in, double *vector_out,  
                 const unsigned int MAXIter, unsigned int *realIter,  const cb_s cb,
-                const unsigned int partition_size, const unsigned int* part_boundary)
+                const unsigned int partition_size, const unsigned int* part_boundary);
 
 #endif
