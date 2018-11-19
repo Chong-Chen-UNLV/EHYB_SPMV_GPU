@@ -124,34 +124,36 @@ static void ELL_block_cols_vec_gen(unsigned int* ELL_block_cols_vec, unsigned in
 }
 
 static void COO2ELL_block_core(int* colELL, double* matrixELL,
-		int* I_COO, int* J_COO, double* V_COO, 
-		const unsigned int* numInRow, const  unsigned int loc_num_of_row, 
+		int* I_COO, int* J_COO, double* V_COO, const unsigned int size_COO,
+		const unsigned int* row_idx, const unsigned int* numInRow, const  unsigned int loc_num_of_row, 
         const unsigned int* ELL_block_bias_vec, const unsigned int* ELL_block_cols_vec, 
 		const int* row_local, const int* col_local, const double* matrix_local){ 
 
 	unsigned int irregular=0;
 	unsigned int ELL_rodr_blocks = ceil( ((float) loc_num_of_row)/ELL_threadSize);
-	for (unsigned int row = 0; row < loc_num_of_row; row += ELL_block_size){
-		unsigned int block_idx = row/ELL_blockSize;
+
+	unsigned int row_bias = row_local[0]; 
+	unsigned pointCOO = 0;
+	for (unsigned int row = 0; row < loc_num_of_row; row += ELL_threadSize){
+		unsigned int block_idx = row/ELL_threadSize;
 		unsigned int num_cols = ELL_block_cols_vec[block_idx];
 		unsigned int ELL_bias = ELL_block_bias_vec[block_idx];
-        unsigned int num_bias = row_idx[row_local[0]]; 
-		
-		for(i = row; i < row + ELL_blockSize; ++i){
+		unsigned int num_bias=row_idx[row_bias];
+		for(unsigned int i = row; i < row + ELL_threadSize; ++i){
 			unsigned int row_val = i + row_bias;
 			if (numInRow[i+row_bias] > num_cols) {//goto COO format
 				for (unsigned int j = 0; j < numInRow[row_val + row_bias]; ++j){
 					//the ELL value should still be set 
 					if (j < num_cols){
-						(*colELL)[ELL_bias + j*ELL_treadSize] = col_local[row_idx[row_val]+j-num_bias];
-						(*matrixELL)[ELL_bias + j*ELL_treadSize]
+						colELL[ELL_bias + j*ELL_threadSize] = col_local[row_idx[row_val]+j-num_bias];
+						matrixELL[ELL_bias + j*ELL_threadSize]
 							= matrix_local[row_idx[row_val]+j-num_bias];
 					}
 					else{
 						//assign COO value
-						(*I_COO)[pointCOO]=row_local[row_idx[row_val]+j-num_bias];
-						(*J_COO)[pointCOO]=col_local[row_idx[row_val]+j-num_bias];
-						(*V_COO)[pointCOO]=matrix_local[row_idx[row_val]+j-num_bias];
+						I_COO[pointCOO]=row_local[row_idx[row_val]+j-num_bias];
+						J_COO[pointCOO]=col_local[row_idx[row_val]+j-num_bias];
+						V_COO[pointCOO]=matrix_local[row_idx[row_val]+j-num_bias];
 						pointCOO++;
 						if(pointCOO > size_COO)
 							printf("error at pointCOO %d\n", pointCOO);
@@ -162,14 +164,14 @@ static void COO2ELL_block_core(int* colELL, double* matrixELL,
 				for (unsigned int j=0; j < num_cols; ++j){
 					//write the ELL data
 					if (j<numInRow[i+row_bias]){
-						(*colELL)[ELL_bias + j*ELL_treadSize] = col_local[row_idx[row_val]+j-num_bias];
-						(*matrixELL)[ELL_bias + j*ELL_treadSize]
+						colELL[ELL_bias + j*ELL_threadSize] = col_local[row_idx[row_val]+j-num_bias];
+						matrixELL[ELL_bias + j*ELL_threadSize]
 								= matrix_local[row_idx[row_val]+j-num_bias];
 					}
 					//write zero
 					else{
-						(*colELL)[ELL_bias + j*ELL_treadSize] = 0;
-						(*matrixELL)[ELL_bias + j*ELL_treadSize] = 0;
+						colELL[ELL_bias + j*ELL_threadSize] = 0;
+						matrixELL[ELL_bias + j*ELL_threadSize] = 0;
 					}
 				}
 			}
@@ -194,26 +196,26 @@ void COO2ELL_block(unsigned int *size_COO, unsigned int* ELL_block_cols_vec, uns
 
 	unsigned int point_COO = 0;
 	unsigned int row_bias = row_local[0];
-	unsigned int num_bias = row_num_accum[row_bias];
+	unsigned int num_bias = row_idx[row_bias];
 	unsigned int block_num = ceil(( float(loc_num_of_row))/ELL_threadSize);
-	*sizeCOO=0;	
-	unsigned int* ELL_block_cols_vec = (unsigned int*) malloc(block_num*sizeof(unsigned int));
-	ELL_block_cols_vec_gen(ELL_block_cols_vec, sizeCOO,
-			row_local, col_local,
-			loc_num_of_row, row_idx, ELL_block_cols_vec); 
+	*size_COO=0;	
+	ELL_block_cols_vec_gen(ELL_block_cols_vec, size_COO,
+			loc_num_of_row, row_idx); 
 
-	if(*sizeCOO > 0){	
-		*I_COO=(unsigned int *)malloc(size_COO*sizeof(unsigned int));
-		*J_COO=(unsigned int *)malloc(size_COO*sizeof(unsigned int));
-		*V_COO=(double *)malloc(size_COO*sizeof(double));
+	if(*size_COO > 0){	
+		*I_COO=(unsigned int *)malloc(*size_COO*sizeof(unsigned int));
+		*J_COO=(unsigned int *)malloc(*size_COO*sizeof(unsigned int));
+		*V_COO=(double *)malloc(*size_COO*sizeof(double));
+	}
+	for(unsigned int i = 0; i < block_num; ++i){
+
 	}
 	*colELL=(unsigned int *)malloc(loc_num_of_row*maxRowNum*sizeof(unsigned int));
 	*matrixELL=(double *)malloc(loc_num_of_row*maxRowNum*sizeof(double));
 
-	row_idx += ELL_block_size;
 	COO2ELL_block_core(colELL, matrixELL,
-			I_COO, J_COO, V_COO, 
-			numInRow, ELL_block_bias, ELL_block_cols_vec, 
+			I_COO, J_COO, V_COO, sizeCOO,
+			row_idx, numInRow, ELL_block_bias, ELL_block_cols_vec, 
             loc_num_of_row, 
 			row_local, col_local, matrix_local);
 	
@@ -221,17 +223,11 @@ void COO2ELL_block(unsigned int *size_COO, unsigned int* ELL_block_cols_vec, uns
 		maxRowNum = max_in;	
 	}else{
 		for (unsigned int i=0;i<loc_num_of_row;i++){
-			unsigned int row_idx=i+row_local[0];
 			if (numInRow[i+row_bias] > maxRowNum)
-				size_COO+=numInRow[i+row_bias]- maxRowNum;
+				*size_COO+=numInRow[i+row_bias]- maxRowNum;
 		}	
 	}
 	
-	
-	
-	
-	*max_out = maxRowNum;
-	*sizeOut = size_COO;
 	//printf("irregular row Number is %d\n",irregular);
 	
 }
