@@ -67,7 +67,7 @@ void matrix_reorder(const unsigned int* dimension_in, const unsigned int totalNu
 			NULL,
 			&nparts,
 			NULL,
-			&ubvec,
+			(float *) &ubvec,
 			options,
 			&r_edgecut,
 			partVec);
@@ -113,7 +113,7 @@ void matrix_reorder(const unsigned int* dimension_in, const unsigned int totalNu
 		I_rodr[tempIdx] = tempI;
 		J_rodr[tempIdx] = tempJ;
 		if(tempI == tempJ && V[i] == 0)
-			printf("error happend tempIdx is with tempI V is %f\n", tempIdx, tempI, V[i]);
+			printf("error happend tempIdx is %d with tempI %d  V is %f\n", tempIdx, tempI, V[i]);
 		V_rodr[tempIdx] = V[i];
 		numInRow[tempI] += 1;
 	}	

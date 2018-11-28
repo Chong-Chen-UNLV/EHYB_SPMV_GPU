@@ -2,6 +2,7 @@
 #define SOLVER_H
 
 #include <omp.h>
+#include "convert.h"
 
 typedef struct _cb{
 	bool GPU;

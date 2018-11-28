@@ -123,11 +123,11 @@ static void ELL_block_cols_vec_gen(unsigned int* ELL_block_cols_vec, unsigned in
 	}
 }
 
-static void COO2ELL_block_core(int* colELL, double* matrixELL,
-		int* I_COO, int* J_COO, double* V_COO, const unsigned int size_COO,
-		const unsigned int* row_idx, const unsigned int* numInRow, const  unsigned int loc_num_of_row, 
+static void COO2ELL_block_core(unsigned int* colELL, double* matrixELL,
+		unsigned int* I_COO, unsigned int* J_COO, double* V_COO, const unsigned int size_COO,
+		const unsigned int* row_idx, const unsigned int* numInRow, const unsigned int loc_num_of_row, 
         const unsigned int* ELL_block_bias_vec, const unsigned int* ELL_block_cols_vec, 
-		const int* row_local, const int* col_local, const double* matrix_local){ 
+		const unsigned int* row_local, const unsigned int* col_local, const double* matrix_local){ 
 
 	unsigned int irregular=0;
 	unsigned int ELL_rodr_blocks = ceil( ((float) loc_num_of_row)/ELL_threadSize);
@@ -188,7 +188,8 @@ static void update_ELL_block_bias_vec(unsigned int block_num, unsigned int* ELL_
 
 /*parameters, first line: output of HYB related parameters, 2nd line: output of HYB matrices, 3rd line:input of local COO matrix 
 4th line: CSR indeces (didn't include values), 5th line: input variables*/
-void COO2ELL_block(unsigned int *size_COO, unsigned int* ELL_block_cols_vec, unsigned int* ELL_block_bias_vec,
+void COO2ELL_block(unsigned int *size_COO, 
+		unsigned int* ELL_block_cols_vec, unsigned int* ELL_block_bias_vec,
 		unsigned int **colELL, double **matrixELL, unsigned int **I_COO, unsigned int **J_COO, double **V_COO,
 		const unsigned int *row_local, const unsigned int *col_local, const double* matrix_local, 
 		const unsigned int *row_idx, const unsigned int *numInRow, 
@@ -207,27 +208,18 @@ void COO2ELL_block(unsigned int *size_COO, unsigned int* ELL_block_cols_vec, uns
 		*J_COO=(unsigned int *)malloc(*size_COO*sizeof(unsigned int));
 		*V_COO=(double *)malloc(*size_COO*sizeof(double));
 	}
+	unsigned int ELL_matrixSize = 0;
 	for(unsigned int i = 0; i < block_num; ++i){
-
+		ELL_block_bias_vec[i] = ELL_matrixSize;
+		ELL_matrixSize += ELL_threadSize*ELL_block_cols_vec[i];
 	}
-	*colELL=(unsigned int *)malloc(loc_num_of_row*maxRowNum*sizeof(unsigned int));
-	*matrixELL=(double *)malloc(loc_num_of_row*maxRowNum*sizeof(double));
+	*colELL=(unsigned int *)malloc(ELL_matrixSize*sizeof(unsigned int));
+	*matrixELL=(double *)malloc(ELL_matrixSize*sizeof(double));
 
-	COO2ELL_block_core(colELL, matrixELL,
-			I_COO, J_COO, V_COO, sizeCOO,
-			row_idx, numInRow, ELL_block_bias, ELL_block_cols_vec, 
-            loc_num_of_row, 
+	COO2ELL_block_core(*colELL, *matrixELL,
+			*I_COO, *J_COO, *V_COO, *size_COO,
+			row_idx, numInRow, loc_num_of_row, 
+			ELL_block_bias_vec, ELL_block_cols_vec, 
 			row_local, col_local, matrix_local);
-	
-	if (maxRowNum > max_in){
-		maxRowNum = max_in;	
-	}else{
-		for (unsigned int i=0;i<loc_num_of_row;i++){
-			if (numInRow[i+row_bias] > maxRowNum)
-				*size_COO+=numInRow[i+row_bias]- maxRowNum;
-		}	
-	}
-	
-	//printf("irregular row Number is %d\n",irregular);
 	
 }

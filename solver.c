@@ -82,7 +82,7 @@ static void ELL_cuda_malloc_trans_data_block(unsigned int** col_d, double** V_d,
 				unsigned int* ELL_block_cols_vec, unsigned int* ELL_block_bias_vec,
 				unsigned int dimension){
                 
-	unsigned int ELL_size = ELL_bloc_bias_vec[dimension];
+	unsigned int ELL_size = ELL_block_bias_vec[dimension];
     cudaMalloc((void **) col_d, ELL_size*sizeof(unsigned int));
     cudaMalloc((void **) V_d, ELL_size*sizeof(double));
     cudaMalloc((void **) ELL_block_cols_vec_d, dimension*sizeof(unsigned int));
@@ -95,8 +95,8 @@ static void ELL_cuda_malloc_trans_data_block(unsigned int** col_d, double** V_d,
 }
 
 
-static void COO_cuda_malloc_trans_data(unsigned int** I_COO_d, unsigned int** J_COO_d, unsigned double** V_COO_d,
-				unsigned int*  I_COO, unsigned int* J_COO, unsigned int* V_COO,
+static void COO_cuda_malloc_trans_data(unsigned int** I_COO_d, unsigned int** J_COO_d, double** V_COO_d,
+				unsigned int*  I_COO, unsigned int* J_COO, double* V_COO,
 				const unsigned int dimension, const unsigned int totalNumCOO){
 
 	cudaMalloc((void **) I_COO_d,totalNumCOO*sizeof(unsigned int));
@@ -107,8 +107,8 @@ static void COO_cuda_malloc_trans_data(unsigned int** I_COO_d, unsigned int** J_
 	cudaMemcpy(V_COO_d,V_COO,totalNumCOO*sizeof(double),cudaMemcpyHostToDevice);
 }
 
-void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrixPrecond, 
-                matrixCOO_S* localMatrixPrecondP,
+void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond, 
+                matrixCOO_S* localMatrix_precondP,
         		const double *vector_in, double *vector_out,  
                 const unsigned int MAXIter, unsigned int *realIter,  const cb_s cb,
                 const unsigned int partition_size, const unsigned int* part_boundary){
@@ -128,10 +128,10 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrixPrecond,
     totalNum = localMatrix->totalNum; 
     maxRowNum = localMatrix->maxRowNum; 
 
-    totalNumPrecond = localMatrix->totalNumPrecond;
-    maxRowNumPrecond = localMatrixPrecond->maxRowNumPrecond; 
-    totalNumPrecondP = localMatrixPrecond->totalNumPrecondP; 
-    maxRowNumPrecondP = localMatrixPrecond->maxRowNumPrecondP;
+    totalNumPrecond = localMatrix_precond->totalNum;
+    maxRowNumPrecond = localMatrix_precond->maxRowNum; 
+    totalNumPrecondP = localMatrix_precondP->totalNum; 
+    maxRowNumPrecondP = localMatrix_precondP->maxRowNum;
 
     row_idx = localMatrix->row_idx; 
     numInRow = localMatrix->numInRow; 
@@ -154,14 +154,13 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrixPrecond,
 
 	unsigned int *colELL, *I_COO, *J_COO, ELL_width, ELL_widthL, ELL_widthLP;
 	double* matrixELL, *V_COO;
-	unsigned int totalNumCOO; 
 	unsigned int *col_d;
 	double *V_d;
 	bool RODR, BOLCK;
 	unsigned int *I_COO_d, *J_COO_d;
 	double *V_COO_d;
 	RODR = cb.RODR;
-	BLOCK = cb.BLOCK;
+	bool BLOCK = cb.BLOCK;
     unsigned int ELL_blocks;
     unsigned int *ELL_block_cols_vec, *ELL_block_cols_vec_d;    
     unsigned int *ELL_block_bias_vec, *ELL_block_bias_vec_d;	
@@ -172,7 +171,7 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrixPrecond,
     unsigned int totalNumCOO, totalNumCOO_L, totalNumCOO_LP;
     if(BLOCK){
         //block ELL test
-        ELL_blocks = ceil((double) dimension/ELL_thread_size);
+        ELL_blocks = ceil((double) dimension/ELL_threadSize);
         ELL_block_cols_vec = (unsigned int*)malloc(ELL_blocks*sizeof(unsigned int));  
         ELL_block_bias_vec = (unsigned int*)malloc(ELL_blocks*sizeof(unsigned int));  
 		COO2ELL_block(&totalNumCOO, ELL_block_cols_vec, ELL_block_bias_vec,
@@ -188,7 +187,8 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrixPrecond,
 	} else {
 		COO2ELL(I,J,V,&colELL,&matrixELL,&I_COO, &J_COO, &V_COO, 
 			numInRow, row_idx, totalNum, dimension, &totalNumCOO, maxRowNum, &ELL_width);
-        ELL_cuda_malloc_trans_data(dimension, ELL_width, &V_d, &col_d, colELL, matrixELL);
+
+        ELL_cuda_malloc_trans_data(&col_d, &V_d, colELL, matrixELL, dimension, ELL_width);
 	}
 	
 	if (totalNumCOO>0){
@@ -199,7 +199,6 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrixPrecond,
 /*matrix L'*/
 	unsigned int *colELL_precond, *I_COO_L, *J_COO_L;
 	double* matrixELL_precond, *V_COO_L;
-	unsigned int totalNumCOO_L;
 	unsigned int *col_precond_d;
 	double *V_precond_d;
 	unsigned int *I_COO_L_d, *J_COO_L_d;
@@ -208,11 +207,11 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrixPrecond,
     if(BLOCK){
 		ELL_block_cols_vec_L = (unsigned int*)malloc(ELL_blocks*sizeof(unsigned int));  
         ELL_block_bias_vec_L = (unsigned int*)malloc(ELL_blocks*sizeof(unsigned int));
-		COO2ELL_block(&totalNumCOOL, ELL_block_cols_vec_L, ELL_block_bias_vec_L,
+		COO2ELL_block(&totalNumCOO_L, ELL_block_cols_vec_L, ELL_block_bias_vec_L,
 				&colELL_precond, &matrixELL_precond, &I_COO_L, &J_COO_L, &V_COO_L,
 				I_precond, J_precond, V_precond, 
 				row_idx, numInRowL, 
-				totalNumL, dimension);
+				totalNumCOO_L, dimension);
 		ELL_cuda_malloc_trans_data_block(&col_precond_d, &V_precond_d, 
 				&ELL_block_cols_vec_L_d, &ELL_block_bias_vec_L_d,
 				colELL_precond, matrixELL_precond,
@@ -222,7 +221,7 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrixPrecond,
 		COO2ELL(I_precond,J_precond,V_precond,&colELL_precond, &matrixELL_precond, 
 				&I_COO_L, &J_COO_L, &V_COO_L, numInRowL, row_idxL, totalNumPrecond, 
 				dimension, &totalNumCOO_L, maxRowNumPrecond, &ELL_widthL);
-        ELL_cuda_malloc_trans_data(dimension, ELL_widthL, &V_precond_d, &col_precond_d, colELL_precond, matrixELL_precond);
+        ELL_cuda_malloc_trans_data(&col_precond_d, &V_precond_d, colELL_precond, matrixELL_precond, dimension, ELL_widthL);
 	}
 	//printf("ELL_widthL is %d, and totalNumCOO_L is %d\n", ELL_widthL, totalNumCOO_L);
 	if (totalNumCOO_L>0){
@@ -233,7 +232,6 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrixPrecond,
 	/*matrix L*/
 	unsigned int *colELL_precondP, *I_COO_LP, *J_COO_LP;
 	double* matrixELL_precondP, *V_COO_LP;
-	unsigned int totalNumCOO_LP;
 	unsigned int *col_precondP_d;
 	double *V_precondP_d;
 	unsigned int *I_COO_LP_d, *J_COO_LP_d;
@@ -241,11 +239,11 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrixPrecond,
 	if(BLOCK){
 		ELL_block_cols_vec_LP = (unsigned int*)malloc(ELL_blocks*sizeof(unsigned int));  
 		ELL_block_bias_vec_LP = (unsigned int*)malloc(ELL_blocks*sizeof(unsigned int));
-		COO2ELL_block(&totalNumCOOLP, ELL_block_cols_vec_LP, ELL_block_bias_vec_LP,
+		COO2ELL_block(&totalNumCOO_LP, ELL_block_cols_vec_LP, ELL_block_bias_vec_LP,
 				&colELL_precondP, &matrixELL_precondP, &I_COO_LP, &J_COO_LP, &V_COO_LP,
 				I_precondP, J_precondP, V_precondP, 
 				row_idxLP, numInRowLP, 
-				totalNumLP, dimension);
+				totalNumPrecondP, dimension);
 		ELL_cuda_malloc_trans_data_block(&col_precondP_d, &V_precondP_d, 
 				&ELL_block_cols_vec_LP_d, &ELL_block_bias_vec_LP_d,
 				colELL_precondP, matrixELL_precondP,
@@ -255,7 +253,7 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrixPrecond,
 		COO2ELL(I_precondP,J_precondP,V_precondP,&colELL_precondP, &matrixELL_precondP, 
 				&I_COO_LP, &J_COO_LP, &V_COO_LP, numInRowLP, row_idxLP, totalNumPrecondP, 
 				dimension, &totalNumCOO_LP, maxRowNumPrecondP, &ELL_widthLP);
-		ELL_cuda_malloc_trans_data(dimension, ELL_widthLP, &V_precondP_d, &col_precondP_d, colELL_precondP, matrixELL_precondP);
+		ELL_cuda_malloc_trans_data(&col_precondP_d, &V_precondP_d, colELL_precondP, matrixELL_precondP, dimension, ELL_widthLP);
 	}
 	//printf("ELL_widthL is %d, and totalNumCOO_L is %d\n", ELL_widthL, totalNumCOO_L);
 	if (totalNumCOO_LP>0){
@@ -324,7 +322,8 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrixPrecond,
 					true, partition_size, part_boundary_d);
 		}
 		else{
-			matrix_vectorELL_block(dimension, dimension, ELL_widthL, col_precond_d,V_precond_d,rk_d,zk1_d,0,0,
+			matrix_vectorELL_block(dimension, dimension, ELL_block_cols_vec_L_d, ELL_block_bias_vec_L_d,
+					col_precond_d,V_precond_d,rk_d,zk1_d,0,0,
 					false, 0, NULL);
 		}
 	}
@@ -344,22 +343,26 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrixPrecond,
 		}
 	} else {
 		if(RODR){
-			matrix_vectorELL_block(dimension, dimension, ELL_widthLP, col_precondP_d, 
-					V_precondP_d, zk1_d, zk_d, 0, 0, true, partition_size, part_boundary_d);
+			matrix_vectorELL_block(dimension, dimension, ELL_block_cols_vec_LP_d, ELL_block_bias_vec_LP_d,  
+					col_precondP_d,V_precondP_d, 
+					zk1_d, zk_d, 0, 0, true, partition_size, part_boundary_d); 
+					
 		} else {
-			matrix_vectorELL_block(dimension, dimension, ELL_widthLP, col_precondP_d, 
-					V_precondP_d, zk1_d, zk_d, 0, 0, false, 0, NULL);
+			matrix_vectorELL_block(dimension, dimension, ELL_block_cols_vec_LP_d, ELL_block_bias_vec_LP_d,  
+					col_precondP_d, V_precondP_d, 
+					zk1_d, zk_d, 0, 0, false, 0, NULL);
+					
 		}	
 	}
 	if (totalNumCOO_LP>0) matrix_vectorCOO(totalNumCOO_LP, I_COO_LP_d, J_COO_LP_d, V_COO_LP_d, zk1_d, zk_d,0,0);
 	
-	//cublasSdot(handle,dimension,zk_d,1,zk_d,1,&dotz0);
+	//cublasDdot(handle,dimension,zk_d,1,zk_d,1,&dotz0);
 	//for (unsigned int i=0;i<5;i++) printf("dotz0 is %f, dotz0_compare is %f\n",dotz0,dotz0_compare);
 	//give an initial value as r0, p0, and set all 
 	initialize_all(dimension,pk_d,bp_d,x_d,zk_d,vector_in_d);
 	
 	
-	cublasSdot(handle, dimension,vector_in_d,1,vector_in_d,1,&doth);
+	cublasDdot(handle, dimension,vector_in_d,1,vector_in_d,1,&doth);
 	double errorNorm=sqrt(doth);
 	unsigned int iter=0;
 	struct timeval start1, end1;
@@ -379,19 +382,21 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrixPrecond,
 			}
 		} else {
 			if(RODR){
-				matrix_vectorELL_block(dimension, dimension, ELL_width, col_d,V_d,pk_d,bp_d,0,0,
+				matrix_vectorELL_block(dimension, dimension, ELL_block_cols_vec_d, ELL_block_bias_vec_d,  
+						col_d,V_d,pk_d,bp_d,0,0,
 						true,partition_size, part_boundary_d);
 			}
 			else{
-				matrix_vectorELL_block(dimension, dimension, ELL_width, col_d,V_d,pk_d,bp_d,0,0,
+				matrix_vectorELL_block(dimension, dimension, ELL_block_cols_vec_d, ELL_block_bias_vec_d,  
+						col_d,V_d,pk_d,bp_d,0,0,
 						false, 0, NULL);
 			}
 		}
 		if (totalNumCOO>0) matrix_vectorCOO(totalNumCOO, I_COO_d, J_COO_d, V_COO_d, pk_d, bp_d, 0, 0);
 		//vector-vectror multiplication
-		cublasSdot(handle,dimension,bp_d,1,pk_d,1,&dotp0);
+		cublasDdot(handle,dimension,bp_d,1,pk_d,1,&dotp0);
 		//r_k*z_k
-		cublasSdot(handle,dimension,rk_d,1,zk_d,1,&dotrz0);
+		cublasDdot(handle,dimension,rk_d,1,zk_d,1,&dotrz0);
 		/*cudaMemcpy(rk, rk_d, size0, cudaMemcpyDeviceToHost);
 		cudaMemcpy(zk, zk_d, size0, cudaMemcpyDeviceToHost);
 		double dotrz0_compare=0;
@@ -404,9 +409,9 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrixPrecond,
 		alphak_1=-alphak;
 		
 		//update x_k to x_k+1, x=x+alphak*p;
-		cublasSaxpy(handle,dimension,&alphak,pk_d,1,x_d,1);
+		cublasDaxpy(handle,dimension,&alphak,pk_d,1,x_d,1);
 		//update r_k to r_k+1, r=r-alphak*p;
-		cublasSaxpy(handle,dimension,&alphak_1,bp_d,1,rk_d,1);
+		cublasDaxpy(handle,dimension,&alphak_1,bp_d,1,rk_d,1);
 		initialize_bp(dimension,zk_d);
 		initialize_bp(dimension,zk1_d);
 		if(!BLOCK){
@@ -420,11 +425,13 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrixPrecond,
 			}
 		} else {
 			if(RODR){
-				matrix_vectorELL_block(dimension, dimension, ELL_widthL, col_precond_d,V_precond_d,rk_d,zk1_d,0,0,
+				matrix_vectorELL_block(dimension, dimension, ELL_block_cols_vec_L_d, ELL_block_bias_vec_L_d, 
+						col_precond_d, V_precond_d, rk_d, zk1_d, 0, 0,
 						true, partition_size, part_boundary_d);
 			}
 			else{
-				matrix_vectorELL_block(dimension, dimension, ELL_widthL, col_precond_d,V_precond_d,rk_d,zk1_d,0,0,
+				matrix_vectorELL_block(dimension, dimension, ELL_block_cols_vec_L_d, ELL_block_bias_vec_L_d, 
+						col_precond_d,V_precond_d,rk_d,zk1_d,0,0,
 						false, 0, NULL);
 			}
 		}
@@ -442,22 +449,24 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrixPrecond,
 			}
 		} else {
 			if(RODR){	
-				matrix_vectorELL_block(dimension, dimension, ELL_widthLP, col_precondP_d,V_precondP_d,
+				matrix_vectorELL_block(dimension, dimension, ELL_block_cols_vec_LP_d, ELL_block_bias_vec_LP_d,  
+						col_precondP_d,V_precondP_d,
 						zk1_d,zk_d,0,0, true, partition_size, part_boundary_d);
 			}
 			else{
-				matrix_vectorELL_block(dimension, dimension, ELL_widthLP, col_precondP_d,V_precondP_d,
+				matrix_vectorELL_block(dimension, dimension, ELL_block_cols_vec_LP_d, ELL_block_bias_vec_LP_d,  
+ 						col_precondP_d,V_precondP_d,
 						zk1_d,zk_d,0,0, false, 0, NULL);
 			}
 		}
 		if (totalNumCOO_LP>0) matrix_vectorCOO(totalNumCOO_LP, I_COO_LP_d, J_COO_LP_d, V_COO_LP_d, zk1_d,zk_d,0,0 );
 		//r_k+1 * z_k+1
-		cublasSdot(handle,dimension,rk_d,1,zk_d,1,&dotrz1);
+		cublasDdot(handle,dimension,rk_d,1,zk_d,1,&dotrz1);
 		betak=dotrz1/dotrz0;
 		//printf("dotp0 is %f, dotrz0 is %f dotrz1 is %f, betak is %f and alphak is %f at iter %d\n", dotp0, dotrz0,dotrz1,betak, alphak, iter);
 		//p=r+gamak*p;
 		myxpy(dimension,betak,zk_d,pk_d);//if using cublas, we need two functin to complete it
-		cublasSdot(handle,dimension,rk_d,1,rk_d,1,&dotr0);
+		cublasDdot(handle,dimension,rk_d,1,rk_d,1,&dotr0);
 		error=sqrt(dotr0)/errorNorm;
 		initialize_bp(dimension,bp_d);
 		cudaDeviceSynchronize();
@@ -635,7 +644,7 @@ void solverPrecondCPU(const unsigned int procNum, const unsigned int dimension,
 	}
 
 
-	//cublasSdot(handle, dimension,vector_in_d,1,vector_in_d,1,&doth);
+	//cublasDdot(handle, dimension,vector_in_d,1,vector_in_d,1,&doth);
 	#pragma omp parallel for reduction(+:doth)
 	for (unsigned int i=0;i<dimension;i++){
 		doth+=vector_in[i]*vector_in[i];
