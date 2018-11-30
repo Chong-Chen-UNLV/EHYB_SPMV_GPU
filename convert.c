@@ -1,5 +1,6 @@
 #include "kernel.h"
 #include "solver.h"
+#include "convert.h"
 
 void COO2ELL(const unsigned int *row_local, const unsigned int *col_local, const double* matrix_local, unsigned int **colELL,
 	double **matrixELL, unsigned int **I_COO, unsigned int **J_COO, double **V_COO,const unsigned int *numInRow, 
@@ -128,7 +129,7 @@ static void COO2ELL_block_core(unsigned int* colELL, double* matrixELL,
 		const unsigned int* row_idx, const unsigned int* numInRow, const unsigned int loc_num_of_row, 
         const unsigned int* ELL_block_bias_vec, const unsigned int* ELL_block_cols_vec, 
 		const unsigned int* row_local, const unsigned int* col_local, const double* matrix_local,
-		unsigned int block_num, unsigned int* boundary, bool RODR){ 
+		unsigned int block_num, const unsigned int* boundary, bool RODR){ 
 	
 	unsigned int block_rowSize;
 	
@@ -151,7 +152,7 @@ static void COO2ELL_block_core(unsigned int* colELL, double* matrixELL,
 		unsigned int num_bias=row_idx[row_bias];
 		for(unsigned int i = boundary[block_idx]; i < boundary[block_idx + 1]; ++i){
 
-			if(row >= loc_num_of_row) break;
+			if(i >= loc_num_of_row) break;
 
 			unsigned int row_val = i + row_bias;
 			if (numInRow[i+row_bias] > num_cols) {//goto COO format
@@ -201,13 +202,14 @@ static void update_ELL_block_bias_vec(unsigned int block_num, unsigned int* ELL_
 
 /*parameters, first line: output of HYB related parameters, 2nd line: output of HYB matrices, 3rd line:input of local COO matrix 
 4th line: CSR indeces (didn't include values), 5th line: input variables*/
+
 void COO2ELL_block(unsigned int *size_COO, 
 		unsigned int* ELL_block_cols_vec, unsigned int* ELL_block_bias_vec,
 		unsigned int **colELL, double **matrixELL, unsigned int **I_COO, unsigned int **J_COO, double **V_COO,
 		const unsigned int *row_local, const unsigned int *col_local, const double* matrix_local, 
 		const unsigned int *row_idx, const unsigned int *numInRow, 
 		const unsigned int localMatrixSize, const unsigned int loc_num_of_row, 
-		const unsigned int block_num, unsigned int* boundary, bool RODR){ 
+		const unsigned int block_num, const unsigned int* boundary, bool RODR){ 
 
 	unsigned int point_COO = 0;
 	unsigned int row_bias = row_local[0];

@@ -111,7 +111,7 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
                 matrixCOO_S* localMatrix_precondP,
         		const double *vector_in, double *vector_out,  
                 const unsigned int MAXIter, unsigned int *realIter,  const cb_s cb,
-                const unsigned int partition_size, const unsigned int* part_boundary){
+                const unsigned int part_size, const unsigned int* part_boundary){
 
     unsigned int dimension, totalNum, maxRowNum, totalNumPrecond; 
     unsigned int maxRowNumPrecond, totalNumPrecondP, maxRowNumPrecondP;
@@ -173,14 +173,14 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
     if(BLOCK){
         //block ELL test
         if(RODR)
-			ELL_blocks = partition_size;
+			ELL_blocks = part_size;
 		else
 			ELL_blocks = ceil((double) dimension/ELL_threadSize);
 
         ELL_block_cols_vec = (unsigned int*)malloc(ELL_blocks*sizeof(unsigned int));  
         ELL_block_bias_vec = (unsigned int*)malloc(ELL_blocks*sizeof(unsigned int));  
 		COO2ELL_block(&totalNumCOO, 
-				ELL_blocks, ELL_block_cols_vec, ELL_block_bias_vec,
+				ELL_block_cols_vec, ELL_block_bias_vec,
 				&colELL, &matrixELL, &I_COO, &J_COO, &V_COO,
 				I, J, V, 
 				row_idx, numInRow, 
@@ -299,14 +299,14 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 	cudaMalloc((void **) &zk1_d,size0);
 	cudaMalloc((void **) &bp_d,size0);
 	cudaMalloc((void **) &x_d,size0);
-	cudaMalloc((void **) &part_boundary_d, (partition_size +1)*sizeof(unsigned int));
+	cudaMalloc((void **) &part_boundary_d, (part_size +1)*sizeof(unsigned int));
 
 	cudaMalloc((void **) &vector_in_d,size0);
 	//cudaMalloc((void **) &vector_out_d,size0);
 	
 	cudaMemcpy(vector_in_d, vector_in, size0, cudaMemcpyHostToDevice);	
 	if(RODR)
-		cudaMemcpy(part_boundary_d, part_boundary, (partition_size +1)*sizeof(unsigned int), cudaMemcpyHostToDevice);	
+		cudaMemcpy(part_boundary_d, part_boundary, (part_size +1)*sizeof(unsigned int), cudaMemcpyHostToDevice);	
 	
 	//
 	initialize_bp(dimension,zk_d);
@@ -319,7 +319,7 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 	if(!BLOCK){
 		if(RODR){
 			matrix_vectorELL(dimension, dimension, ELL_widthL, col_precond_d,V_precond_d,rk_d,zk1_d,0,0,
-					true, partition_size, part_boundary_d);
+					true, part_size, part_boundary_d);
 		}
 		else{
 			matrix_vectorELL(dimension, dimension, ELL_widthL, col_precond_d,V_precond_d,rk_d,zk1_d,0,0,
@@ -329,7 +329,7 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 		if(RODR){
 			matrix_vectorELL_block(dimension, dimension, ELL_block_cols_vec_L_d, ELL_block_bias_vec_L_d,
                     col_precond_d,V_precond_d,rk_d,zk1_d,0,0,
-					true, partition_size, part_boundary_d);
+					true, part_size, part_boundary_d);
 		}
 		else{
 			matrix_vectorELL_block(dimension, dimension, ELL_block_cols_vec_L_d, ELL_block_bias_vec_L_d,
@@ -346,7 +346,7 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 	if (!BLOCK) {
 		if(RODR){
 			matrix_vectorELL(dimension, dimension, ELL_widthLP, col_precondP_d, 
-					V_precondP_d, zk1_d, zk_d, 0, 0, true, partition_size, part_boundary_d);
+					V_precondP_d, zk1_d, zk_d, 0, 0, true, part_size, part_boundary_d);
 		} else {
 			matrix_vectorELL(dimension, dimension, ELL_widthLP, col_precondP_d, 
 					V_precondP_d, zk1_d, zk_d, 0, 0, false, 0, NULL);
@@ -355,7 +355,7 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 		if(RODR){
 			matrix_vectorELL_block(dimension, dimension, ELL_block_cols_vec_LP_d, ELL_block_bias_vec_LP_d,  
 					col_precondP_d,V_precondP_d, 
-					zk1_d, zk_d, 0, 0, true, partition_size, part_boundary_d); 
+					zk1_d, zk_d, 0, 0, true, part_size, part_boundary_d); 
 					
 		} else {
 			matrix_vectorELL_block(dimension, dimension, ELL_block_cols_vec_LP_d, ELL_block_bias_vec_LP_d,  
@@ -384,7 +384,7 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 		if(!BLOCK) {
 			if(RODR){
 				matrix_vectorELL(dimension, dimension, ELL_width, col_d,V_d,pk_d,bp_d,0,0,
-						true,partition_size, part_boundary_d);
+						true,part_size, part_boundary_d);
 			}
 			else{
 				matrix_vectorELL(dimension, dimension, ELL_width, col_d,V_d,pk_d,bp_d,0,0,
@@ -394,7 +394,7 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 			if(RODR){
 				matrix_vectorELL_block(dimension, dimension, ELL_block_cols_vec_d, ELL_block_bias_vec_d,  
 						col_d,V_d,pk_d,bp_d,0,0,
-						true,partition_size, part_boundary_d);
+						true,part_size, part_boundary_d);
 			}
 			else{
 				matrix_vectorELL_block(dimension, dimension, ELL_block_cols_vec_d, ELL_block_bias_vec_d,  
@@ -427,7 +427,7 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 		if(!BLOCK){
 			if(RODR){
 				matrix_vectorELL(dimension, dimension, ELL_widthL, col_precond_d,V_precond_d,rk_d,zk1_d,0,0,
-						true, partition_size, part_boundary_d);
+						true, part_size, part_boundary_d);
 			}
 			else{
 				matrix_vectorELL(dimension, dimension, ELL_widthL, col_precond_d,V_precond_d,rk_d,zk1_d,0,0,
@@ -437,7 +437,7 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 			if(RODR){
 				matrix_vectorELL_block(dimension, dimension, ELL_block_cols_vec_L_d, ELL_block_bias_vec_L_d, 
 						col_precond_d, V_precond_d, rk_d, zk1_d, 0, 0,
-						true, partition_size, part_boundary_d);
+						true, part_size, part_boundary_d);
 			}
 			else{
 				matrix_vectorELL_block(dimension, dimension, ELL_block_cols_vec_L_d, ELL_block_bias_vec_L_d, 
@@ -451,7 +451,7 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 		if (!BLOCK){
 			if(RODR){	
 				matrix_vectorELL(dimension, dimension, ELL_widthLP, col_precondP_d,V_precondP_d,
-						zk1_d,zk_d,0,0, true, partition_size, part_boundary_d);
+						zk1_d,zk_d,0,0, true, part_size, part_boundary_d);
 			}
 			else{
 				matrix_vectorELL(dimension, dimension, ELL_widthLP, col_precondP_d,V_precondP_d,
@@ -461,7 +461,7 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 			if(RODR){	
 				matrix_vectorELL_block(dimension, dimension, ELL_block_cols_vec_LP_d, ELL_block_bias_vec_LP_d,  
 						col_precondP_d,V_precondP_d,
-						zk1_d,zk_d,0,0, true, partition_size, part_boundary_d);
+						zk1_d,zk_d,0,0, true, part_size, part_boundary_d);
 			}
 			else{
 				matrix_vectorELL_block(dimension, dimension, ELL_block_cols_vec_LP_d, ELL_block_bias_vec_LP_d,  

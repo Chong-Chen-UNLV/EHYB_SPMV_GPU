@@ -110,7 +110,7 @@ __global__ void ELL_kernel_block(const unsigned int num_rows, const unsigned int
 	unsigned int thread_idx = threadIdx.x; 
 	unsigned int num_cols_per_row;  
 	unsigned int block_data_bias;
-	unsigned int data;
+	unsigned int data_idx;
 	unsigned int col;	
 	double val;
 	unsigned int row= blockDim.x*blockIdx.x+threadIdx.x;
@@ -172,19 +172,20 @@ __global__ void ELL_cached_kernel_block(const unsigned int* num_cols_per_row_vec
 	unsigned int vec_start = part_boundary[blockIdx.x] + bias0;
 	unsigned int vec_end = part_boundary[blockIdx.x + 1] + bias0;
 	double val, dot;
-	unsigned int col;
-	num_cols_per_row = num_cols_per_row_vec[block_idx];//cache will work when every threads read same global address
+	unsigned int data_idx, col;
+	unsigned int block_rowSize = vec_end - vec_start;
+	unsigned int num_cols_per_row = num_cols_per_row_vec[block_idx];//cache will work when every threads read same global address
 	//vec_start + vector_cache_size will be slightly different from vec_end
 	for (unsigned int i = x_idx; i < vector_cache_size; i += ELL_threadSize){
 		if(i < vec_end) cached_vec[i] = x[i + vec_start];
 		else cached_vec[i] = 0;
 	}
 
-	block_data_bias = block_data_bias_vec[block_idx];
-	for(unsigned int row = x_idx; row < vec_end; row += ELL_threadSize){
+	unsigned int block_data_bias = block_data_bias_vec[block_idx];
+	for(unsigned int row = x_idx; row < vec_end; row += ELL_threadSize){//the thread is step with stride ELL_threadSize
 		dot =0;
 		for (unsigned int n=0; n< num_cols_per_row; n++){
-			data_idx = block_data_bias + ELL_threadSize*n + row;
+			data_idx = block_data_bias + block_rowSize*n + row;//however the data storage is stride with block_rowSize
 			col=indices[data_idx];
 			val=data[data_idx];
 			if (val != 0)
@@ -504,7 +505,7 @@ void matrix_vectorELL_block(const unsigned int num_rows, const unsigned int cal_
 	//bind_x(x);
 	if(RODR){
 		
-		ELL_cached_kernel_block<<<rodr_blocks, ELL_threadSize>>>(num_rows, num_cols_per_row_vec, 
+		ELL_cached_kernel_block<<<rodr_blocks, ELL_threadSize>>>(num_cols_per_row_vec, 
 			block_data_bias_vec,
 			J, V, x, y, bias0, bias1, part_boundary_d);
 	}

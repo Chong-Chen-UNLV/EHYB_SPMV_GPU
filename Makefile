@@ -3,7 +3,7 @@
 ## Build script for project
 #
 #################################################################################
-CC=icpc
+CC=g++
 
 CU_INC=-I/usr/local/cuda/include
 CUDA_LIB =-L/usr/local/cuda/lib64 -lcublas -lcudart -lcuda
