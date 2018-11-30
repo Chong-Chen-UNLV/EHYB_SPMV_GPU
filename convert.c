@@ -127,26 +127,39 @@ static void COO2ELL_block_core(unsigned int* colELL, double* matrixELL,
 		unsigned int* I_COO, unsigned int* J_COO, double* V_COO, const unsigned int size_COO,
 		const unsigned int* row_idx, const unsigned int* numInRow, const unsigned int loc_num_of_row, 
         const unsigned int* ELL_block_bias_vec, const unsigned int* ELL_block_cols_vec, 
-		const unsigned int* row_local, const unsigned int* col_local, const double* matrix_local){ 
-
+		const unsigned int* row_local, const unsigned int* col_local, const double* matrix_local,
+		unsigned int block_num, unsigned int* boundary, bool RODR){ 
+	
+	unsigned int block_rowSize;
+	
 	unsigned int irregular=0;
-	unsigned int ELL_rodr_blocks = ceil( ((float) loc_num_of_row)/ELL_threadSize);
 
 	unsigned int row_bias = row_local[0]; 
 	unsigned pointCOO = 0;
-	for (unsigned int row = 0; row < loc_num_of_row; row += ELL_threadSize){
-		unsigned int block_idx = row/ELL_threadSize;
+	if(!RODR)
+		block_num = ceil(((float) loc_num_of_row)/ELL_threadSize);
+	for (unsigned int block_idx = 0; block_idx < block_num; ++block_idx){
+
+		if(RODR){
+			block_rowSize = boundary[block_idx + 1] - boundary[block_idx]; 
+		}
+		else{
+			block_rowSize = ELL_threadSize;
+		}
 		unsigned int num_cols = ELL_block_cols_vec[block_idx];
-		unsigned int ELL_bias = ELL_block_bias_vec[block_idx];
+		unsigned int block_bias = ELL_block_bias_vec[block_idx];
 		unsigned int num_bias=row_idx[row_bias];
-		for(unsigned int i = row; i < row + ELL_threadSize; ++i){
+		for(unsigned int i = boundary[block_idx]; i < boundary[block_idx + 1]; ++i){
+
+			if(row >= loc_num_of_row) break;
+
 			unsigned int row_val = i + row_bias;
 			if (numInRow[i+row_bias] > num_cols) {//goto COO format
 				for (unsigned int j = 0; j < numInRow[row_val + row_bias]; ++j){
 					//the ELL value should still be set 
 					if (j < num_cols){
-						colELL[ELL_bias + j*ELL_threadSize] = col_local[row_idx[row_val]+j-num_bias];
-						matrixELL[ELL_bias + j*ELL_threadSize]
+						colELL[block_bias + j*block_rowSize] = col_local[row_idx[row_val]+j-num_bias];
+						matrixELL[block_bias + j*block_rowSize]
 							= matrix_local[row_idx[row_val]+j-num_bias];
 					}
 					else{
@@ -164,14 +177,14 @@ static void COO2ELL_block_core(unsigned int* colELL, double* matrixELL,
 				for (unsigned int j=0; j < num_cols; ++j){
 					//write the ELL data
 					if (j<numInRow[i+row_bias]){
-						colELL[ELL_bias + j*ELL_threadSize] = col_local[row_idx[row_val]+j-num_bias];
-						matrixELL[ELL_bias + j*ELL_threadSize]
+						colELL[block_bias + j*block_rowSize] = col_local[row_idx[row_val]+j-num_bias];
+						matrixELL[block_bias + j*block_rowSize]
 								= matrix_local[row_idx[row_val]+j-num_bias];
 					}
 					//write zero
 					else{
-						colELL[ELL_bias + j*ELL_threadSize] = 0;
-						matrixELL[ELL_bias + j*ELL_threadSize] = 0;
+						colELL[block_bias + j*block_rowSize] = 0;
+						matrixELL[block_bias + j*block_rowSize] = 0;
 					}
 				}
 			}
@@ -193,12 +206,12 @@ void COO2ELL_block(unsigned int *size_COO,
 		unsigned int **colELL, double **matrixELL, unsigned int **I_COO, unsigned int **J_COO, double **V_COO,
 		const unsigned int *row_local, const unsigned int *col_local, const double* matrix_local, 
 		const unsigned int *row_idx, const unsigned int *numInRow, 
-		const unsigned int localMatrixSize, const unsigned int loc_num_of_row){ 
+		const unsigned int localMatrixSize, const unsigned int loc_num_of_row, 
+		const unsigned int block_num, unsigned int* boundary, bool RODR){ 
 
 	unsigned int point_COO = 0;
 	unsigned int row_bias = row_local[0];
 	unsigned int num_bias = row_idx[row_bias];
-	unsigned int block_num = ceil(( float(loc_num_of_row))/ELL_threadSize);
 	*size_COO=0;	
 	ELL_block_cols_vec_gen(ELL_block_cols_vec, size_COO,
 			loc_num_of_row, row_idx); 
@@ -220,6 +233,6 @@ void COO2ELL_block(unsigned int *size_COO,
 			*I_COO, *J_COO, *V_COO, *size_COO,
 			row_idx, numInRow, loc_num_of_row, 
 			ELL_block_bias_vec, ELL_block_cols_vec, 
-			row_local, col_local, matrix_local);
+			row_local, col_local, matrix_local, block_num, boundary, RODR);
 	
 }

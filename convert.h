@@ -9,7 +9,7 @@ void COO2ELL_block(unsigned int *size_COO, unsigned int* ELL_block_cols_vec, uns
 		unsigned int **colELL, double **matrixELL, unsigned int **I_COO, unsigned int **J_COO, double **V_COO,
 		const unsigned int *row_local, const unsigned int *col_local, const double* matrix_local, 
 		const unsigned int *row_idx, const unsigned int *numInRow, 
-		const unsigned int localMatrixSize, const unsigned int loc_num_of_row);
+		const unsigned int localMatrixSize, const unsigned int loc_num_of_row, const unsigned int block_num);
 
 void COO2ELL(const unsigned int *row_local, const unsigned int *col_local, const double* matrix_local, unsigned int **colELL,
 	double **matrixELL, unsigned int **I_COO, unsigned int **J_COO, double **V_COO,const unsigned int *numInRow, 

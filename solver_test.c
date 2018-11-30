@@ -248,7 +248,7 @@ int main(int argc, char* argv[])
 		y_rodr = (double* )calloc(dimension, sizeof(double)); 
 		/*NOTICE: maxRowNum and maxRowNum for preconditioners do not needed 
 		to be updated. When we do reordering, all elements of certain row
-		will be re arranged to SAME different row according to rodr_list
+		will be assigned to SAME row according to rodr_list
 		so the maxRowNum should be same, only occured in different row number
 		*/
 		matrix_reorder(&dimension, totalNum, I, J, V, numInRow, row_idx,
