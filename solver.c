@@ -1,6 +1,7 @@
 #include "kernel.h"
 #include "solver.h"
 #include "convert.h"
+#include "test.h"
 
 void solver(const unsigned int dimension, const unsigned int totalNum, const unsigned int *I, const unsigned int *J, const double *V, const double *vector_in, 
 			double *vector_out, double *error_track, unsigned int MAXIter)
@@ -72,8 +73,8 @@ static void ELL_cuda_malloc_trans_data(unsigned int** col_d, double** V_d,
 
 	cudaMalloc((void **) col_d, ELL_width*dimension*sizeof(unsigned int));
     cudaMalloc((void **) V_d, ELL_width*dimension*sizeof(double));
-    cudaMemcpy(col_d,colELL,dimension*ELL_width*sizeof(unsigned int),cudaMemcpyHostToDevice);
-    cudaMemcpy(V_d,matrixELL,dimension*ELL_width*sizeof(double),cudaMemcpyHostToDevice);
+    cudaMemcpy(*col_d,colELL,dimension*ELL_width*sizeof(unsigned int),cudaMemcpyHostToDevice);
+    cudaMemcpy(*V_d,matrixELL,dimension*ELL_width*sizeof(double),cudaMemcpyHostToDevice);
 }
 
 static void ELL_cuda_malloc_trans_data_block(unsigned int** col_d, double** V_d, 
@@ -88,10 +89,10 @@ static void ELL_cuda_malloc_trans_data_block(unsigned int** col_d, double** V_d,
     cudaMalloc((void **) ELL_block_cols_vec_d, dimension*sizeof(unsigned int));
     cudaMalloc((void **) ELL_block_bias_vec_d, dimension*sizeof(double));
 
-    cudaMemcpy(col_d,colELL,ELL_size*sizeof(unsigned int),cudaMemcpyHostToDevice);
-    cudaMemcpy(V_d,matrixELL,ELL_size*sizeof(double),cudaMemcpyHostToDevice);
-    cudaMemcpy(ELL_block_cols_vec_d, ELL_block_cols_vec, dimension*sizeof(unsigned int),cudaMemcpyHostToDevice);
-    cudaMemcpy(ELL_block_bias_vec_d, ELL_block_bias_vec, (dimension + 1)*sizeof(unsigned int),cudaMemcpyHostToDevice);
+    cudaMemcpy(*col_d,colELL,ELL_size*sizeof(unsigned int),cudaMemcpyHostToDevice);
+    cudaMemcpy(*V_d,matrixELL,ELL_size*sizeof(double),cudaMemcpyHostToDevice);
+    cudaMemcpy(*ELL_block_cols_vec_d, ELL_block_cols_vec, dimension*sizeof(unsigned int),cudaMemcpyHostToDevice);
+    cudaMemcpy(*ELL_block_bias_vec_d, ELL_block_bias_vec, (dimension + 1)*sizeof(unsigned int),cudaMemcpyHostToDevice);
 }
 
 
@@ -102,9 +103,9 @@ static void COO_cuda_malloc_trans_data(unsigned int** I_COO_d, unsigned int** J_
 	cudaMalloc((void **) I_COO_d,totalNumCOO*sizeof(unsigned int));
 	cudaMalloc((void **) J_COO_d,totalNumCOO*sizeof(unsigned int));
 	cudaMalloc((void **) V_COO_d,totalNumCOO*sizeof(double));	
-	cudaMemcpy(I_COO_d,I_COO,totalNumCOO*sizeof(unsigned int),cudaMemcpyHostToDevice);
-	cudaMemcpy(J_COO_d,J_COO,totalNumCOO*sizeof(unsigned int),cudaMemcpyHostToDevice);
-	cudaMemcpy(V_COO_d,V_COO,totalNumCOO*sizeof(double),cudaMemcpyHostToDevice);
+	cudaMemcpy(*I_COO_d,I_COO,totalNumCOO*sizeof(unsigned int),cudaMemcpyHostToDevice);
+	cudaMemcpy(*J_COO_d,J_COO,totalNumCOO*sizeof(unsigned int),cudaMemcpyHostToDevice);
+	cudaMemcpy(*V_COO_d,V_COO,totalNumCOO*sizeof(double),cudaMemcpyHostToDevice);
 }
 
 void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond, 
@@ -299,7 +300,7 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 	cudaMalloc((void **) &zk1_d,size0);
 	cudaMalloc((void **) &bp_d,size0);
 	cudaMalloc((void **) &x_d,size0);
-	cudaMalloc((void **) &part_boundary_d, (part_size +1)*sizeof(unsigned int));
+	if(BLOCK) cudaMalloc((void **) &part_boundary_d, (part_size +1)*sizeof(unsigned int));
 
 	cudaMalloc((void **) &vector_in_d,size0);
 	//cudaMalloc((void **) &vector_out_d,size0);
@@ -338,11 +339,17 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 		}
 	}
 
-	cudaMemcpy(zk_1, zk1_d, dimension*sizeof(double), cudaMemcpyDeviceToHost);
-		for(int i = 0; i < 10; ++i)
-			printf("zk1[%d] of GPU result is %f\n", i, zk_1[i]);
+	
 
 	if (totalNumCOO_L>0) matrix_vectorCOO(totalNumCOO_L, I_COO_L_d, J_COO_L_d, V_COO_L_d, rk_d, zk1_d, 0, 0);
+
+	double* zk1T = (double*) malloc(dimension*sizeof(double));	
+	cudaMemcpy(zk_1, zk1_d, dimension*sizeof(double), cudaMemcpyDeviceToHost);
+	//matrix_vectorTest(localMatrix_precond, vector_in, zk1T);
+	//for(int i = 0; i < dimension; ++i){
+	//	if(abs(zk_1[i] - zk1T[i]) > 0.001) 	
+	//		printf("zk1[%d] of GPU result is %f, test value is %f\n", i, zk_1[i], zk1T[i]);
+	//}
 	if (!BLOCK) {
 		if(RODR){
 			matrix_vectorELL(dimension, dimension, ELL_widthLP, col_precondP_d, 

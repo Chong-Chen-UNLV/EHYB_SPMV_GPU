@@ -5,7 +5,6 @@
 #include "solver.h"
 #include <unistd.h>
 
-
 int main(int argc, char* argv[])
 {
 	unsigned int MAXthread = 2;	
@@ -41,7 +40,7 @@ int main(int argc, char* argv[])
 	cb_s cb;
     init_cb(&cb);
 			
-	while ((oc = getopt(argc, argv, "m:c:r:g:t:")) != -1) {
+	while ((oc = getopt(argc, argv, "m:c:r:g:t:b:")) != -1) {
 		switch (oc) {
 			case 'm':
 				/* input matrix */
@@ -53,7 +52,7 @@ int main(int argc, char* argv[])
 				MAXIter = atoi(optarg);
 				break;
 			case 't':
-				/* the number of cycles */
+				/* the number of threads*/
 				MAXthread = atoi(optarg);
 				break;
 			case 'r':
@@ -363,7 +362,7 @@ int main(int argc, char* argv[])
 		}
 		else{
             solverGPU_HYB(&matrix, &matrix_precond, &matrix_precondP,
-                    y_rodr, x_rodr, MAXIter, &realIter, cb, blocks, part_boundary);
+                    y, x, MAXIter, &realIter, cb, blocks, part_boundary);
 		}
 	}
 	else if(!(cb.GPU)){
@@ -431,9 +430,5 @@ int main(int argc, char* argv[])
 	//printf("error is %f, total num is %d, time is %f ms, Gflops is %f, final error is %f\n",result_error/dimension, totalNum, interval1, Gflop, error_track[MAXIter-1]*1000);
 	return 0;
 }
-
-
-
-
 
 

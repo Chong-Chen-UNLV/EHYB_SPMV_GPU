@@ -28,8 +28,8 @@ inline void init_cb(cb_s* in_s)
     in_s->BLOCK = false;
 }
 
-inline void init_matrixCOO_S(matrixCOO_S* matrix, unsigned int totalNum, 
-        unsigned int dimension, unsigned int maxRowNum, unsigned int* row_idx, 
+inline void init_matrixCOO_S(matrixCOO_S* matrix, unsigned int dimension,
+        unsigned int totalNum, unsigned int maxRowNum, unsigned int* row_idx, 
         unsigned int* numInRow, unsigned int* I,  unsigned int* J, double* V ){
     matrix->totalNum = totalNum;
     matrix->dimension = dimension;

@@ -44,7 +44,7 @@ void COO2ELL(const unsigned int *row_local, const unsigned int *col_local, const
 					(*colELL)[i+j*loc_num_of_row] = col_local[row_idx[row_val]+j-num_bias];
 					(*matrixELL)[i+j*loc_num_of_row]=matrix_local[row_idx[row_val]+j-num_bias];
 				}
-				else{
+				else if (j >= maxRowNum){
 					//assign COO value
 					(*I_COO)[pointCOO]=row_local[row_idx[row_val]+j-num_bias];
 					(*J_COO)[pointCOO]=col_local[row_idx[row_val]+j-num_bias];
@@ -53,6 +53,7 @@ void COO2ELL(const unsigned int *row_local, const unsigned int *col_local, const
 					if(pointCOO > size_COO)
 						printf("error at pointCOO %d\n", pointCOO);
 				}
+				else;
 			}
 			irregular=irregular+1;
 		}
@@ -238,3 +239,5 @@ void COO2ELL_block(unsigned int *size_COO,
 			row_local, col_local, matrix_local, block_num, boundary, RODR);
 	
 }
+
+
