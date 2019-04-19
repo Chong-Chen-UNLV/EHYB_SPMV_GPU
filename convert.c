@@ -2,11 +2,14 @@
 #include "solver.h"
 #include "convert.h"
 
-void COO2ELL(const unsigned int *row_local, const unsigned int *col_local, const double* matrix_local, unsigned int **colELL,
-	double **matrixELL, unsigned int **I_COO, unsigned int **J_COO, double **V_COO,const unsigned int *numInRow, 
-	const unsigned int *row_idx, const unsigned int localMatrixSize, const unsigned int loc_num_of_row, 
-	unsigned int *sizeOut, unsigned max_in, unsigned int *max_out){
-
+void COO2ELL(const unsigned int *row_local, const unsigned int *col_local, 
+		const double* matrix_local, unsigned int **colELL,
+		double **matrixELL, unsigned int **I_COO, unsigned int **J_COO, 
+		double **V_COO,const unsigned int *numInRow, 
+		const unsigned int *row_idx, const unsigned int localMatrixSize, 
+		const unsigned int loc_num_of_row, 
+		unsigned int *sizeOut, unsigned max_in, unsigned int *max_out)
+{
 	unsigned int maxRowNum;
 
 	unsigned int size_COO=0, pointCOO=0;
@@ -90,14 +93,11 @@ static void ELL_block_cols_vec_gen(unsigned int* ELL_block_cols_vec, unsigned in
 	unsigned int local_end;
     unsigned int nonzero;
 	*size_COO = 0;
-	int block_nonZ;
 	for(unsigned int row = 0; row < dimension; row += ELL_threadSize){
 		block_idx = row/ELL_threadSize;
 		if (row + ELL_threadSize <= dimension){
 			local_end = row + ELL_threadSize;	
-
-			block_nonZ = row_idx[row + ELL_threadSize] - row_idx[row];
-            
+			block_nonz = row_idx[row + ELL_threadSize] - row_idx[row];
 			avg_local = ceil(((float) block_nonz))/ELL_threadSize;
 		}else{
 			local_end = dimension;
@@ -127,42 +127,47 @@ static void ELL_block_cols_vec_gen(unsigned int* ELL_block_cols_vec, unsigned in
 
 static void COO2ELL_block_core(unsigned int* colELL, double* matrixELL,
 		unsigned int* I_COO, unsigned int* J_COO, double* V_COO, const unsigned int size_COO,
-		const unsigned int* row_idx, const unsigned int* numInRow, const unsigned int loc_num_of_row, 
+		const unsigned int* row_idx, const unsigned int* numInRow, 
+		const unsigned int loc_num_of_row, 
         const unsigned int* ELL_block_bias_vec, const unsigned int* ELL_block_cols_vec, 
-		const unsigned int* row_local, const unsigned int* col_local, const double* matrix_local,
-		unsigned int block_num, const unsigned int* boundary, bool RODR){ 
-	
+		const unsigned int* row_local, const unsigned int* col_local, 
+		const double* matrix_local,
+		unsigned int block_num, const unsigned int* boundary, volatile bool RODR)
+{ 
 	unsigned int block_rowSize;
-	
 	unsigned int irregular=0;
-
+	block_rowSize = ELL_threadSize;
 	unsigned int row_bias = row_local[0]; 
 	unsigned pointCOO = 0;
-	if(!RODR)
-		block_num = ceil(((float) loc_num_of_row)/ELL_threadSize);
 	for (unsigned int block_idx = 0; block_idx < block_num; ++block_idx){
-
 		if(RODR){
 			block_rowSize = boundary[block_idx + 1] - boundary[block_idx]; 
-		}
-		else{
+		}/*else{
 			block_rowSize = ELL_threadSize;
-		}
+		}*/
 		unsigned int num_cols = ELL_block_cols_vec[block_idx];
 		unsigned int block_bias = ELL_block_bias_vec[block_idx];
 		unsigned int num_bias=row_idx[row_bias];
-		for(unsigned int i = boundary[block_idx]; i < boundary[block_idx + 1]; ++i){
-
+		unsigned int boundary_start, boundary_end;
+		if(RODR){
+			boundary_start = boundary[block_idx];
+			boundary_end = boundary[block_idx + 1];	
+		} else{
+			boundary_start = block_idx*ELL_threadSize;
+			boundary_end = (block_idx + 1)*ELL_threadSize;
+		}
+		
+		for(unsigned int i = boundary_start; i < boundary_end; ++i){
 			if(i >= loc_num_of_row) break;
-
 			unsigned int row_val = i + row_bias;
 			if (numInRow[i+row_bias] > num_cols) {//goto COO format
 				for (unsigned int j = 0; j < numInRow[row_val + row_bias]; ++j){
 					//the ELL value should still be set 
 					if (j < num_cols){
-						colELL[block_bias + j*block_rowSize] = col_local[row_idx[row_val]+j-num_bias];
+						colELL[block_bias + j*block_rowSize] = 
+							col_local[row_idx[row_val] + j-num_bias];
 						matrixELL[block_bias + j*block_rowSize]
-							= matrix_local[row_idx[row_val]+j-num_bias];
+							= matrix_local[row_idx[row_val] + j-num_bias];
 					}
 					else{
 						//assign COO value
