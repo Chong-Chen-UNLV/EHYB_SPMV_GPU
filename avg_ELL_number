@@ -5,4 +5,11 @@ ELL_block_bias_vec_L[930]:27557888
 totalNumCOO:1216924
 ELL_block_bias_vec[930]:54883328
 
+totalNumCOO_LP:1332106
+ELL_block_bias_vec_LP[930]:28565504
+totalNumCOO_L:4052922
+ELL_block_bias_vec_L[930]:30045184
+totalNumCOO:1251827
+ELL_block_bias_vec[930]:53785600
+
 

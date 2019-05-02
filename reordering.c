@@ -13,7 +13,7 @@
 #include "Partition.h"
 
 /*reorder function with I_rodr, J_rodr, v_rodr, rodr_list as output*/
-void matrix_reorder(const unsigned int* dimension_in, const unsigned int totalNum, 
+void matrix_reorder(const unsigned int* dimension_in, const unsigned int totalNum,
 		const unsigned int* I, const unsigned int* J, const double* V, 
 		unsigned int* numInRow, unsigned int* row_idx, 
 		unsigned int* I_rodr, unsigned int* J_rodr, 
@@ -24,6 +24,7 @@ void matrix_reorder(const unsigned int* dimension_in, const unsigned int totalNu
 	unsigned int dimension = *dimension_in;
 	unsigned int *colVal = (unsigned int *) malloc(totalNum*sizeof(unsigned int));
 	int tempI, tempIdx, tempJ;
+	unsigned int maxCol;
 	double tempV;
 	/*transfer the COO format to CSR format, do the partitioning*/
 	for(int i= 1; i <= dimension; i++){
@@ -88,6 +89,11 @@ void matrix_reorder(const unsigned int* dimension_in, const unsigned int totalNu
 		partBias[i] = partBias[i-1] + partSize[i-1];
 	}
 	int perm_idx;	
+	//sort by number of cols per row for better ELL efficiency
+	/*unsigned int* sort_array = (unsigned int*)calloc(maxCol, sizeof(unsigned int));
+	for(int i = 0; i < dimension; i++){
+		
+	}*/
 	for(int i = 0; i < dimension; i++){
 		perm_idx = part_filled[partVec[i]] + partBias[partVec[i]];
 		rodr_list[i] = perm_idx;

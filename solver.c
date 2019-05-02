@@ -185,7 +185,7 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 				ELL_block_cols_vec, ELL_block_bias_vec,
 				&colELL, &matrixELL, &I_COO, &J_COO, &V_COO,
 				I, J, V, 
-				row_idx, numInRow, 
+				row_idx, numInRow, maxRowNum, 
 				totalNum, dimension,
 				ELL_blocks, part_boundary, RODR);
 		ELL_cuda_malloc_trans_data_block(&col_d, &V_d, 
@@ -220,7 +220,7 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 				ELL_block_cols_vec_L, ELL_block_bias_vec_L,
 				&colELL_precond, &matrixELL_precond, &I_COO_L, &J_COO_L, &V_COO_L,
 				I_precond, J_precond, V_precond, 
-				row_idxL, numInRowL, 
+				row_idxL, numInRowL, maxRowNumPrecond,
 				totalNumPrecond, dimension, 
 				ELL_blocks, part_boundary, RODR);
 		ELL_cuda_malloc_trans_data_block(&col_precond_d, &V_precond_d, 
@@ -254,7 +254,7 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 		COO2ELL_block(&totalNumCOO_LP, ELL_block_cols_vec_LP, ELL_block_bias_vec_LP,
 				&colELL_precondP, &matrixELL_precondP, &I_COO_LP, &J_COO_LP, &V_COO_LP,
 				I_precondP, J_precondP, V_precondP, 
-				row_idxLP, numInRowLP, 
+				row_idxLP, numInRowLP, maxRowNumPrecondP, 
 				totalNumPrecondP, dimension,
 				ELL_blocks, part_boundary, RODR);
 		ELL_cuda_malloc_trans_data_block(&col_precondP_d, &V_precondP_d, 
@@ -353,13 +353,13 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 	if (totalNumCOO_L>0) matrix_vectorCOO(totalNumCOO_L, I_COO_L_d, J_COO_L_d, V_COO_L_d, 
 			rk_d, zk1_d, 0, 0);
 
-	double* zk1T = (double*) malloc(dimension*sizeof(double));	
+	/*double* zk1T = (double*) malloc(dimension*sizeof(double));	
 	cudaMemcpy(zk_1, zk1_d, dimension*sizeof(double), cudaMemcpyDeviceToHost);
-	//matrix_vectorTest(localMatrix_precond, vector_in, zk1T);
-	//for(int i = 0; i < dimension; ++i){
-	//	if(abs(zk_1[i] - zk1T[i]) > 0.001) 	
-	//		printf("zk1[%d] of GPU result is %f, test value is %f\n", i, zk_1[i], zk1T[i]);
-	//}
+	matrix_vectorTest(localMatrix_precond, vector_in, zk1T);
+	for(int i = 0; i < dimension; ++i){
+		if(abs(zk_1[i] - zk1T[i]) > 0.001) 	
+			printf("zk1[%d] of GPU result is %f, test value is %f\n", i, zk_1[i], zk1T[i]);
+	}*/
 	if (!BLOCK) {
 		if(RODR){
 			matrix_vectorELL(dimension, dimension, ELL_widthLP, col_precondP_d, 
