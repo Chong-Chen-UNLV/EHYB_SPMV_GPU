@@ -159,11 +159,12 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 	double* matrixELL, *V_COO;
 	unsigned int *col_d;
 	double *V_d;
-	volatile bool RODR, BOLCK;
+	volatile bool RODR, BLOCK, CACHE;
 	unsigned int *I_COO_d, *J_COO_d;
 	double *V_COO_d;
 	RODR = cb.RODR;
-	bool BLOCK = cb.BLOCK;
+	BLOCK = cb.BLOCK;
+	CACHE = cb.CACHE;
     unsigned int ELL_blocks;
     unsigned int *ELL_block_cols_vec, *ELL_block_cols_vec_d;    
     unsigned int *ELL_block_bias_vec, *ELL_block_bias_vec_d;	
@@ -173,7 +174,7 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
     unsigned int *ELL_block_bias_vec_LP, *ELL_block_bias_vec_LP_d;
     unsigned int totalNumCOO, totalNumCOO_L, totalNumCOO_LP;
     if(BLOCK){
-        //block ELL test
+        //RODR will change the number of blocks since it provides cache option
         if(RODR)
 			ELL_blocks = part_size;
 		else
@@ -303,42 +304,38 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 	cudaMalloc((void **) &zk1_d,size0);
 	cudaMalloc((void **) &bp_d,size0);
 	cudaMalloc((void **) &x_d,size0);
-	if(BLOCK) cudaMalloc((void **) &part_boundary_d, (part_size +1)*sizeof(unsigned int));
+	if(BLOCK && RODR){
+	   	cudaMalloc((void **) &part_boundary_d, (part_size +1)*sizeof(unsigned int));
+		cudaMemcpy(part_boundary_d, part_boundary, 
+				(part_size +1)*sizeof(unsigned int), cudaMemcpyHostToDevice);
+	}
 
 	cudaMalloc((void **) &vector_in_d,size0);
 	//cudaMalloc((void **) &vector_out_d,size0);
-	
 	cudaMemcpy(vector_in_d, vector_in, size0, cudaMemcpyHostToDevice);	
-	if(RODR){
-		cudaMemcpy(part_boundary_d, part_boundary, 
-				(part_size +1)*sizeof(unsigned int), cudaMemcpyHostToDevice);	
-	}
 	
 	//
 	initialize_bp(dimension,zk_d);
 	initialize_bp(dimension,zk1_d);
 	initialize_r(dimension, rk_d, vector_in_d);
-	
+
+	double* pkT = (double*) malloc(dimension*sizeof(double));	
+	double* bpT = (double*) calloc(dimension, sizeof(double));	
+	double* bp_g = (double*) calloc(dimension, sizeof(double));
+
 	cublasHandle_t handle;
 	cublasCreate(&handle);			
 	
 	if(!BLOCK){
-		if(RODR){
-			matrix_vectorELL(dimension, dimension, ELL_widthL, col_precond_d,V_precond_d,
-					rk_d,zk1_d,0,0,
-					true, part_size, part_boundary_d);
-		}
-		else{
-			matrix_vectorELL(dimension, dimension, ELL_widthL, col_precond_d,V_precond_d,
-					rk_d,zk1_d,0,0,
+		matrix_vectorELL(dimension, dimension, ELL_widthL, col_precond_d,V_precond_d,
+				rk_d,zk1_d,0,0,
 					false, 0, NULL);
-		}
 	} else {
 		if(RODR){
 			matrix_vectorELL_block(dimension, dimension, ELL_block_cols_vec_L_d, 
 					ELL_block_bias_vec_L_d,
                     col_precond_d,V_precond_d,rk_d,zk1_d,0,0,
-					true, part_size, part_boundary_d);
+					CACHE, part_size, part_boundary_d);
 		}
 		else{
 			matrix_vectorELL_block(dimension, dimension, ELL_block_cols_vec_L_d, 
@@ -347,32 +344,27 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 					false, 0, NULL);
 		}
 	}
-
-	
-
 	if (totalNumCOO_L>0) matrix_vectorCOO(totalNumCOO_L, I_COO_L_d, J_COO_L_d, V_COO_L_d, 
 			rk_d, zk1_d, 0, 0);
-
-	/*double* zk1T = (double*) malloc(dimension*sizeof(double));	
-	cudaMemcpy(zk_1, zk1_d, dimension*sizeof(double), cudaMemcpyDeviceToHost);
+	double* zk1T = (double*) calloc(dimension, sizeof(double));	
+	double* rkT = (double*) calloc(dimension, sizeof(double));	
+	double* zk1_g = (double*) calloc(dimension, sizeof(double));	
+	cudaMemcpy(zk1_g, zk1_d, dimension*sizeof(double), cudaMemcpyDeviceToHost);
 	matrix_vectorTest(localMatrix_precond, vector_in, zk1T);
 	for(int i = 0; i < dimension; ++i){
-		if(abs(zk_1[i] - zk1T[i]) > 0.001) 	
-			printf("zk1[%d] of GPU result is %f, test value is %f\n", i, zk_1[i], zk1T[i]);
-	}*/
+		rkT[i] = vector_in[i];
+		if(abs((zk1T[i] - zk1_g[i])/zk1_g[i]) > 0.000001) 	
+			printf("zk1[%d] of GPU result is %f, test value is %f\n", i, zk1_g[i], zk1T[i]);
+	}
+	
 	if (!BLOCK) {
-		if(RODR){
-			matrix_vectorELL(dimension, dimension, ELL_widthLP, col_precondP_d, 
-					V_precondP_d, zk1_d, zk_d, 0, 0, true, part_size, part_boundary_d);
-		} else {
-			matrix_vectorELL(dimension, dimension, ELL_widthLP, col_precondP_d, 
-					V_precondP_d, zk1_d, zk_d, 0, 0, false, 0, NULL);
-		}
+		matrix_vectorELL(dimension, dimension, ELL_widthLP, col_precondP_d, 
+				V_precondP_d, zk1_d, zk_d, 0, 0, false, 0, NULL);
 	} else {
 		if(RODR){
 			matrix_vectorELL_block(dimension, dimension, ELL_block_cols_vec_LP_d, ELL_block_bias_vec_LP_d,  
 					col_precondP_d,V_precondP_d, 
-					zk1_d, zk_d, 0, 0, true, part_size, part_boundary_d); 
+					zk1_d, zk_d, 0, 0, CACHE, part_size, part_boundary_d); 
 					
 		} else {
 			matrix_vectorELL_block(dimension, dimension, ELL_block_cols_vec_LP_d, ELL_block_bias_vec_LP_d,  
@@ -383,6 +375,15 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 	}
 	if (totalNumCOO_LP>0) matrix_vectorCOO(totalNumCOO_LP, I_COO_LP_d, J_COO_LP_d, V_COO_LP_d, zk1_d, zk_d,0,0);
 	
+	//double* zkT = (double*) calloc(dimension, sizeof(double));	
+	//double* zk_g = (double*) calloc(dimension, sizeof(double));	
+	//cudaMemcpy(zk_g, zk_d, dimension*sizeof(double), cudaMemcpyDeviceToHost);
+	//matrix_vectorTest(localMatrix_precondP, zk1T, zkT);
+	//for(int i = 0; i < dimension; ++i){
+	//	pkT[i] = zkT[i];
+	//	if(abs((zkT[i] - zk_g[i])/zk_g[i]) > 0.000001) 	
+	//		printf("zk[%d] of GPU result is %f, test value is %f\n", i, zk_g[i], zkT[i]);
+	//}
 	//cublasDdot(handle,dimension,zk_d,1,zk_d,1,&dotz0);
 	//for (unsigned int i=0;i<5;i++) printf("dotz0 is %f, dotz0_compare is %f\n",dotz0,dotz0_compare);
 	//give an initial value as r0, p0, and set all 
@@ -396,22 +397,18 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 	struct timeval start2, end2;
 
 	gettimeofday(&start1, NULL);
+	
+
 	while (iter<MAXIter&&error>1E-8){
 		//matrix-vector multiplication, accelerated by our own functions
 		if(!BLOCK) {
-			if(RODR){
-				matrix_vectorELL(dimension, dimension, ELL_width, col_d,V_d,pk_d,bp_d,0,0,
-						true,part_size, part_boundary_d);
-			}
-			else{
-				matrix_vectorELL(dimension, dimension, ELL_width, col_d,V_d,pk_d,bp_d,0,0,
-						false, 0, NULL);
-			}
+			matrix_vectorELL(dimension, dimension, ELL_width, col_d,V_d,pk_d,bp_d,0,0,
+					false, 0, NULL);
 		} else {
 			if(RODR){
 				matrix_vectorELL_block(dimension, dimension, ELL_block_cols_vec_d, ELL_block_bias_vec_d,  
 						col_d,V_d,pk_d,bp_d,0,0,
-						true,part_size, part_boundary_d);
+						CACHE, part_size, part_boundary_d);
 			}
 			else{
 				matrix_vectorELL_block(dimension, dimension, ELL_block_cols_vec_d, ELL_block_bias_vec_d,  
@@ -420,6 +417,19 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 			}
 		}
 		if (totalNumCOO>0) matrix_vectorCOO(totalNumCOO, I_COO_d, J_COO_d, V_COO_d, pk_d, bp_d, 0, 0);
+			
+		//cudaMemcpy(bp_g, bp_d, dimension*sizeof(double), cudaMemcpyDeviceToHost);
+		//double dotp0T = 0;
+		//double dotp0TT = 0;
+		//double dotrz0T = 0;
+		//matrix_vectorTest(localMatrix, pkT, bpT);
+		//for(int i = 0; i < dimension; ++i){
+		//	dotp0T += pkT[i]*bpT[i];
+		//	dotp0TT += pkT[i]*bp_g[i];
+		//	dotrz0T += rkT[i]*zkT[i];
+		//	if(abs(dotp0TT - dotp0T) > 0.000001) 	
+		//		printf("dotp0TT[%d] of GPU result is %f, test value is %f\n", i, dotp0TT, dotp0T);
+		//}
 		//vector-vectror multiplication
 		cublasDdot(handle,dimension,bp_d,1,pk_d,1,&dotp0);
 		//r_k*z_k
@@ -433,6 +443,7 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 		}		
 		printf("dotrz0 is %f, dotrz0_compare is %f\n",dotrz0,dotrz0_compare);*/
 		alphak=dotrz0/dotp0;
+		//double alphakT = dotrz0T/dotp0T;
 		alphak_1=-alphak;
 		
 		//update x_k to x_k+1, x=x+alphak*p;
@@ -442,19 +453,13 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 		initialize_bp(dimension,zk_d);
 		initialize_bp(dimension,zk1_d);
 		if(!BLOCK){
-			if(RODR){
-				matrix_vectorELL(dimension, dimension, ELL_widthL, col_precond_d,V_precond_d,rk_d,zk1_d,0,0,
-						true, part_size, part_boundary_d);
-			}
-			else{
-				matrix_vectorELL(dimension, dimension, ELL_widthL, col_precond_d,V_precond_d,rk_d,zk1_d,0,0,
-						false, 0, NULL);
-			}
+			matrix_vectorELL(dimension, dimension, ELL_widthL, col_precond_d,V_precond_d,rk_d,zk1_d,0,0,
+					false, 0, NULL);
 		} else {
 			if(RODR){
 				matrix_vectorELL_block(dimension, dimension, ELL_block_cols_vec_L_d, ELL_block_bias_vec_L_d, 
 						col_precond_d, V_precond_d, rk_d, zk1_d, 0, 0,
-						true, part_size, part_boundary_d);
+						CACHE, part_size, part_boundary_d);
 			}
 			else{
 				matrix_vectorELL_block(dimension, dimension, ELL_block_cols_vec_L_d, ELL_block_bias_vec_L_d, 
@@ -466,19 +471,13 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 		if (totalNumCOO_L>0) matrix_vectorCOO(totalNumCOO_L, I_COO_L_d, J_COO_L_d, V_COO_L_d, rk_d,zk1_d,0 ,0);
 
 		if (!BLOCK){
-			if(RODR){	
-				matrix_vectorELL(dimension, dimension, ELL_widthLP, col_precondP_d,V_precondP_d,
-						zk1_d,zk_d,0,0, true, part_size, part_boundary_d);
-			}
-			else{
-				matrix_vectorELL(dimension, dimension, ELL_widthLP, col_precondP_d,V_precondP_d,
-						zk1_d,zk_d,0,0, false, 0, NULL);
-			}
+			matrix_vectorELL(dimension, dimension, ELL_widthLP, col_precondP_d,V_precondP_d,
+					zk1_d,zk_d,0,0, false, 0, NULL);
 		} else {
 			if(RODR){	
 				matrix_vectorELL_block(dimension, dimension, ELL_block_cols_vec_LP_d, ELL_block_bias_vec_LP_d,  
 						col_precondP_d,V_precondP_d,
-						zk1_d,zk_d,0,0, true, part_size, part_boundary_d);
+						zk1_d,zk_d,0,0, CACHE, part_size, part_boundary_d);
 			}
 			else{
 				matrix_vectorELL_block(dimension, dimension, ELL_block_cols_vec_LP_d, ELL_block_bias_vec_LP_d,  

@@ -35,19 +35,17 @@ int main(int argc, char* argv[])
 	char fileName2[100];
 	unsigned int blocks;
 	int oc;
-	int arg_val;
-	char* arg_str;
 	cb_s cb;
     init_cb(&cb);
 			
-	while ((oc = getopt(argc, argv, "m:c:r:g:t:b:")) != -1) {
+	while ((oc = getopt(argc, argv, "m:i:c:r:g:t:b:")) != -1) {
 		switch (oc) {
 			case 'm':
 				/* input matrix */
 				sprintf(fileName, "../read/%s.mtx", optarg);		
 				printf("filename is %s\n", fileName);
 				break;
-			case 'c':
+			case 'i':
 				/* the number of cycles */
 				MAXIter = atoi(optarg);
 				break;
@@ -66,6 +64,9 @@ int main(int argc, char* argv[])
 				if(atoi(optarg) == 1)
 					cb.GPU = true;
 				break;
+			case 'c':
+				if(atoi(optarg) == 1)
+					cb.CACHE = true;
 			case ':':
 				       /* error handling, see text */
 				printf("missing arguments\n");
@@ -83,10 +84,16 @@ int main(int argc, char* argv[])
 		printf("file name or max iteration number missing\n");
 		exit(0);
 	}
+	if (!cb.RODR && cb.CACHE){
+		printf("cache only works with RODER == ture\n");
+		exit(0);
+	}
 
 	//---------------------------------read the matrix---------------------------
-	if ((f = fopen(fileName, "r")) == NULL) 
+	if ((f = fopen(fileName, "r")) == NULL){ 
+		printf("file read error\n");
 		exit(1);
+	}
 
 	if (mm_read_banner(f, &matcode) != 0)
 	{
@@ -245,10 +252,11 @@ int main(int argc, char* argv[])
 		V_rodr = (double *) malloc(size3);
 		x_rodr = (double* )calloc(dimension, sizeof(double)); 
 		y_rodr = (double* )calloc(dimension, sizeof(double)); 
-		/*NOTICE: maxRowNum and maxRowNum for preconditioners do not needed 
+		/*NOTICE: maxRowNum and  do not needed 
 		to be updated. When we do reordering, all elements of certain row
 		will be assigned to SAME row according to rodr_list
 		so the maxRowNum should be same, only occured in different row number
+		however, maxRowNum for preconditioners is very possible to be changed 
 		*/
 		matrix_reorder(&dimension, totalNum, I, J, V, numInRow, row_idx,
 				 I_rodr, J_rodr, V_rodr, rodr_list, part_boundary, blocks);
@@ -259,6 +267,8 @@ int main(int argc, char* argv[])
 			J_rodr, 
 			V_rodr, 
 			numInRowL,
+			&maxRowNumL,
+			&maxRowNumLP,
 			row_idxL, 
 			row_idxLP,
 			diag);

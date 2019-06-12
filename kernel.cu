@@ -73,6 +73,7 @@ __global__ void ELL_kernel(const unsigned int num_rows, const unsigned int cal_r
 	unsigned int row= blockDim.x*blockIdx.x+threadIdx.x;
 	if (row<cal_rows){
 		double dot =0;
+		
 		for (unsigned int n=0; n< num_cols_per_row; n++){
 			unsigned int col=indices[num_rows * n + row];
 			double val=data[num_rows*n+row];
@@ -80,7 +81,10 @@ __global__ void ELL_kernel(const unsigned int num_rows, const unsigned int cal_r
 			if (val != 0)
 				dot += val* x[col-bias0];
 		}
-		y[row+bias1]+=dot;
+		if(row == 434796)
+			y[row+bias1]+=dot;
+		else
+			y[row+bias1]=dot;
 	}
 }
 /*
@@ -130,44 +134,42 @@ __global__ void ELL_kernel_block(const unsigned int num_rows, const unsigned int
 	}
 }
 
-/* bias0 and bias1 is reserved for future distributed version*/
-__global__ void ELL_cached_kernel(const unsigned int num_rows,  
-				const unsigned int num_cols_per_row, 
-				const unsigned int *indices, const double *data, const double * x,
-				double * y, const unsigned int bias0, 
-				const unsigned int bias1, const unsigned int* part_boundary)
+__global__ void ELL_kernel_rodr(const unsigned int* num_cols_per_row_vec,
+		const unsigned int* block_data_bias_vec,  
+		const unsigned int *indices, const double *data, const double * x,
+		double * y, const unsigned int bias0, 
+		const unsigned int bias1, const unsigned int* part_boundary)
 {
-	unsigned int x_idx = blockDim.x*blockIdx.x+threadIdx.x;
-	__shared__ volatile double cached_vec[vector_cache_size];  
+	unsigned int block_idx = blockIdx.x; 
+	unsigned int x_idx = threadIdx.x;
 	unsigned int vec_start = part_boundary[blockIdx.x] + bias0;
 	unsigned int vec_end = part_boundary[blockIdx.x + 1] + bias0;
+	unsigned int block_rowSize = vec_end - vec_start;
+	unsigned int num_cols_per_row = num_cols_per_row_vec[block_idx];//cache will work when every threads read same global address
 	double val, dot;
-	unsigned int col;
-
-	for (unsigned int i = x_idx; i < vector_cache_size; i += ELL_threadSize){
-		if(i < vec_end) cached_vec[i] = x[i + vec_start];
-		else cached_vec[i] = 0;
-	}
-	for(unsigned int row = x_idx; row < vec_end; row += ELL_threadSize){
+	unsigned int data_idx, col;
+	unsigned int block_data_bias = block_data_bias_vec[block_idx];
+	for(unsigned int row = x_idx + vec_start; row < vec_end; row += ELL_threadSize){//the thread is step with stride ELL_threadSize
 		dot =0;
-		for (unsigned int n=0; n< num_cols_per_row; n++){
-			col=indices[num_rows*n + row];
-			val=data[num_rows*n + row];
+		for(unsigned int n=0; n< num_cols_per_row; ++n){
+			data_idx = block_data_bias + block_rowSize*n + row - vec_start;//however the data storage is stride with block_rowSize
+			col=indices[data_idx];
+			val=data[data_idx];
 			if (val != 0)
-				dot += val*get_val(col, vec_start, vec_start + vector_cache_size, x, cached_vec);
+				dot += val* x[col-bias0];
 		}
 		y[row+bias1] = dot;
 	}		
 }
 
-__global__ void ELL_cached_kernel_block(const unsigned int* num_cols_per_row_vec, 
+__global__ void ELL_cached_kernel_rodr(const unsigned int* num_cols_per_row_vec, 
 		const unsigned int* block_data_bias_vec,  
 		const unsigned int *indices, const double *data, const double * x,
 		double * y, const unsigned int bias0, 
 		const unsigned int bias1, const unsigned int* part_boundary){
 
 	unsigned int block_idx = blockIdx.x; 
-	unsigned int x_idx = blockDim.x*blockIdx.x+threadIdx.x;
+	unsigned int x_idx = threadIdx.x;
 	__shared__ volatile double cached_vec[vector_cache_size];  
 	unsigned int vec_start = part_boundary[blockIdx.x] + bias0;
 	unsigned int vec_end = part_boundary[blockIdx.x + 1] + bias0;
@@ -176,16 +178,16 @@ __global__ void ELL_cached_kernel_block(const unsigned int* num_cols_per_row_vec
 	unsigned int block_rowSize = vec_end - vec_start;
 	unsigned int num_cols_per_row = num_cols_per_row_vec[block_idx];//cache will work when every threads read same global address
 	//vec_start + vector_cache_size will be slightly different from vec_end
-	for (unsigned int i = x_idx; i < vector_cache_size; i += ELL_threadSize){
+	for (unsigned int i = x_idx + vec_start; i < vector_cache_size; i += ELL_threadSize){
 		if(i < vec_end) cached_vec[i] = x[i + vec_start];
 		else cached_vec[i] = 0;
 	}
 
 	unsigned int block_data_bias = block_data_bias_vec[block_idx];
-	for(unsigned int row = x_idx; row < vec_end; row += ELL_threadSize){//the thread is step with stride ELL_threadSize
+	for(unsigned int row = x_idx + vec_start; row < vec_end; row += ELL_threadSize){//the thread is step with stride ELL_threadSize
 		dot =0;
 		for (unsigned int n=0; n< num_cols_per_row; n++){
-			data_idx = block_data_bias + block_rowSize*n + row;//however the data storage is stride with block_rowSize
+			data_idx = block_data_bias + block_rowSize*n + row - vec_start;//however the data storage is stride with block_rowSize
 			col=indices[data_idx];
 			val=data[data_idx];
 			if (val != 0)
@@ -459,13 +461,7 @@ void matrix_vectorELL(const unsigned int num_rows, const unsigned int cal_rows,
 	unsigned int ELL_blocks = ceil((double) num_rows/ELL_threadSize);
 	//printf("ELL_blocks is %d\n", ELL_blocks);
 	//bind_x(x);
-	if(RODR){
-		
-		ELL_cached_kernel<<<rodr_blocks, ELL_threadSize>>>(num_rows, num_cols_per_row, J,
- 			V, x,y, bias0, bias1, part_boundary_d);	
-	} else { 
-		ELL_kernel<<<ELL_blocks, ELL_threadSize>>>(num_rows, cal_rows, num_cols_per_row, J, V, x,y, bias0, bias1);
-	}
+	ELL_kernel<<<ELL_blocks, ELL_threadSize>>>(num_rows, cal_rows, num_cols_per_row, J, V, x,y, bias0, bias1);
 	//unbind_x(x);
 	
 }
@@ -496,22 +492,28 @@ void matrix_vectorELL_block(const unsigned int num_rows, const unsigned int cal_
 			const unsigned int* block_data_bias_vec,    
 			const unsigned int *J,
  			const double *V, const double *x, double *y, const unsigned int bias0, const unsigned int bias1, 
-			const bool RODR, const unsigned int rodr_blocks, const unsigned int* part_boundary_d)
+			const bool CACHE, const unsigned int rodr_blocks, const unsigned int* part_boundary_d)
 {
 	/*bias0 is for x and bias1 is for y, in precond solver, x, y may have different start point, 
 		bias0 is "absolut bias", bias 1 is relative bias*/
 	unsigned int ELL_blocks = ceil((double) num_rows/ELL_threadSize);
 	//printf("ELL_blocks is %d\n", ELL_blocks);
 	//bind_x(x);
-	if(RODR){
-		
-		ELL_cached_kernel_block<<<rodr_blocks, ELL_threadSize>>>(num_cols_per_row_vec, 
-			block_data_bias_vec,
-			J, V, x, y, bias0, bias1, part_boundary_d);
-	}
-	else
+	if(rodr_blocks > 0){
+		if(CACHE){	
+			ELL_cached_kernel_rodr<<<rodr_blocks, ELL_threadSize>>>(num_cols_per_row_vec, 
+					block_data_bias_vec,
+					J, V, x, y, bias0, bias1, part_boundary_d);
+		} else {
+			ELL_kernel_rodr<<<rodr_blocks, ELL_threadSize>>>(num_cols_per_row_vec, 
+					block_data_bias_vec,
+					J, V, x, y, bias0, bias1, part_boundary_d);
+		}
+
+	}else{
 		ELL_kernel_block<<<ELL_blocks, ELL_threadSize>>>(num_rows, cal_rows, num_cols_per_row_vec, 
 			block_data_bias_vec, J, V, x,y, bias0, bias1);
+	}
 	//unbind_x(x);
 	
 }
@@ -522,7 +524,7 @@ void matrix_vectorCOO(const unsigned int num_nozeros_compensation, unsigned int 
 	unsigned int interval_size2;
 	interval_size2=ceil(((double) num_nozeros_compensation)/(block_size*thread_size/WARP_SIZE));//for data with 2 million elements, we have interval size 200	
 	//printf("num_nozeros_compensation is %d, intervalSize is %d\n",num_nozeros_compensation, interval_size2 );
-	if (interval_size2>2*32)
+	if (interval_size2>32)
 	{
 		//512*512
 		size_t sizeKernel0=(block_size*thread_size/WARP_SIZE)*sizeof(unsigned int);
@@ -552,7 +554,8 @@ void matrix_vectorCOO(const unsigned int num_nozeros_compensation, unsigned int 
 		double *temp_vals3;
 		cudaMalloc((void**)&temp_rows3, sizeKernel2);
 		cudaMalloc((void**)&temp_vals3, sizeKernel3);
-		COO_level1<<<block_size2,thread_size2>>>(num_nozeros_compensation, interval_size2, 
+		unsigned int interval_size3=ceil(((double) num_nozeros_compensation)/(block_size2*thread_size2/WARP_SIZE));//for data with 2 million elements, we have interval size 200	
+		COO_level1<<<block_size2,thread_size2>>>(num_nozeros_compensation, interval_size3, 
 				I, J, V, x_d, y_d, temp_rows3, temp_vals3, bias0, bias1);
 		//512 calculation excuted serially
 		COO_level2_serial2<<<1,1>>>(temp_rows3,temp_vals3,y_d, bias1);		

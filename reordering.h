@@ -15,6 +15,8 @@ void update_numInRowL(const unsigned int totalNum,
 			unsigned int* J_rodr, 
 			double* V_rodr, 
 			unsigned int* numInRowL,
+			unsigned int* maxL,
+			unsigned int* maxLP,
 			unsigned int* row_idxL, 
 			unsigned int* row_idxLP, 
 			double* diag);

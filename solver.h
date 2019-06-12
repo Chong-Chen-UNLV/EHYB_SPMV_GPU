@@ -7,6 +7,7 @@
 typedef struct _cb{
 	bool GPU;
 	bool RODR;
+	bool CACHE;
 	bool BLOCK;
 }cb_s;
 
@@ -26,6 +27,7 @@ inline void init_cb(cb_s* in_s)
     in_s->GPU = false;
     in_s->RODR = false; 
     in_s->BLOCK = false;
+    in_s->CACHE = false;
 }
 
 inline void init_matrixCOO_S(matrixCOO_S* matrix, unsigned int dimension,

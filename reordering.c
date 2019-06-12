@@ -52,7 +52,7 @@ void matrix_reorder(const unsigned int* dimension_in, const unsigned int totalNu
 	
 	int ncon = 1;
 	double ubvec = 1;
-	options[MTMETIS_OPTION_NTHREADS] = 8;
+	options[MTMETIS_OPTION_NTHREADS] = 16;
 	mtmetis_wgt_type r_edgecut;
 	struct timeval start, end;
 	gettimeofday(&start, NULL);
@@ -149,11 +149,15 @@ void update_numInRowL(const unsigned int totalNum,
 			unsigned int* J_rodr, 
 			double* V_rodr, 
 			unsigned int* numInRowL,
+			unsigned int* maxRowNumL,
+			unsigned int* maxRowNumLP,
 			unsigned int* row_idxL, 
 			unsigned int* row_idxLP,
 			double* diag){
 	
 	unsigned int* numInRowLP_ = (unsigned int*)malloc(dimension*sizeof(unsigned int));
+	unsigned int maxL = 0;
+	unsigned int maxLP = 0;
 	for(unsigned int i = 0; i < dimension; ++i){
 		numInRowL[i] = 0;		
 		numInRowLP_[i] = 0;		
@@ -179,6 +183,12 @@ void update_numInRowL(const unsigned int totalNum,
 	for(unsigned int i = 1; i <= dimension; ++i){
 		row_idxL[i]=row_idxL[i-1]+numInRowL[i-1];
 		row_idxLP[i]=row_idxLP[i-1]+numInRowLP_[i-1];
+		if(numInRowLP_[i-1] > maxLP)
+			maxLP = numInRowLP_[i-1];
+		if(numInRowL[i-1] > maxL)
+			maxL = numInRowL[i-1];
 	}
+	*maxRowNumLP = maxLP;
+	*maxRowNumL = maxL;
 	free(numInRowLP_);
 }
