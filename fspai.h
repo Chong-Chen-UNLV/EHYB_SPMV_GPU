@@ -29,6 +29,8 @@ typedef struct _S
 	unsigned int colStart;
 	unsigned int colEnd;
 	unsigned int id;
+	unsigned int rowSize;
+	unsigned int colSize;
 }S;
 
 typedef struct _Sort_S{
@@ -73,5 +75,6 @@ void solverCPU(const unsigned int dimension, const unsigned int totalNum,
 		double *vector_out, double *error_track, int MAXIter, int *realIter);	
 	
 void fspaiCPU(S *SInput);
+void spaiCPU(S *SInput);
 void fspai(S *SInput);
 #endif

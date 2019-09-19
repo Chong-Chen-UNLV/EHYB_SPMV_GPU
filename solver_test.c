@@ -33,12 +33,12 @@ int main(int argc, char* argv[])
 	char fileName[100];
 	fileName[0] = '\0';
 	char fileName2[100];
-	unsigned int blocks;
+	unsigned int parts;
 	int oc;
 	cb_s cb;
     init_cb(&cb);
 			
-	while ((oc = getopt(argc, argv, "m:i:c:r:g:t:b:")) != -1) {
+	while ((oc = getopt(argc, argv, "m:i:c:r:g:t:b:s:")) != -1) {
 		switch (oc) {
 			case 'm':
 				/* input matrix */
@@ -67,6 +67,10 @@ int main(int argc, char* argv[])
 			case 'c':
 				if(atoi(optarg) == 1)
 					cb.CACHE = true;
+			case 's':
+				/*using SPAI instaed of factorized SPAI*/
+				if(atoi(optarg) == 1)
+					cb.FACT = false;
 			case ':':
 				       /* error handling, see text */
 				printf("missing arguments\n");
@@ -243,10 +247,10 @@ int main(int argc, char* argv[])
 	double *V_rodr, *x_rodr, *y_rodr;
 	
 	if(cb.RODR){
-		blocks = ceil(dimension/(shared_per_block/element_size));
-		printf("blocks is %d\n", blocks);
+		parts = ceil(dimension/(shared_per_block/element_size));
+		printf("parts is %d\n", parts);
 		rodr_list = (unsigned int* )calloc(dimension, sizeof(unsigned int)); 
-		part_boundary = (unsigned int* )calloc((blocks + 1), sizeof(unsigned int)); 	
+		part_boundary = (unsigned int* )calloc((parts + 1), sizeof(unsigned int)); 	
 		I_rodr = (unsigned int *) malloc(size2);
 		J_rodr = (unsigned int *) malloc(size2);
 		V_rodr = (double *) malloc(size3);
@@ -259,7 +263,7 @@ int main(int argc, char* argv[])
 		however, maxRowNum for preconditioners is very possible to be changed 
 		*/
 		matrix_reorder(&dimension, totalNum, I, J, V, numInRow, row_idx,
-				 I_rodr, J_rodr, V_rodr, rodr_list, part_boundary, blocks);
+				 I_rodr, J_rodr, V_rodr, rodr_list, part_boundary, parts);
 		vector_reorder(dimension, y, y_rodr, rodr_list);
 		update_numInRowL(totalNum, 
 			dimension, 
@@ -317,11 +321,20 @@ int main(int argc, char* argv[])
 	gettimeofday(&start1, NULL);
 	omp_set_num_threads(MAXthread);
 	int rank;
-	#pragma omp parallel private(rank)
-	{
-		rank=omp_get_thread_num();
-		fspaiCPU(&Sthread[rank]);
+	if(cb.FACT){
+		#pragma omp parallel private(rank)
+		{
+			rank=omp_get_thread_num();
+			fspaiCPU(&Sthread[rank]);
+		}
+	} else {
+		#pragma omp parallel private(rank)
+		{
+			rank=omp_get_thread_num();
+			spaiCPU(&Sthread[rank]);
+		}
 	}
+	
 	gettimeofday(&end1, NULL);	
 	printf("fspai CPU time is %ld us\n",(end1.tv_sec * 1000000 + end1.tv_usec)-(start1.tv_sec * 1000000 + start1.tv_usec));
 	unsigned int *I_precondP=(unsigned int *) malloc(size6);
@@ -368,11 +381,11 @@ int main(int argc, char* argv[])
         init_matrixCOO_S(&matrix_precondP, dimension, totalNumPrecondP, maxRowNumLP, row_idxLP, numInRowLP, I_precondP, J_precondP, V_precondP);
         if(cb.RODR){
             solverGPU_HYB(&matrix, &matrix_precond, &matrix_precondP,
-                    y_rodr, x_rodr, MAXIter, &realIter, cb, blocks, part_boundary);
+                    y_rodr, x_rodr, MAXIter, &realIter, cb, parts, part_boundary);
 		}
 		else{
             solverGPU_HYB(&matrix, &matrix_precond, &matrix_precondP,
-                    y, x, MAXIter, &realIter, cb, blocks, part_boundary);
+                    y, x, MAXIter, &realIter, cb, parts, part_boundary);
 		}
 	}
 	else if(!(cb.GPU)){

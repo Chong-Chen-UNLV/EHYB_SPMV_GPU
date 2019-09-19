@@ -9,6 +9,7 @@ typedef struct _cb{
 	bool RODR;
 	bool CACHE;
 	bool BLOCK;
+	bool FACT;
 }cb_s;
 
 typedef struct _matrixCOO_S{
@@ -28,6 +29,7 @@ inline void init_cb(cb_s* in_s)
     in_s->RODR = false; 
     in_s->BLOCK = false;
     in_s->CACHE = false;
+	in_s->FACT = true;
 }
 
 inline void init_matrixCOO_S(matrixCOO_S* matrix, unsigned int dimension,
