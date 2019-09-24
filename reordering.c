@@ -12,6 +12,25 @@
 
 #include "Partition.h"
 
+
+
+
+static void sortRordrList(unsigned int dimension,
+		unsigned int part_size,
+		unsigned int* part_boundary, 
+		unsigned int* rodr_list, 
+		unsigned int* row_idx){
+	rowS* rodrVec = malloc(dimension*sizeof(rowS));
+	for(unsigned int i = 0; i < partSize; ++i){
+		rodrVec[i].idx = rodr_list[i];
+		rodrVec[i].nonzero = row_idx[i];	
+	}	
+	for(unsigned int i = 0; i < part_size; ++i){
+		
+	}	
+
+}
+
 /*reorder function with I_rodr, J_rodr, v_rodr, rodr_list as output*/
 void matrix_reorder(const unsigned int* dimension_in, const unsigned int totalNum,
 		const unsigned int* I, const unsigned int* J, const double* V, 
@@ -99,6 +118,9 @@ void matrix_reorder(const unsigned int* dimension_in, const unsigned int totalNu
 		rodr_list[i] = perm_idx;
 		part_filled[partVec[i]]+=1;
 	}	
+	//sort the reorder list by number of nozero per row
+	//it may not working on factorized preconditioner 
+	sortRordrList(rodr_list, row_idx);
 	for(int i = 0; i <= nparts; i++){
 		part_boundary[i] = partBias[i];
 	}

@@ -71,6 +71,15 @@ int main(int argc, char* argv[])
 				/*using SPAI instaed of factorized SPAI*/
 				if(atoi(optarg) == 1)
 					cb.FACT = false;
+			case 'o':
+				/*reorder after reordering*/
+				if(atoi(optarg) == 1){
+					if(cb.RODR == false){
+						printf("sort only effect with reoder == true\n");
+						exit(1);	
+					}
+					Cb.SORT = true;
+				}
 			case ':':
 				       /* error handling, see text */
 				printf("missing arguments\n");
