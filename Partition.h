@@ -9,17 +9,17 @@
 #include <unistd.h>
 #include <mtmetis.h>
 
-typedef _rowS{
+typedef struct _rowS{
 	unsigned int idx;
 	unsigned int nonzeros;
 }rowS;
 
-inline int row_compare(const void *A, const void *B){
-	Sort_S *A_ = (Sort_S *) A;
-	Sort_S *B_ = (Sort_S *) B;
-	if(A_->idx > B_->idx) return 1;
-	if(A_->idx == B_->idx) return 0;
-	if(A_->idx < B_->idx) return -1;
+inline int rowSCompare(const void *A, const void *B){
+	rowS *A_ = (rowS*) A;
+	rowS *B_ = (rowS*) B;
+	if(A_->nonzeros > B_->nonzeros) return -1;
+	if(A_->nonzeros == B_->nonzeros) return 0;
+	if(A_->nonzeros < B_->nonzeros) return 1;
 }
 
 #endif

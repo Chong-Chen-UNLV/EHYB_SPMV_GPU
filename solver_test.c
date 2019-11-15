@@ -7,21 +7,21 @@
 
 int main(int argc, char* argv[])
 {
-	unsigned int MAXthread = 2;	
-	unsigned int totalNum=0;
-	unsigned int lowerNum=0;
-	unsigned int lowerNumPrecond=0;
-	unsigned int totalNumPrecond=0;
-	unsigned int totalNumPrecondP=0;
+	uint32_t MAXthread = 2;	
+	uint32_t totalNum=0;
+	uint32_t lowerNum=0;
+	uint32_t lowerNumPrecond=0;
+	uint32_t totalNumPrecond=0;
+	uint32_t totalNumPrecondP=0;
 	int ret_code;
 	MM_typecode matcode,matcode2;
-	unsigned int MAXIter = 0;
+	uint32_t MAXIter = 0;
 	FILE *f,*f2;
 
-	unsigned int dimension, N, bandwidth,bandwidthPrecond;   
-	unsigned int maxRowNum, maxRowNumL, maxRowNumLP;
-	unsigned int *I, *J;
-	unsigned int *lowerI, *lowerJ;
+	uint32_t dimension, N, bandwidth,bandwidthPrecond;   
+	uint32_t maxRowNum, maxRowNumL, maxRowNumLP;
+	uint32_t *I, *J;
+	uint32_t *lowerI, *lowerJ;
 	double *V;
 	double *lowerV;
 	double *x;
@@ -33,12 +33,12 @@ int main(int argc, char* argv[])
 	char fileName[100];
 	fileName[0] = '\0';
 	char fileName2[100];
-	unsigned int parts;
+	uint32_t parts;
 	int oc;
 	cb_s cb;
     init_cb(&cb);
 			
-	while ((oc = getopt(argc, argv, "m:i:c:r:g:t:b:s:")) != -1) {
+	while ((oc = getopt(argc, argv, "m:i:c:r:g:t:b:s:f:")) != -1) {
 		switch (oc) {
 			case 'm':
 				/* input matrix */
@@ -67,19 +67,22 @@ int main(int argc, char* argv[])
 			case 'c':
 				if(atoi(optarg) == 1)
 					cb.CACHE = true;
-			case 's':
+				break;
+			case 'f':
 				/*using SPAI instaed of factorized SPAI*/
 				if(atoi(optarg) == 1)
 					cb.FACT = false;
-			case 'o':
+				break;
+			case 's':
 				/*reorder after reordering*/
 				if(atoi(optarg) == 1){
-					if(cb.RODR == false){
-						printf("sort only effect with reoder == true\n");
+					if(cb.RODR == false || cb.BLOCK == false){
+						printf("sort only effect with reoder and BLOCK  == true\n");
 						exit(1);	
 					}
-					Cb.SORT = true;
+					cb.SORT = true;
 				}
+				break;
 			case ':':
 				       /* error handling, see text */
 				printf("missing arguments\n");
@@ -135,21 +138,21 @@ int main(int argc, char* argv[])
 	totalNumPrecond=lowerNum;
 	totalNumPrecondP = lowerNum;
 
-	size_t size0=lowerNum*sizeof(unsigned int);
+	size_t size0=lowerNum*sizeof(uint32_t);
 	size_t size1=lowerNum*sizeof(double);
-	size_t size2=totalNum*sizeof(unsigned int);
+	size_t size2=totalNum*sizeof(uint32_t);
 	size_t size3=totalNum*sizeof(double);
-	size_t size4=dimension*sizeof(unsigned int);
+	size_t size4=dimension*sizeof(uint32_t);
 	size_t size5=dimension*sizeof(double);
-	size_t size6=lowerNum*sizeof(unsigned int);
+	size_t size6=lowerNum*sizeof(uint32_t);
 	size_t size7=lowerNum*sizeof(double);
 
 
-	lowerJ=(unsigned int *) malloc(size0);
-	lowerI=(unsigned int *) malloc(size0);
+	lowerJ=(uint32_t *) malloc(size0);
+	lowerI=(uint32_t *) malloc(size0);
 	lowerV=(double *) malloc(size1);
-	I=(unsigned int *) malloc(size2);
-	J=(unsigned int *) malloc(size2);
+	I=(uint32_t *) malloc(size2);
+	J=(uint32_t *) malloc(size2);
 	V=(double *) malloc(size3);
 	x=(double *) malloc(size5);
 	y=(double *) malloc(size5);
@@ -157,18 +160,18 @@ int main(int argc, char* argv[])
 	x_compare=(double *) malloc(size5);
 	error_track=(double *) malloc(MAXIter*sizeof(double));
 
-	unsigned int *numInRowL;
-	unsigned int *row_idxL;
-	unsigned int *numInRowLP;
-	unsigned int *row_idxLP;	
-	unsigned int *numInRow;
+	uint32_t *numInRowL;
+	uint32_t *row_idxL;
+	uint32_t *numInRowLP;
+	uint32_t *row_idxLP;	
+	uint32_t *numInRow;
 
-	numInRowL=(unsigned int *) malloc(size4);
-	numInRowLP=(unsigned int *) malloc(size4);
-	row_idxL=(unsigned int *) malloc(size4 + sizeof(unsigned int));
-	row_idxLP=(unsigned int *) malloc(size4 + sizeof(unsigned int));
-	numInRow=(unsigned int *) malloc(size4);
-	unsigned int tempI, tempJ;
+	numInRowL=(uint32_t *) malloc(size4);
+	numInRowLP=(uint32_t *) malloc(size4);
+	row_idxL=(uint32_t *) malloc(size4 + sizeof(uint32_t));
+	row_idxLP=(uint32_t *) malloc(size4 + sizeof(uint32_t));
+	numInRow=(uint32_t *) malloc(size4);
+	uint32_t tempI, tempJ;
 	double tempV;
 	for (int i=0; i<lowerNum; i++)
 	{
@@ -187,7 +190,7 @@ int main(int argc, char* argv[])
 	}
 
 
-	unsigned int *row_idx=(unsigned int *)malloc((dimension+1)*sizeof(unsigned int));
+	uint32_t *row_idx=(uint32_t *)malloc((dimension+1)*sizeof(uint32_t));
 	maxRowNum=0;
 	maxRowNumL=0;
 	maxRowNumLP=0;
@@ -252,16 +255,16 @@ int main(int argc, char* argv[])
 	}	
 	/*-----------------do the reordering with metis/hmetis, determine the value------------*/
 	/*suffix _rodr means reordered*/		
-	unsigned int *I_rodr, *J_rodr, *part_boundary, *rodr_list;
+	uint32_t *I_rodr, *J_rodr, *part_boundary, *rodr_list;
 	double *V_rodr, *x_rodr, *y_rodr;
 	
 	if(cb.RODR){
 		parts = ceil(dimension/(shared_per_block/element_size));
 		printf("parts is %d\n", parts);
-		rodr_list = (unsigned int* )calloc(dimension, sizeof(unsigned int)); 
-		part_boundary = (unsigned int* )calloc((parts + 1), sizeof(unsigned int)); 	
-		I_rodr = (unsigned int *) malloc(size2);
-		J_rodr = (unsigned int *) malloc(size2);
+		rodr_list = (uint32_t* )calloc(dimension, sizeof(uint32_t)); 
+		part_boundary = (uint32_t* )calloc((parts + 1), sizeof(uint32_t)); 	
+		I_rodr = (uint32_t *) malloc(size2);
+		J_rodr = (uint32_t *) malloc(size2);
 		V_rodr = (double *) malloc(size3);
 		x_rodr = (double* )calloc(dimension, sizeof(double)); 
 		y_rodr = (double* )calloc(dimension, sizeof(double)); 
@@ -271,7 +274,8 @@ int main(int argc, char* argv[])
 		so the maxRowNum should be same, only occured in different row number
 		however, maxRowNum for preconditioners is very possible to be changed 
 		*/
-		matrix_reorder(&dimension, totalNum, I, J, V, numInRow, row_idx,
+		matrix_reorder(&dimension, totalNum, cb, 
+				I, J, V, numInRow, row_idx,
 				 I_rodr, J_rodr, V_rodr, rodr_list, part_boundary, parts);
 		vector_reorder(dimension, y, y_rodr, rodr_list);
 		update_numInRowL(totalNum, 
@@ -288,8 +292,8 @@ int main(int argc, char* argv[])
 	}
 	/*---------------------read the preconditioner ------------------------------*/
 
-	unsigned int *I_precond=(unsigned int *) malloc(size6);
-	unsigned int *J_precond=(unsigned int *) malloc(size6);
+	uint32_t *I_precond=(uint32_t *) malloc(size6);
+	uint32_t *J_precond=(uint32_t *) malloc(size6);
 	double* V_precond=(double*) malloc(size7);	
 
 	/*int rt=pthread_barrier_init(&barr, NULL, MAXthread);
@@ -346,8 +350,8 @@ int main(int argc, char* argv[])
 	
 	gettimeofday(&end1, NULL);	
 	printf("fspai CPU time is %ld us\n",(end1.tv_sec * 1000000 + end1.tv_usec)-(start1.tv_sec * 1000000 + start1.tv_usec));
-	unsigned int *I_precondP=(unsigned int *) malloc(size6);
-	unsigned int *J_precondP=(unsigned int *) malloc(size6);
+	uint32_t *I_precondP=(uint32_t *) malloc(size6);
+	uint32_t *J_precondP=(uint32_t *) malloc(size6);
 	double *V_precondP=(double *) malloc(size7);
 	
 	for (int i=0; i<totalNumPrecond; i++)
@@ -364,7 +368,7 @@ int main(int argc, char* argv[])
 		numInRowLP[tempI]+=1;
 	}
 	
-	unsigned int realIter, pp, procNum;
+	uint32_t realIter, pp, procNum;
 	struct timeval start, end;
 
 	#pragma omp parallel
@@ -413,8 +417,6 @@ int main(int argc, char* argv[])
 		else;
 	}
 	else;
-	//solverPrecondGPU_CUSPARSE(dimension, totalNum, *row_idx, *J, *V, totalNumPrecond, *row_idxL, *J_precond, *V_precond, 
-	//	totalNumPrecondP, *row_idxLP, *J_precondP, *V_precondP, *y, *x, MAXIter, *realIter);
 		
 	if(cb.RODR){
 		vector_recover(dimension,  x_rodr, x, rodr_list);

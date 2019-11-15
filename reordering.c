@@ -6,35 +6,47 @@
  * different parts, and reduce the dependent between parts 
  * when conduct iterative SpMV operations.
  * The library used (or will be used) here includes mu-metis,
- * PaToH, and other graphic partition methods developed by 
- * myself
+ * PaToH (third part library), and in to future I will use 
+ * graphic partition methods developed by me 
  * */
 
 #include "Partition.h"
-
-
+#include "solver.h"
 
 
 static void sortRordrList(unsigned int dimension,
-		unsigned int part_size,
+		unsigned int nparts,
 		unsigned int* part_boundary, 
 		unsigned int* rodr_list, 
-		unsigned int* row_idx){
-	rowS* rodrVec = malloc(dimension*sizeof(rowS));
-	for(unsigned int i = 0; i < partSize; ++i){
-		rodrVec[i].idx = rodr_list[i];
-		rodrVec[i].nonzero = row_idx[i];	
+		unsigned int* numInRow){
+
+	rowS* rodrSVec = (rowS*) malloc(dimension*sizeof(rowS));
+	for(unsigned int i = 0; i < dimension; ++i){
+		//the location of elements at SVec will be changed 
+		//record the original idx since it will be used for
+		//new rodr_list
+		rodrSVec[rodr_list[i]].idx = i; 
+		rodrSVec[rodr_list[i]].nonzeros = numInRow[i];	
 	}	
-	for(unsigned int i = 0; i < part_size; ++i){
-		
+	for(unsigned int i = 0; i < nparts; ++i){
+		qsort(&rodrSVec[part_boundary[i]], (part_boundary[i+1] - part_boundary[i]), sizeof(rowS), rowSCompare);	
 	}	
+	for(unsigned int i = 0; i < dimension; ++i){
+		rodr_list[rodrSVec[i].idx] = i;
+	}
+	free(rodrSVec);
 
 }
 
 /*reorder function with I_rodr, J_rodr, v_rodr, rodr_list as output*/
-void matrix_reorder(const unsigned int* dimension_in, const unsigned int totalNum,
-		const unsigned int* I, const unsigned int* J, const double* V, 
-		unsigned int* numInRow, unsigned int* row_idx, 
+void matrix_reorder(const unsigned int* dimension_in, 
+		const unsigned int totalNum,
+		const cb_s cb, 
+		const unsigned int* I, 
+		const unsigned int* J, 
+		const double* V, 
+		unsigned int* numInRow, 
+		unsigned int* row_idx, 
 		unsigned int* I_rodr, unsigned int* J_rodr, 
 		double* V_rodr, unsigned int* rodr_list, unsigned int* part_boundary,
 		const unsigned int nparts){
@@ -69,8 +81,8 @@ void matrix_reorder(const unsigned int* dimension_in, const unsigned int totalNu
 	int* partBias = (int *)calloc(nparts + 1, sizeof(int));
 	double* options = mtmetis_init_options();
 	
-	int ncon = 1;
-	double ubvec = 1;
+	unsigned int ncon = 1;
+	float ubvec = 1.001;
 	options[MTMETIS_OPTION_NTHREADS] = 16;
 	mtmetis_wgt_type r_edgecut;
 	struct timeval start, end;
@@ -79,7 +91,7 @@ void matrix_reorder(const unsigned int* dimension_in, const unsigned int totalNu
 	printf("start k-way partition\n");
 	MTMETIS_PartGraphKway(
 			&dimension,
-			NULL,
+			&ncon,
 			row_idx,
 			colVal,
 			NULL,
@@ -87,7 +99,7 @@ void matrix_reorder(const unsigned int* dimension_in, const unsigned int totalNu
 			NULL,
 			&nparts,
 			NULL,
-			(float *) &ubvec,
+			&ubvec,
 			options,
 			&r_edgecut,
 			partVec);
@@ -96,9 +108,7 @@ void matrix_reorder(const unsigned int* dimension_in, const unsigned int totalNu
 	gettimeofday(&end, NULL);
 	
 	printf("partition time is %ld us\n",(end.tv_sec * 1000000 + end.tv_usec)-(start.tv_sec * 1000000 + start.tv_usec));
-	for(int i = 0; i < dimension; i++){
-		numInRow[i] = 0;
-	}
+	
 	int* part_filled = (int* )calloc(nparts, sizeof(int)); 	
 	for(int i = 0; i < dimension; ++i){
 		partSize[partVec[i]] += 1;
@@ -108,21 +118,22 @@ void matrix_reorder(const unsigned int* dimension_in, const unsigned int totalNu
 		partBias[i] = partBias[i-1] + partSize[i-1];
 	}
 	int perm_idx;	
-	//sort by number of cols per row for better ELL efficiency
-	/*unsigned int* sort_array = (unsigned int*)calloc(maxCol, sizeof(unsigned int));
-	for(int i = 0; i < dimension; i++){
-		
-	}*/
 	for(int i = 0; i < dimension; i++){
 		perm_idx = part_filled[partVec[i]] + partBias[partVec[i]];
 		rodr_list[i] = perm_idx;
 		part_filled[partVec[i]]+=1;
 	}	
-	//sort the reorder list by number of nozero per row
-	//it may not working on factorized preconditioner 
-	sortRordrList(rodr_list, row_idx);
+	 
 	for(int i = 0; i <= nparts; i++){
 		part_boundary[i] = partBias[i];
+	}
+	//sort the reorder list by number of nozero per row
+	//it may not working well on factorized preconditioner
+	if(cb.SORT){
+		sortRordrList(dimension, nparts, part_boundary, rodr_list, numInRow);
+	}
+	for(int i = 0; i < dimension; i++){
+		numInRow[i] = 0;
 	}
 	//reordering need two iteration
 	for(int i = 0; i < totalNum; i++){

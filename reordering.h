@@ -1,8 +1,11 @@
 #ifndef REORDERING_H
 #define REORDERING_H
 #include <mtmetis.h>
+#include "solver.h"
 
-void matrix_reorder(const unsigned int* dimension_in, const unsigned int totalNum, const unsigned int* I,
+void matrix_reorder(const unsigned int* dimension_in, const unsigned int totalNum, 
+		const cb_s cb,
+		const unsigned int* I, 
 		const unsigned int* J, const double* V, 
 		unsigned int* numInRow, unsigned int* row_idx, 
 		unsigned int* I_rodr, unsigned int* J_rodr, 
