@@ -303,7 +303,6 @@ static void COO2ELL_block_core(unsigned int* colELL, double* matrixELL,
 				}
 			}
 		}
-		irregular=irregular+1;
 		if(extraRows > 0){
 			for(unsigned int row_val = block_end; row_val < part_end; ++row_val){
 				for(unsigned int j = 0; j < numInRow[row_val]; ++j){
@@ -311,15 +310,16 @@ static void COO2ELL_block_core(unsigned int* colELL, double* matrixELL,
 					J_COO[pointCOO]=col_local[row_idx[row_val]+j];
 					V_COO[pointCOO]=matrix_local[row_idx[row_val]+j];
 					pointCOO++;
+					irregular+=1;
 					if(pointCOO > size_COO){
 						printf("error at pointCOO %d\n", pointCOO);
 						exit(0);
 					}
 				}
 			}	
-			irregular+=1;
 		}
 	}
+	printf("irregular is %d \n", irregular);
 }
 
 static void update_ELL_block_bias_vec(unsigned int block_num, unsigned int* ELL_block_cols_vec, unsigned int* ELL_block_bias_vec, bool rodr){

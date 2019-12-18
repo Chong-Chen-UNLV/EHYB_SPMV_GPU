@@ -38,7 +38,7 @@ int main(int argc, char* argv[])
 	cb_s cb;
     init_cb(&cb);
 			
-	while ((oc = getopt(argc, argv, "m:i:c:r:g:t:b:s:f:")) != -1) {
+	while ((oc = getopt(argc, argv, "m:i:c:r:g:t:b:s:f:p:")) != -1) {
 		switch (oc) {
 			case 'm':
 				/* input matrix */
@@ -52,6 +52,10 @@ int main(int argc, char* argv[])
 			case 't':
 				/* the number of threads*/
 				MAXthread = atoi(optarg);
+				break;
+			case 'p':
+				if(atoi(optarg) == 1)
+					cb.PRECOND = true;
 				break;
 			case 'r':
 				if(atoi(optarg) == 1)
@@ -390,15 +394,21 @@ int main(int argc, char* argv[])
             int* part_boundary = NULL;
             init_matrixCOO_S(&matrix, dimension, totalNum, maxRowNum, row_idx, numInRow, I, J, V);
         }
-        init_matrixCOO_S(&matrix_precond, dimension, totalNumPrecond, maxRowNumL, row_idxL, numInRowL, I_precond, J_precond, V_precond);
-        init_matrixCOO_S(&matrix_precondP, dimension, totalNumPrecondP, maxRowNumLP, row_idxLP, numInRowLP, I_precondP, J_precondP, V_precondP);
-        if(cb.RODR){
-            solverGPU_HYB(&matrix, &matrix_precond, &matrix_precondP,
-                    y_rodr, x_rodr, MAXIter, &realIter, cb, parts, part_boundary);
-		}
-		else{
-            solverGPU_HYB(&matrix, &matrix_precond, &matrix_precondP,
-                    y, x, MAXIter, &realIter, cb, parts, part_boundary);
+		if(cb.PRECOND){
+			init_matrixCOO_S(&matrix_precond, dimension, totalNumPrecond, maxRowNumL, row_idxL, numInRowL, I_precond, J_precond, V_precond);
+			init_matrixCOO_S(&matrix_precondP, dimension, totalNumPrecondP, maxRowNumLP, row_idxLP, numInRowLP, I_precondP, J_precondP, V_precondP);
+
+			if(cb.RODR){
+				solverGPU_HYB(&matrix, &matrix_precond, &matrix_precondP,
+						y_rodr, x_rodr, MAXIter, &realIter, cb, parts, part_boundary);
+			}
+			else{
+				solverGPU_HYB(&matrix, &matrix_precond, &matrix_precondP,
+						y, x, MAXIter, &realIter, cb, parts, part_boundary);
+			}
+		} else {
+			solverGPU_unprecondHYB(&matrix, y, x, MAXIter, &realIter,
+					cb, parts, part_boundary);
 		}
 	}
 	else if(!(cb.GPU)){

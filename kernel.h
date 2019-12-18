@@ -15,6 +15,7 @@
 #include <cuda_runtime.h>
 #include <cuda_runtime_api.h>
 #include <cuda.h>
+#include "solver.h"
 
 const int ELL_threadSize = 1024; 
 
@@ -53,5 +54,8 @@ void matrix_vectorELL_block(const uint32_t num_rows, const uint32_t cal_rows,
 			const uint32_t *J,
  			const double *V, const double *x, double *y,
 			const bool RODR, const uint32_t rodr_blocks, const uint32_t* part_boundary_d);
+void matrix_vectorHYB(matrixHYB_S_d* inputMatrix, double* vector_in_d,
+		double* vector_out_d, cb_s cb,
+		const uint32_t part_size, const uint32_t* part_boundary);
 
 #endif

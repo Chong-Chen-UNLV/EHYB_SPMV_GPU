@@ -3,9 +3,11 @@
 
 #include <omp.h>
 #include <stdint.h>
-#include "convert.h"
+
+struct abc{ int a; int b; int c;};
 
 typedef struct _cb{
+	bool PRECOND;
 	bool GPU;
 	bool RODR;
 	bool CACHE;
@@ -36,12 +38,11 @@ typedef struct _matrixHYB_S_d{
 	double* V_COO_d;
 	uint32_t* ELL_block_bias_vec_d;
 	uint32_t* ELL_block_cols_vec_d;
-}matrixCOO_S_d;
-
-
+}matrixHYB_S_d;
 
 inline void init_cb(cb_s* in_s)
 {
+	in_s->PRECOND = false;
     in_s->GPU = false;
     in_s->RODR = false; 
     in_s->BLOCK = false;
@@ -68,6 +69,11 @@ void solverPrecondCPU(const uint32_t procNum, const uint32_t dimension,
 		const uint32_t *J_precond, const double *V_precond, const uint32_t totalNumPrecondP,
 		const uint32_t *row_idxLP, const uint32_t *J_precondP, const double *V_precondP, 
 		const double *vector_in, double *vector_out, const uint32_t MAXIter, uint32_t *realIter);
+
+void solverGPU_unprecondHYB(matrixCOO_S* localMatrix, 
+		const double *vector_in, double *vector_out,  
+		const uint32_t MAXIter, uint32_t *realIter,  const cb_s cb,
+		const uint32_t part_size, const uint32_t* part_boundary);
 
 void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrixPrecond, 
                 matrixCOO_S* localMatrixPrecondP,

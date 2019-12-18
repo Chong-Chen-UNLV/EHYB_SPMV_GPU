@@ -1,6 +1,6 @@
 #ifndef CONVERT_H 
 #define CONVERT_H 
-
+#include "solver.h"
 #include "kernel.h"
 
 static inline unsigned int get_blocks_rodr(const unsigned int* boundary, 
@@ -41,4 +41,5 @@ void COO2ELL(const unsigned int *row_local, const unsigned int *col_local, const
 	const unsigned int *row_idx, const unsigned int localMatrixSize, const unsigned int loc_num_of_row, 
 	unsigned int *sizeOut, unsigned max_in, unsigned int *max_out);
 
+//void matrix_vectorHYB(struct abc inputMatrix);
 #endif

@@ -3,6 +3,48 @@
 #include "convert.h"
 #include "test.h"
 
+static void ELL_cuda_malloc_trans_data(uint32_t** col_d, double** V_d, 
+				uint32_t* colELL, double* matrixELL,
+				const uint32_t dimension, const uint32_t ELL_width){
+
+	cudaMalloc((void **) col_d, ELL_width*dimension*sizeof(uint32_t));
+    cudaMalloc((void **) V_d, ELL_width*dimension*sizeof(double));
+    cudaMemcpy(*col_d,colELL,dimension*ELL_width*sizeof(uint32_t),cudaMemcpyHostToDevice);
+    cudaMemcpy(*V_d,matrixELL,dimension*ELL_width*sizeof(double),cudaMemcpyHostToDevice);
+}
+
+static void ELL_cuda_malloc_trans_data_block(uint32_t** col_d, double** V_d, 
+				uint32_t** ELL_block_cols_vec_d, uint32_t** ELL_block_bias_vec_d,
+                uint32_t* colELL, double* matrixELL,
+				uint32_t* ELL_block_cols_vec, uint32_t* ELL_block_bias_vec,
+				uint32_t dimension, uint32_t blocks){
+                
+	uint32_t ELL_size = ELL_block_bias_vec[blocks];
+    cudaMalloc((void **) col_d, ELL_size*sizeof(uint32_t));
+    cudaMalloc((void **) V_d, ELL_size*sizeof(double));
+    cudaMalloc((void **) ELL_block_cols_vec_d, blocks*sizeof(uint32_t));
+    cudaMalloc((void **) ELL_block_bias_vec_d, (blocks + 1)*sizeof(uint32_t));
+
+    cudaMemcpy(*col_d,colELL,ELL_size*sizeof(uint32_t),cudaMemcpyHostToDevice);
+    cudaMemcpy(*V_d,matrixELL,ELL_size*sizeof(double),cudaMemcpyHostToDevice);
+    cudaMemcpy(*ELL_block_cols_vec_d, ELL_block_cols_vec, blocks*sizeof(uint32_t),cudaMemcpyHostToDevice);
+    cudaMemcpy(*ELL_block_bias_vec_d, ELL_block_bias_vec, (blocks + 1)*sizeof(uint32_t),cudaMemcpyHostToDevice);
+}
+
+
+
+static void COO_cuda_malloc_trans_data(uint32_t** I_COO_d, uint32_t** J_COO_d, double** V_COO_d,
+				uint32_t*  I_COO, uint32_t* J_COO, double* V_COO,
+				const uint32_t dimension, const uint32_t totalNumCOO)
+{
+	cudaMalloc((void **) I_COO_d,totalNumCOO*sizeof(uint32_t));
+	cudaMalloc((void **) J_COO_d,totalNumCOO*sizeof(uint32_t));
+	cudaMalloc((void **) V_COO_d,totalNumCOO*sizeof(double));	
+	cudaMemcpy(*I_COO_d,I_COO,totalNumCOO*sizeof(uint32_t),cudaMemcpyHostToDevice);
+	cudaMemcpy(*J_COO_d,J_COO,totalNumCOO*sizeof(uint32_t),cudaMemcpyHostToDevice);
+	cudaMemcpy(*V_COO_d,V_COO,totalNumCOO*sizeof(double),cudaMemcpyHostToDevice);
+}
+
 void solver(const uint32_t dimension, const uint32_t totalNum, const uint32_t *I, 
 			const uint32_t *J, const double *V, const double *vector_in, 
 			double *vector_out, double *error_track, uint32_t MAXIter)
@@ -75,19 +117,24 @@ void solverGPU_unprecondHYB(matrixCOO_S* localMatrix,
 {
 	//This function treat y as input and x as output, (solve the equation Ax=y) y is the vector we already known, x is the vector we are looking for
 	double dotp0,dotr0,dotr1,doth;
-	uint32_t dimension, totalNum, maxRowNum; 
+	uint32_t dimension, totalNum, maxRowNum, totalNumCOO; 
     uint32_t *row_idx, *numInRow, *I, *J; 
     double *V;
     dimension = localMatrix->dimension; 
     totalNum = localMatrix->totalNum; 
     maxRowNum = localMatrix->maxRowNum; 
 
+	uint32_t ELL_blocks;
+    uint32_t *ELL_block_cols_vec, *ELL_block_cols_vec_d;    
+    uint32_t *ELL_block_bias_vec, *ELL_block_bias_vec_d;	
+	ELL_block_cols_vec = (uint32_t*)malloc(ELL_blocks*sizeof(uint32_t));  
+	ELL_block_bias_vec = (uint32_t*)malloc((ELL_blocks +1)*sizeof(uint32_t));
 
     row_idx = localMatrix->row_idx; 
     numInRow = localMatrix->numInRow; 
     I = localMatrix->I; 
     J = localMatrix->J;
-
+    V = localMatrix->V;
 	uint32_t *colELL, *I_COO, *J_COO, ELL_width;
 	double* matrixELL, *V_COO;
 	uint32_t *col_d;
@@ -98,7 +145,8 @@ void solverGPU_unprecondHYB(matrixCOO_S* localMatrix,
 	BLOCK = cb.BLOCK;
 	CACHE = cb.CACHE;
 	RODR = cb.RODR;
-
+	uint32_t *part_boundary_d;
+	
 	if(BLOCK){
         //RODR will change the number of blocks since it provides cache option
         if(RODR)
@@ -138,6 +186,11 @@ void solverGPU_unprecondHYB(matrixCOO_S* localMatrix,
 				ELL_block_bias_vec,
 				dimension, 
 				ELL_blocks);
+
+		cudaMalloc((void **) &part_boundary_d, (part_size +1)*sizeof(uint32_t));
+		cudaMemcpy(part_boundary_d, part_boundary, 
+				(part_size +1)*sizeof(uint32_t), cudaMemcpyHostToDevice);
+
 	} else {
 		COO2ELL(I,J,V,&colELL,&matrixELL,&I_COO, &J_COO, &V_COO, 
 			numInRow, row_idx, totalNum, dimension, &totalNumCOO, maxRowNum, &ELL_width);
@@ -150,38 +203,70 @@ void solverGPU_unprecondHYB(matrixCOO_S* localMatrix,
 				I_COO, J_COO, V_COO, 
 				dimension, totalNumCOO);
 	}
+	cublasHandle_t handle;
+	cublasCreate(&handle);
 
-	double *bp_d, *pk_d, *rk_d;
+	matrixHYB_S_d localMatrixHYB_d;
+	
+	localMatrixHYB_d.dimension = dimension;
+	localMatrixHYB_d.ELL_width = ELL_width;
+	localMatrixHYB_d.totalNumCOO = totalNumCOO;
+	localMatrixHYB_d.col_d = col_d;
+	localMatrixHYB_d.I_COO_d = I_COO_d;
+	localMatrixHYB_d.J_COO_d = J_COO_d;
+	localMatrixHYB_d.V_d = V_d;
+	localMatrixHYB_d.V_COO_d = V_COO_d;
+	localMatrixHYB_d.ELL_block_bias_vec_d = ELL_block_bias_vec_d;
+	localMatrixHYB_d.ELL_block_cols_vec_d = ELL_block_cols_vec_d;
+
+	double *bp_d, *pk_d, *rk_d, *vector_out_d;
 	size_t size0=dimension*sizeof(uint32_t);
 	size_t size1=dimension*sizeof(double);
 	cudaMalloc((void **) &bp_d,size1);
 	cudaMalloc((void **) &pk_d,size1);
 	cudaMalloc((void **) &rk_d,size1);
+	cudaMalloc((void **) &vector_out_d,size1);
 	//double *x=(double *) malloc(size1);
-	uint32_t i;
 	double threshold=0.0000001;
 	uint32_t iter=0;
-	double error,alphak,gamak;
+	double const1 = 1;
+	double error, alphak, _alphak, gamak;
 	error=1000;
 	//initialize
 	doth=0;
+    cudaMemcpy(pk_d, vector_in, dimension*sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(rk_d, vector_in, dimension*sizeof(double), cudaMemcpyHostToDevice);
+	for (uint32_t i=0;i<dimension;i++) {
+		doth=doth+vector_in[i]*vector_in[i];
+	}
+	struct timeval start1, end1;
+	gettimeofday(&start1, NULL);
+	double *bp=(double *) malloc(size1);
+	double *pk=(double *) malloc(size1);
+	double *rk=(double *) malloc(size1);
+
+	double *bp_dt = (double *) malloc(size1);
+	double *pk_dt = (double *) malloc(size1);
+	double *rk_dt = (double *) malloc(size1);
+	//double *x=(double *) malloc(size1);
+	uint32_t i;
+	double error_t,alphak_t,gamak_t;
+	error=1000;
+	//initialize
 	for (i=0;i<dimension;i++)
 	{
 		pk[i]=vector_in[i];
 		rk[i]=vector_in[i];
 		vector_out[i]=0;
 		bp[i]=0;
-		doth=doth+vector_in[i]*vector_in[i];
 	}
-	if (doth>0){
+		
+	/*if (doth>0){
 		while (error>threshold&&iter<MAXIter){
 			dotp0=0;
 			dotr0=0;
 			dotr1=0;
-			for (i=0;i<totalNum;i++)
-			{		
-				matrix_vectorELL//multiplication
-			}	
+				
 			//for (uint32_t k=0;k<5;k++) printf("pk %d at iter %d is %f\n",k, iter, pk[k]);
 			//printf("CPU start\n");
 			for (i=0;i<dimension;i++)
@@ -209,7 +294,69 @@ void solverGPU_unprecondHYB(matrixCOO_S* localMatrix,
 			//printf("error at %d is %f\n",iter, error);
 			iter++;
 		}
+	}*/
+	while (error>threshold&&iter<MAXIter){
+		dotp0=0;
+		dotr0=0;
+		dotr1=0;
+		for (i=0;i<totalNum;i++){
+			bp[I[i]]+=V[i]*pk[J[i]];//multiplication
+		}
+		matrix_vectorHYB(&localMatrixHYB_d, pk_d, bp_d, cb,
+			   part_size, part_boundary_d);					
+		
+		uint32_t errorIdx = 0;
+		double compareError;
+		cudaMemcpy(bp_dt, bp_d, dimension*sizeof(double), cudaMemcpyDeviceToHost);
+		for(int i = 0; i < dimension; ++i){
+			compareError = 	(bp_dt[i] - bp[i])/bp[i];
+			if(errorIdx == 0  && (compareError > 0.000001 || compareError < -0.00001)){ 	
+				printf("bp_dt[%d] of GPU result is %f, test value is %f\n", i, bp_dt[i], bp[i]);
+			}
+		}
+		//for (uint32_t k=0;k<5;k++) printf("pk %d at iter %d is %f\n",k, iter, pk[k]);
+		//printf("CPU start\n");
+		
+		cublasDdot(handle,dimension,bp_d,1,pk_d,1,&dotp0);
+		cublasDdot(handle,dimension,rk_d,1,rk_d,1,&dotr0);
+		/*for (i=0;i<dimension;i++)
+		{
+			dotp0=dotp0+bp[i]*pk[i];
+			dotr0=dotr0+rk[i]*rk[i];
+		}*/	
+		alphak=dotr0/dotp0;
+		_alphak = -alphak;
+		printf("dotr0 %f is dotp0 is %f\n", dotr0,dotp0);
+		cublasDaxpy(handle,dimension,&alphak,pk_d,1,vector_out_d,1);
+		cublasDaxpy(handle,dimension,&_alphak,bp_d,1,rk_d,1);
+		cublasDdot(handle,dimension,rk_d,1,rk_d,1,&dotr1);
+		/*for(uint32_t i=0;i<dimension;i++) 
+		{		
+			vector_out[i]=vector_out[i]+alphak*pk[i];
+			//if (i<10) printf ("pk[i] is %f, rk[i] is %f\n",pk[i],rk[i]);
+			rk[i]=rk[i]-alphak*bp[i];
+			dotr1=dotr1+rk[i]*rk[i];
+		}*/
+		gamak=dotr1/dotr0;
+
+		cublasDscal(handle,dimension,&gamak,pk_d,1);
+		cublasDaxpy(handle,dimension,&const1, rk_d, 1, pk_d, 1);
+		/*for (uint32_t i=0;i<dimension;i++)
+		{
+			pk[i]=rk[i]+gamak*pk[i];
+			bp[i]=0;
+		}*/
+		//printf("at iter %d, alphak is %f, gamak is %f\n",iter, alphak,gamak);
+		error=sqrt(dotr1)/sqrt(doth);
+		//error_track[iter]=error;
+		//printf("error at %d is %f\n",iter, error);
+		iter++;
 	}
+	cudaMemcpy(vector_out, vector_out_d, dimension*sizeof(double), cudaMemcpyDeviceToHost);
+	gettimeofday(&end1, NULL);	
+	double timeByMs=((end1.tv_sec * 1000000 + end1.tv_usec)-(start1.tv_sec * 1000000 + start1.tv_usec))/1000;
+	printf("iter is %d, time is %f ms, GPU Gflops is %f\n ",iter, timeByMs, 
+			(1e-9*(totalNum*2+13*dimension)*1000*iter)/timeByMs);
 }
 
 void solverGPU_unprecondCUSPARSE(matrixCOO_S* localMatrix, 
@@ -224,46 +371,7 @@ void solverGPU_unprecondCUSPARSE(matrixCOO_S* localMatrix,
 }
 
 
-static void ELL_cuda_malloc_trans_data(uint32_t** col_d, double** V_d, 
-				uint32_t* colELL, double* matrixELL,
-				const uint32_t dimension, const uint32_t ELL_width){
 
-	cudaMalloc((void **) col_d, ELL_width*dimension*sizeof(uint32_t));
-    cudaMalloc((void **) V_d, ELL_width*dimension*sizeof(double));
-    cudaMemcpy(*col_d,colELL,dimension*ELL_width*sizeof(uint32_t),cudaMemcpyHostToDevice);
-    cudaMemcpy(*V_d,matrixELL,dimension*ELL_width*sizeof(double),cudaMemcpyHostToDevice);
-}
-
-static void ELL_cuda_malloc_trans_data_block(uint32_t** col_d, double** V_d, 
-				uint32_t** ELL_block_cols_vec_d, uint32_t** ELL_block_bias_vec_d,
-                uint32_t* colELL, double* matrixELL,
-				uint32_t* ELL_block_cols_vec, uint32_t* ELL_block_bias_vec,
-				uint32_t dimension, uint32_t blocks){
-                
-	uint32_t ELL_size = ELL_block_bias_vec[blocks];
-    cudaMalloc((void **) col_d, ELL_size*sizeof(uint32_t));
-    cudaMalloc((void **) V_d, ELL_size*sizeof(double));
-    cudaMalloc((void **) ELL_block_cols_vec_d, blocks*sizeof(uint32_t));
-    cudaMalloc((void **) ELL_block_bias_vec_d, (blocks + 1)*sizeof(uint32_t));
-
-    cudaMemcpy(*col_d,colELL,ELL_size*sizeof(uint32_t),cudaMemcpyHostToDevice);
-    cudaMemcpy(*V_d,matrixELL,ELL_size*sizeof(double),cudaMemcpyHostToDevice);
-    cudaMemcpy(*ELL_block_cols_vec_d, ELL_block_cols_vec, blocks*sizeof(uint32_t),cudaMemcpyHostToDevice);
-    cudaMemcpy(*ELL_block_bias_vec_d, ELL_block_bias_vec, (blocks + 1)*sizeof(uint32_t),cudaMemcpyHostToDevice);
-}
-
-
-static void COO_cuda_malloc_trans_data(uint32_t** I_COO_d, uint32_t** J_COO_d, double** V_COO_d,
-				uint32_t*  I_COO, uint32_t* J_COO, double* V_COO,
-				const uint32_t dimension, const uint32_t totalNumCOO)
-{
-	cudaMalloc((void **) I_COO_d,totalNumCOO*sizeof(uint32_t));
-	cudaMalloc((void **) J_COO_d,totalNumCOO*sizeof(uint32_t));
-	cudaMalloc((void **) V_COO_d,totalNumCOO*sizeof(double));	
-	cudaMemcpy(*I_COO_d,I_COO,totalNumCOO*sizeof(uint32_t),cudaMemcpyHostToDevice);
-	cudaMemcpy(*J_COO_d,J_COO,totalNumCOO*sizeof(uint32_t),cudaMemcpyHostToDevice);
-	cudaMemcpy(*V_COO_d,V_COO,totalNumCOO*sizeof(double),cudaMemcpyHostToDevice);
-}
 
 static uint32_t get_blocks_rodr(uint32_t* part_boundary, const uint32_t part_size){
 	uint32_t block_num = 0;
