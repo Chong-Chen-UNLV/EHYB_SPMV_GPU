@@ -3,6 +3,24 @@
 #include "convert.h"
 #include "test.h"
 
+static inline uint32_t calPadding(uint32_t dimension,
+		const uint32_t* numInRow, const uint32_t* part_boundary, 	
+		uint32_t* ELL_block_cols_vec, const uint32_t part_size){
+
+	uint32_t padded = 0;
+	for(uint32_t i = 0; i < part_size; ++i){
+		for(uint32_t j = part_boundary[i]; j < part_boundary[i+1]; ++j){
+			if(j < part_boundary[i] + block_per_part*ELL_threadSize){
+				uint32_t blockIdx = i*block_per_part + (j-part_boundary[i])/ELL_threadSize;
+				if(numInRow[j] < ELL_block_cols_vec[blockIdx])	
+					padded += (ELL_block_cols_vec[blockIdx] - numInRow[j]);
+			}
+		}
+	}
+	return padded;
+}
+
+
 static void ELL_cuda_malloc_trans_data(uint32_t** col_d, double** V_d, 
 				uint32_t* colELL, double* matrixELL,
 				const uint32_t dimension, const uint32_t ELL_width){
@@ -190,6 +208,9 @@ void solverGPU_unprecondHYB(matrixCOO_S* localMatrix,
 		cudaMalloc((void **) &part_boundary_d, (part_size +1)*sizeof(uint32_t));
 		cudaMemcpy(part_boundary_d, part_boundary, 
 				(part_size +1)*sizeof(uint32_t), cudaMemcpyHostToDevice);
+		uint32_t padding = calPadding(dimension, numInRow, part_boundary, 	
+			ELL_block_cols_vec, part_size);
+		printf("padding is %d, waste rate on ELL is %f\n", padding, ((float)padding)/totalNum);
 
 	} else {
 		COO2ELL(I,J,V,&colELL,&matrixELL,&I_COO, &J_COO, &V_COO, 
@@ -229,7 +250,7 @@ void solverGPU_unprecondHYB(matrixCOO_S* localMatrix,
 	//double *x=(double *) malloc(size1);
 	double threshold=0.0000001;
 	uint32_t iter=0;
-	double const1 = 1;
+	double const1 = 1.0;
 	double error, alphak, _alphak, gamak;
 	error=1000;
 	//initialize
@@ -249,103 +270,45 @@ void solverGPU_unprecondHYB(matrixCOO_S* localMatrix,
 	double *pk_dt = (double *) malloc(size1);
 	double *rk_dt = (double *) malloc(size1);
 	//double *x=(double *) malloc(size1);
-	uint32_t i;
 	double error_t,alphak_t,gamak_t;
 	error=1000;
 	//initialize
-	for (i=0;i<dimension;i++)
+	for (uint32_t i=0;i<dimension;i++)
 	{
 		pk[i]=vector_in[i];
 		rk[i]=vector_in[i];
 		vector_out[i]=0;
 		bp[i]=0;
 	}
-		
-	/*if (doth>0){
-		while (error>threshold&&iter<MAXIter){
-			dotp0=0;
-			dotr0=0;
-			dotr1=0;
-				
-			//for (uint32_t k=0;k<5;k++) printf("pk %d at iter %d is %f\n",k, iter, pk[k]);
-			//printf("CPU start\n");
-			for (i=0;i<dimension;i++)
-			{
-				dotp0=dotp0+bp[i]*pk[i];
-				dotr0=dotr0+rk[i]*rk[i];
-			}	
-			alphak=dotr0/dotp0;
-			for (i=0;i<dimension;i++) 
-			{		
-				vector_out[i]=vector_out[i]+alphak*pk[i];
-				//if (i<10) printf ("pk[i] is %f, rk[i] is %f\n",pk[i],rk[i]);
-				rk[i]=rk[i]-alphak*bp[i];
-				dotr1=dotr1+rk[i]*rk[i];
-			}
-			gamak=dotr1/dotr0;
-			for (i=0;i<dimension;i++)
-			{
-				pk[i]=rk[i]+gamak*pk[i];
-				bp[i]=0;
-			}
-			//printf("at iter %d, alphak is %f, gamak is %f\n",iter, alphak,gamak);
-			error=sqrt(dotr1)/sqrt(doth);
-			error_track[iter]=error;
-			//printf("error at %d is %f\n",iter, error);
-			iter++;
-		}
-	}*/
+	
 	while (error>threshold&&iter<MAXIter){
 		dotp0=0;
 		dotr0=0;
 		dotr1=0;
-		for (i=0;i<totalNum;i++){
-			bp[I[i]]+=V[i]*pk[J[i]];//multiplication
-		}
-		matrix_vectorHYB(&localMatrixHYB_d, pk_d, bp_d, cb,
-			   part_size, part_boundary_d);					
-		
 		uint32_t errorIdx = 0;
 		double compareError;
-		cudaMemcpy(bp_dt, bp_d, dimension*sizeof(double), cudaMemcpyDeviceToHost);
-		for(int i = 0; i < dimension; ++i){
-			compareError = 	(bp_dt[i] - bp[i])/bp[i];
-			if(errorIdx == 0  && (compareError > 0.000001 || compareError < -0.00001)){ 	
-				printf("bp_dt[%d] of GPU result is %f, test value is %f\n", i, bp_dt[i], bp[i]);
-			}
-		}
+		cudaMemset(bp_d, 0, size1);
+		matrix_vectorHYB(&localMatrixHYB_d, pk_d, bp_d, cb, 0,
+			   part_size, part_boundary_d);
+		
 		//for (uint32_t k=0;k<5;k++) printf("pk %d at iter %d is %f\n",k, iter, pk[k]);
 		//printf("CPU start\n");
 		
 		cublasDdot(handle,dimension,bp_d,1,pk_d,1,&dotp0);
 		cublasDdot(handle,dimension,rk_d,1,rk_d,1,&dotr0);
-		/*for (i=0;i<dimension;i++)
-		{
-			dotp0=dotp0+bp[i]*pk[i];
-			dotr0=dotr0+rk[i]*rk[i];
-		}*/	
+			
 		alphak=dotr0/dotp0;
 		_alphak = -alphak;
-		printf("dotr0 %f is dotp0 is %f\n", dotr0,dotp0);
+		
 		cublasDaxpy(handle,dimension,&alphak,pk_d,1,vector_out_d,1);
 		cublasDaxpy(handle,dimension,&_alphak,bp_d,1,rk_d,1);
 		cublasDdot(handle,dimension,rk_d,1,rk_d,1,&dotr1);
-		/*for(uint32_t i=0;i<dimension;i++) 
-		{		
-			vector_out[i]=vector_out[i]+alphak*pk[i];
-			//if (i<10) printf ("pk[i] is %f, rk[i] is %f\n",pk[i],rk[i]);
-			rk[i]=rk[i]-alphak*bp[i];
-			dotr1=dotr1+rk[i]*rk[i];
-		}*/
+		
 		gamak=dotr1/dotr0;
 
 		cublasDscal(handle,dimension,&gamak,pk_d,1);
 		cublasDaxpy(handle,dimension,&const1, rk_d, 1, pk_d, 1);
-		/*for (uint32_t i=0;i<dimension;i++)
-		{
-			pk[i]=rk[i]+gamak*pk[i];
-			bp[i]=0;
-		}*/
+		
 		//printf("at iter %d, alphak is %f, gamak is %f\n",iter, alphak,gamak);
 		error=sqrt(dotr1)/sqrt(doth);
 		//error_track[iter]=error;

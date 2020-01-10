@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
 		switch (oc) {
 			case 'm':
 				/* input matrix */
-				sprintf(fileName, "../read/%s.mtx", optarg);		
+				sprintf(fileName, "/tmp/%s.mtx", optarg);		
 				printf("filename is %s\n", fileName);
 				break;
 			case 'i':
@@ -227,8 +227,8 @@ int main(int argc, char* argv[])
 	for (int i=0;i<dimension;i++)
 	{		
 		srand(i);
-		//x_compare[i]=(double) (rand()%200-100)/100;
-		x_compare[i]=1;
+		x_compare[i]=(double) (rand()%200-100)/100;
+		//x_compare[i]=1;
 	}
 	int index1, index2;
 
@@ -338,17 +338,19 @@ int main(int argc, char* argv[])
 	gettimeofday(&start1, NULL);
 	omp_set_num_threads(MAXthread);
 	int rank;
-	if(cb.FACT){
-		#pragma omp parallel private(rank)
-		{
-			rank=omp_get_thread_num();
-			fspaiCPU(&Sthread[rank]);
-		}
-	} else {
-		#pragma omp parallel private(rank)
-		{
-			rank=omp_get_thread_num();
-			spaiCPU(&Sthread[rank]);
+	if(cb.PRECOND){
+		if(cb.FACT){
+			#pragma omp parallel private(rank)
+			{
+				rank=omp_get_thread_num();
+				fspaiCPU(&Sthread[rank]);
+			}
+		} else {
+			#pragma omp parallel private(rank)
+			{
+				rank=omp_get_thread_num();
+				spaiCPU(&Sthread[rank]);
+			}
 		}
 	}
 	
@@ -407,8 +409,13 @@ int main(int argc, char* argv[])
 						y, x, MAXIter, &realIter, cb, parts, part_boundary);
 			}
 		} else {
-			solverGPU_unprecondHYB(&matrix, y, x, MAXIter, &realIter,
-					cb, parts, part_boundary);
+			if(cb.RODR){
+				solverGPU_unprecondHYB(&matrix, y_rodr, x_rodr, MAXIter, &realIter,
+						cb, parts, part_boundary);
+			} else{
+				solverGPU_unprecondHYB(&matrix, y, x, MAXIter, &realIter,
+						cb, parts, part_boundary);
+			}
 		}
 	}
 	else if(!(cb.GPU)){

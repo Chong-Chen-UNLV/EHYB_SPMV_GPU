@@ -14,6 +14,7 @@ static inline unsigned int get_blocks_rodr(const unsigned int* boundary,
 }
 
 
+
 void COO2ELL_block(unsigned int *size_COO, 
 		unsigned int* ELL_block_cols_vec, 
 		unsigned int* ELL_block_bias_vec,

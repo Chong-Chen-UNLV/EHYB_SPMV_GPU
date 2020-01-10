@@ -236,7 +236,7 @@ static void COO2ELL_block_core(unsigned int* colELL, double* matrixELL,
 	
 	unsigned int boundary_start, boundary_end;
 	unsigned int part_idx;
-
+	uint32_t padding = 0;
 	for (unsigned int block_idx = 0; block_idx < block_num; ++block_idx){
 		unsigned int num_cols = ELL_block_cols_vec[block_idx];
 		unsigned int block_bias = ELL_block_bias_vec[block_idx];
@@ -299,6 +299,7 @@ static void COO2ELL_block_core(unsigned int* colELL, double* matrixELL,
 					else{
 						colELL[block_bias + i + j*block_rowSize] = 0;
 						matrixELL[block_bias + i + j*block_rowSize] = 0;
+						padding += 1;
 					}
 				}
 			}
@@ -319,7 +320,7 @@ static void COO2ELL_block_core(unsigned int* colELL, double* matrixELL,
 			}	
 		}
 	}
-	printf("irregular is %d \n", irregular);
+	printf("irregular is %d, padding is %d \n", irregular, padding);
 }
 
 static void update_ELL_block_bias_vec(unsigned int block_num, unsigned int* ELL_block_cols_vec, unsigned int* ELL_block_bias_vec, bool rodr){
