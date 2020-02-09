@@ -122,7 +122,7 @@ static void ELL_block_cols_vec_gen_rodr(unsigned int* ELL_block_cols_vec,
 				local_end = part_boundary[part_idx + 1];
 			}
 			block_boundary[block_idx + 1] = local_end;
-			col_th = ceil( float(local_end - local_start)*0.667);
+			col_th = ceil( float(local_end - local_start)*0.75);
 			for(int row_val = local_start; row_val < local_end; ++row_val){
 				nonzero = (row_idx[row_val + 1] - row_idx[row_val]); 
 				if(nonzero > max_col)

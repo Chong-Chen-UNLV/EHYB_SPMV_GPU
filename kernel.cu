@@ -240,7 +240,7 @@ __global__ void ELL_cached_kernel_rodr(const uint32_t* num_cols_per_row_vec,
 {
 	uint32_t part_idx = blockIdx.x; 
 	uint32_t x_idx = threadIdx.x;
-	__shared__ volatile double cached_vec[ELL_threadSize*2];  
+	__shared__ volatile double cached_vec[vector_cache_size];  
 	uint32_t vec_start = part_boundary[blockIdx.x];
 	uint32_t vec_end = part_boundary[blockIdx.x + 1];
 	uint32_t row = 0;
@@ -249,7 +249,7 @@ __global__ void ELL_cached_kernel_rodr(const uint32_t* num_cols_per_row_vec,
 		if(i < vec_end) cached_vec[i] = x[i + vec_start];
 		else cached_vec[i] = 0;
 	}
-	double val, dot;
+	double val, fetched, dot;
 	uint32_t block_idx, data_idx, col;
 	uint32_t block_rowSize, block_data_bias, num_cols_per_row;
 	uint32_t block_base = part_idx * block_per_part;
@@ -276,7 +276,12 @@ __global__ void ELL_cached_kernel_rodr(const uint32_t* num_cols_per_row_vec,
 				col=indices[data_idx];
 				val=data[data_idx];
 				if(val != 0){
-					dot += val*get_val(col, vec_start, vec_start + vector_cache_size, x, cached_vec);
+					if(col > vec_start && col < vec_start + vector_cache_size)
+						fetched = cached_vec[col - vec_start];
+					else
+						fetched = x[col];
+
+					dot += val*fetched;
 				}
 			}
 			y[row] = dot;

@@ -1,3 +1,7 @@
+#ifndef TEST_H
+#define TEST_H
+
+
 #include "solver.h"
 #include "kernel.h"
 
@@ -46,3 +50,4 @@ void matrix_vectorTest(matrixCOO_S *matrix, const double* vector_in, double* vec
 	}
 
 }*/
+#endif

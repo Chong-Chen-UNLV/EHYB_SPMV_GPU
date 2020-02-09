@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
 		switch (oc) {
 			case 'm':
 				/* input matrix */
-				sprintf(fileName, "/tmp/%s.mtx", optarg);		
+				sprintf(fileName, "../read/%s.mtx", optarg);		
 				printf("filename is %s\n", fileName);
 				break;
 			case 'i':
@@ -64,9 +64,12 @@ int main(int argc, char* argv[])
 			case 'b':
 				if(atoi(optarg) == 1)
 					cb.BLOCK = true;
+				break;
 			case 'g':
-				if(atoi(optarg) == 1)
+				if(atoi(optarg) == 1){
 					cb.GPU = true;
+					//cudaSetDevice(cuda_device);
+				}
 				break;
 			case 'c':
 				if(atoi(optarg) == 1)

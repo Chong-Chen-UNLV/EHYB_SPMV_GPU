@@ -17,9 +17,9 @@
 #include <cuda.h>
 #include "solver.h"
 
-const int ELL_threadSize = 1024; 
+const int ELL_threadSize = 512; 
 
-const int shared_per_block = 16*ELL_threadSize;
+const int shared_per_block = 36*1024;
 const int element_size = 8; //if single precision, 4, if double precision, 8 
 const int vector_cache_size = shared_per_block/element_size;
 const int block_per_part = shared_per_block/(ELL_threadSize*element_size); 
