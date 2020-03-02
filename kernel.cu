@@ -8,6 +8,7 @@
 #define thread_size2 512
 #define WARP_SIZE 32
 
+texture<float, 1, cudaReadModeElementType> texInput;
 
 /*the device function for level 2 reduce*/
 __device__ void segreduce_block(const int * idx, double * val)
@@ -644,7 +645,7 @@ void matrix_vectorHYB(matrixHYB_S_d* inputMatrix, double* vector_in_d,
 	double* V_COO_d = inputMatrix->V_COO_d;
 	uint32_t* ELL_block_bias_vec_d = inputMatrix->ELL_block_bias_vec_d;
 	uint32_t* ELL_block_cols_vec_d = inputMatrix->ELL_block_cols_vec_d;
-
+	
 	if(!cb.BLOCK){
 		matrix_vectorELL(dimension, dimension, ELL_width, col_d,V_d,
 				vector_in_d, vector_out_d, false, 0, NULL);

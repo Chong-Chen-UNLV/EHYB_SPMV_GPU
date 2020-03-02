@@ -3,6 +3,7 @@
 #include "convert.h"
 #include "test.h"
 
+
 static inline uint32_t calPadding(uint32_t dimension,
 		const uint32_t* numInRow, const uint32_t* part_boundary, 	
 		uint32_t* ELL_block_cols_vec, const uint32_t part_size){
@@ -19,7 +20,6 @@ static inline uint32_t calPadding(uint32_t dimension,
 	}
 	return padded;
 }
-
 
 static void ELL_cuda_malloc_trans_data(uint32_t** col_d, double** V_d, 
 				uint32_t* colELL, double* matrixELL,
@@ -50,8 +50,6 @@ static void ELL_cuda_malloc_trans_data_block(uint32_t** col_d, double** V_d,
     cudaMemcpy(*ELL_block_cols_vec_d, ELL_block_cols_vec, blocks*sizeof(uint32_t),cudaMemcpyHostToDevice);
     cudaMemcpy(*ELL_block_bias_vec_d, ELL_block_bias_vec, (blocks + 1)*sizeof(uint32_t),cudaMemcpyHostToDevice);
 }
-
-
 
 static void COO_cuda_malloc_trans_data(uint32_t** I_COO_d, uint32_t** J_COO_d, double** V_COO_d,
 				uint32_t*  I_COO, uint32_t* J_COO, double* V_COO,
@@ -227,9 +225,13 @@ void solverGPU_unprecondHYB(matrixCOO_S* localMatrix,
 		uint32_t errorIdx = 0;
 		double compareError;
 		cudaMemset(bp_d, 0, size1);
+		texInput.addressMode[0] = cudaAddressModeBorder;
+		texInput.normalized = false;
+		size_t offset = 0;
+		cudaBindTexture(&offset, texInput, pk_d, sizeof(double)*dimension);
 		matrix_vectorHYB(&localMatrixHYB_d, pk_d, bp_d, cb, 0,
 			   part_size, part_boundary_d);
-		
+		cudaUnbindTexture(texInput);	
 		//for (uint32_t k=0;k<5;k++) printf("pk %d at iter %d is %f\n",k, iter, pk[k]);
 		//printf("CPU start\n");
 		
@@ -524,6 +526,7 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 	double* zk1T = (double*) calloc(dimension, sizeof(double));	
 	double* rkT = (double*) calloc(dimension, sizeof(double));	
 	double* zk1_g = (double*) calloc(dimension, sizeof(double));
+	cudaBindTexture(&offset, texInput, rk_d, sizeof(double)*dimension);
 	if(!BLOCK){
 		matrix_vectorELL(dimension, dimension, ELL_widthL, col_precond_d,V_precond_d,
 				rk_d,zk1_d, false, 0, NULL);
@@ -542,7 +545,7 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 					false, 0, NULL);
 		}
 	}
-
+	cudaUnbindTexture(texInput);	
 	if (totalNumCOO_L>0) matrix_vectorCOO(totalNumCOO_L, I_COO_L_d, J_COO_L_d, V_COO_L_d, 
 									rk_d, zk1_d);
 	cudaMemcpy(zk1_g, zk1_d, dimension*sizeof(double), cudaMemcpyDeviceToHost);
@@ -564,6 +567,8 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 				col_precond_d,V_precond_d,rk_d,zk1_d,
 				CACHE, part_size, part_boundary_d);
 	}
+	cudaBindTexture(&offset, texInput, zk1_d, sizeof(double)*dimension);
+	if(!BLOCK){
 	if(FACT){	
 		if (!BLOCK) {
 			matrix_vectorELL(dimension, dimension, ELL_widthLP, col_precondP_d, 
@@ -583,6 +588,7 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 		}
 		if (totalNumCOO_LP>0) matrix_vectorCOO(totalNumCOO_LP, I_COO_LP_d, J_COO_LP_d, V_COO_LP_d, zk1_d, zk_d);
 	}	
+	cudaUnbindTexture(texInput);	
 	//double* zkT = (double*) calloc(dimension, sizeof(double));	
 	//double* zk_g = (double*) calloc(dimension, sizeof(double));	
 	//cudaMemcpy(zk_g, zk_d, dimension*sizeof(double), cudaMemcpyDeviceToHost);
@@ -609,6 +615,8 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 
 	while (iter<MAXIter&&error>1E-8){
 		//matrix-vector multiplication, accelerated by our own functions
+
+		cudaBindTexture(&offset, texInput, pk_d, sizeof(double)*dimension);
 		if(!BLOCK) {
 			matrix_vectorELL(dimension, dimension, ELL_width, col_d,V_d,pk_d,bp_d,
 								false, 0, NULL);
@@ -625,7 +633,7 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 			}
 		}
 		if (totalNumCOO>0) matrix_vectorCOO(totalNumCOO, I_COO_d, J_COO_d, V_COO_d, pk_d, bp_d);
-			
+		cudaUnbindTexture(texInput);	
 		//cudaMemcpy(bp_g, bp_d, dimension*sizeof(double), cudaMemcpyDeviceToHost);
 		//double dotp0T = 0;
 		//double dotp0TT = 0;
@@ -660,6 +668,9 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 		cublasDaxpy(handle,dimension,&alphak_1,bp_d,1,rk_d,1);
 		initialize_bp(dimension,zk_d);
 		initialize_bp(dimension,zk1_d);
+
+		cudaBindTexture(&offset, texInput, rk_d, sizeof(double)*dimension);
+
 		if(!BLOCK){
 			matrix_vectorELL(dimension, dimension, ELL_widthL, col_precond_d,V_precond_d,rk_d,zk1_d,
 					false, 0, NULL);
@@ -675,8 +686,12 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 						false, 0, NULL);
 			}
 		}
-
 		if (totalNumCOO_L>0) matrix_vectorCOO(totalNumCOO_L, I_COO_L_d, J_COO_L_d, V_COO_L_d, rk_d,zk1_d);
+		
+		cudaUnbindTexture(texInput);	
+
+		cudaBindTexture(&offset, texInput, zk1_d, sizeof(double)*dimension);
+
 		if(FACT){
 			if (!BLOCK){
 				matrix_vectorELL(dimension, dimension, ELL_widthLP, col_precondP_d,V_precondP_d,
@@ -695,6 +710,7 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 			}
 			if (totalNumCOO_LP>0) matrix_vectorCOO(totalNumCOO_LP, I_COO_LP_d, J_COO_LP_d, V_COO_LP_d, zk1_d,zk_d );
 		}
+		cudaUnbindTexture(texInput);	
 		//r_k+1 * z_k+1
 		cublasDdot(handle,dimension,rk_d,1,zk_d,1,&dotrz1);
 		betak=dotrz1/dotrz0;

@@ -362,19 +362,20 @@ int main(int argc, char* argv[])
 	uint32_t *I_precondP=(uint32_t *) malloc(size6);
 	uint32_t *J_precondP=(uint32_t *) malloc(size6);
 	double *V_precondP=(double *) malloc(size7);
-	
-	for (int i=0; i<totalNumPrecond; i++)
-	{
-		tempI=J_precond[i];
-		tempJ=I_precond[i];
-		tempV=V_precond[i];
-		if (tempI<0||tempI>dimension-1||tempJ<0||tempJ>dimension-1)
-			 printf("error happend at %d with tempI %d and tempJ %d\n", i ,tempI, tempJ); 
-		index1=row_idxLP[tempI]+numInRowLP[tempI];
-		I_precondP[index1]=tempI;
-		J_precondP[index1]=tempJ;
-		V_precondP[index1]=tempV;
-		numInRowLP[tempI]+=1;
+	if(cb.PRECOND){	
+		for (int i=0; i<totalNumPrecond; i++)
+		{
+			tempI=J_precond[i];
+			tempJ=I_precond[i];
+			tempV=V_precond[i];
+			if (tempI<0||tempI>dimension-1||tempJ<0||tempJ>dimension-1)
+				printf("error happend at %d with tempI %d and tempJ %d\n", i ,tempI, tempJ); 
+			index1=row_idxLP[tempI]+numInRowLP[tempI];
+			I_precondP[index1]=tempI;
+			J_precondP[index1]=tempJ;
+			V_precondP[index1]=tempV;
+			numInRowLP[tempI]+=1;
+		}
 	}
 	
 	uint32_t realIter, pp, procNum;
