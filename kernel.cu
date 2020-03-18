@@ -8,7 +8,13 @@
 #define thread_size2 512
 #define WARP_SIZE 32
 
+
 texture<float, 1, cudaReadModeElementType> texInput;
+texInput.addressMode[0] = cudaAddressModeBorder;
+texInput.addressMode[1] = cudaAddressModeBorder;
+texInput.filterMode = cudaFilterModePoint;
+texInput.normalized = false;
+
 
 /*the device function for level 2 reduce*/
 __device__ void segreduce_block(const int * idx, double * val)
@@ -137,7 +143,8 @@ __global__ void ELL_kernel_rodr(const uint32_t* num_cols_per_row_vec,
 		const uint32_t* block_data_bias_vec,  
 		const uint32_t *indices, const double *data, const double * x,
 		double * y,
-		const uint32_t* part_boundary)
+		const uint32_t* part_boundary,
+		const bool tex)
 {
 	uint32_t part_idx = blockIdx.x; 
 	uint32_t x_idx = threadIdx.x;
@@ -170,7 +177,11 @@ __global__ void ELL_kernel_rodr(const uint32_t* num_cols_per_row_vec,
 				data_idx = block_data_bias + block_rowSize*n + x_idx;//however the data storage is stride with block_rowSize
 				col=indices[data_idx];
 				val=data[data_idx];
-				dot += val* x[col];
+				if(tex == false)
+					dot += val* x[col];
+				else
+					dot += tex1Dfetch(texInput, col);
+
 			}
 			y[row] = dot;
 		}
@@ -237,7 +248,8 @@ __global__ void ELL_cached_kernel_rodr(const uint32_t* num_cols_per_row_vec,
 		const uint32_t* block_data_bias_vec,  
 		const uint32_t *indices, const double *data, const double * x,
 		double * y,
-		const uint32_t* part_boundary)
+		const uint32_t* part_boundary,
+		const bool tex)
 {
 	uint32_t part_idx = blockIdx.x; 
 	uint32_t x_idx = threadIdx.x;
@@ -279,9 +291,12 @@ __global__ void ELL_cached_kernel_rodr(const uint32_t* num_cols_per_row_vec,
 				if(val != 0){
 					if(col > vec_start && col < vec_start + vector_cache_size)
 						fetched = cached_vec[col - vec_start];
-					else
-						fetched = x[col];
-
+					else{
+						if(tex == false)
+							fetched = x[col];
+						else
+							fetched = tex1Dfetch(x, col);
+					}
 					dot += val*fetched;
 				}
 			}
@@ -320,6 +335,75 @@ __global__ void ELL_cached_kernel_float(const uint32_t num_rows,
 	}		
 }*/
 
+__global__ void COO_level_atomic(const uint32_t num_nozeros, const uint32_t interval_size, 
+				const uint32_t *I, const uint32_t *J, const double *V, 
+				const double *x, double *y, int *temp_rows, 
+				double *temp_vals)
+{
+	__shared__ volatile int rows[48*thread_size/WARP_SIZE];  //why using 48? because we need 16 additional junk elements
+	__shared__ volatile double vals[thread_size];
+	
+	uint32_t thread_id = blockDim.x*blockIdx.x + threadIdx.x;
+	uint32_t thread_lane= threadIdx.x & (WARP_SIZE-1); //great idea! think about it
+	uint32_t warp_id = thread_id / WARP_SIZE;
+	
+	uint32_t interval_begin=warp_id*interval_size;
+	uint32_t interval_end =min(interval_begin+interval_size, num_nozeros);
+	/*how about the interval is not the multiple of warp_size?*/
+	//uint32_t iteration_end=((interval_end)/WARP_SIZE)*WARP_SIZE;
+	
+	
+	if(interval_begin >= interval_end)
+	{
+		temp_rows[warp_id] = -1;
+		return;
+	}	
+	if (thread_lane ==31)
+	{
+		// initialize the cary in values
+		rows[idx]=I[interval_begin];
+		vals[threadIdx.x]=0;
+	}
+	uint32_t n;
+	n=interval_begin+thread_lane;
+	while (n< interval_end)
+	{
+		uint32_t row =I[n];
+		//double val=V[n]*fetch_x(J[n], x);
+		double val=V[n]*x[J[n]];
+		
+		if (thread_lane==0)
+		{
+			if (row==rows[idx+31])
+				val+=vals[threadIdx.x+31]; //don't confused by the "plus" 31, because the former end is the new start
+			else 
+				y[rows[idx+31]] += vals[threadIdx.x+31];//try to fix the bug from orignial library functions
+		}
+		rows[idx] =row;
+		vals[threadIdx.x] =val;
+		
+        if(row == rows[idx -  1]) { vals[threadIdx.x] = val = val + vals[threadIdx.x -  1]; } 
+        if(row == rows[idx -  2]) { vals[threadIdx.x] = val = val + vals[threadIdx.x -  2]; }
+        if(row == rows[idx -  4]) { vals[threadIdx.x] = val = val + vals[threadIdx.x -  4]; }
+        if(row == rows[idx -  8]) { vals[threadIdx.x] = val = val + vals[threadIdx.x -  8]; }
+        if(row == rows[idx - 16]) { vals[threadIdx.x] = val = val + vals[threadIdx.x - 16]; }
+
+        if(thread_lane < 31 && row < rows[idx + 1] && n<interval_end-1)
+            y[row] += vals[threadIdx.x];  
+		n+=WARP_SIZE;
+	}
+	
+	/*now we consider the reminder of interval_size/warp_size*/
+
+    /*program at one warp is automatically sychronized*/
+	if(n==(interval_end+WARP_SIZE-1))
+    {
+        // write the carry out values
+        temp_rows[warp_id] = rows[idx];
+        temp_vals[warp_id] = vals[threadIdx.x];
+    }	
+	
+}
 //for COO format matrix, output y=data*x
 //the basic idea is come from
 __global__ void COO_level1(const uint32_t num_nozeros, const uint32_t interval_size, 
@@ -551,11 +635,13 @@ void matrix_vectorELL_block(const uint32_t num_rows, const uint32_t testPoint,
 			const uint32_t* block_data_bias_vec,    
 			const uint32_t *J,
  			const double *V, const double *x, double *y,
-			const bool CACHE, const uint32_t rodr_blocks, const uint32_t* part_boundary_d)
+			const bool CACHE, const uint32_t rodr_blocks, const uint32_t* part_boundary_d,
+			const bool tex=false)
 {
 	uint32_t ELL_blocks = ceil((double) num_rows/ELL_threadSize);
 	//printf("ELL_blocks is %d\n", ELL_blocks);
 	//bind_x(x);
+	
 	if(rodr_blocks > 0){
 		if(CACHE){	
 			ELL_cached_kernel_rodr<<<rodr_blocks, ELL_threadSize>>>(num_cols_per_row_vec, 
@@ -579,6 +665,9 @@ void matrix_vectorELL_block(const uint32_t num_rows, const uint32_t testPoint,
 		ELL_kernel_block<<<ELL_blocks, ELL_threadSize>>>(num_rows, num_cols_per_row_vec, 
 			block_data_bias_vec, J, V, x,y);
 	}
+	if(tex == true)
+
+		
 	//unbind_x(x);
 	
 }
@@ -633,7 +722,8 @@ void matrix_vectorCOO(const uint32_t num_nozeros_compensation, uint32_t *I, uint
 
 void matrix_vectorHYB(matrixHYB_S_d* inputMatrix, double* vector_in_d,
 		double* vector_out_d, cb_s cb, const uint32_t testPoint,
-		const uint32_t part_size, const uint32_t* part_boundary_d)
+		const uint32_t part_size, const uint32_t* part_boundary_d, 
+		bool tex=false)
 {
 	uint32_t dimension = inputMatrix->dimension;
 	uint32_t ELL_width = inputMatrix->ELL_width;
@@ -645,7 +735,9 @@ void matrix_vectorHYB(matrixHYB_S_d* inputMatrix, double* vector_in_d,
 	double* V_COO_d = inputMatrix->V_COO_d;
 	uint32_t* ELL_block_bias_vec_d = inputMatrix->ELL_block_bias_vec_d;
 	uint32_t* ELL_block_cols_vec_d = inputMatrix->ELL_block_cols_vec_d;
-	
+	size_t offset = 0;
+	if(tex==true)
+		cudaBindTexture(&offset, texInput, vector_in_d, sizeof(double)*dimension);	
 	if(!cb.BLOCK){
 		matrix_vectorELL(dimension, dimension, ELL_width, col_d,V_d,
 				vector_in_d, vector_out_d, false, 0, NULL);
@@ -667,4 +759,7 @@ void matrix_vectorHYB(matrixHYB_S_d* inputMatrix, double* vector_in_d,
 
 	if (totalNumCOO > 0) matrix_vectorCOO(totalNumCOO, I_COO_d, J_COO_d, V_COO_d, 
 			vector_in_d, vector_out_d);
+
+	if(tex==true)
+		cudaUnbindTexture(texInput);
 }

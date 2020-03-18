@@ -69,7 +69,6 @@ void solver(const uint32_t dimension, const uint32_t totalNum, const uint32_t *I
 	}
 }
 
-
 void solverPrecondCPU(const uint32_t procNum, const uint32_t dimension, 
 		const uint32_t totalNum, const uint32_t *row_idx, const uint32_t *J, 
 		const double *V, const uint32_t totalNumPrecond, const uint32_t *row_idxL, 
