@@ -1,5 +1,6 @@
 #include "kernel.h"
 
+#define FULL_MASK 0xffffffff
 #define BASE 262144 //1024*1024
 
 #define block_size 512	
@@ -9,7 +10,8 @@
 #define WARP_SIZE 32
 
 
-texture<float, 1, cudaReadModeElementType> texInput;
+texture<double, 1, cudaReadModeElementType> texInput;
+
 texInput.addressMode[0] = cudaAddressModeBorder;
 texInput.addressMode[1] = cudaAddressModeBorder;
 texInput.filterMode = cudaFilterModePoint;
@@ -335,10 +337,9 @@ __global__ void ELL_cached_kernel_float(const uint32_t num_rows,
 	}		
 }*/
 
-__global__ void COO_level_atomic(const uint32_t num_nozeros, const uint32_t interval_size, 
+__global__ void COO_atomic(const uint32_t num_nozeros, const uint32_t interval_size, 
 				const uint32_t *I, const uint32_t *J, const double *V, 
-				const double *x, double *y, int *temp_rows, 
-				double *temp_vals)
+				const double *x, double *y) 
 {
 	__shared__ volatile int rows[48*thread_size/WARP_SIZE];  //why using 48? because we need 16 additional junk elements
 	__shared__ volatile double vals[thread_size];
@@ -351,59 +352,30 @@ __global__ void COO_level_atomic(const uint32_t num_nozeros, const uint32_t inte
 	uint32_t interval_end =min(interval_begin+interval_size, num_nozeros);
 	/*how about the interval is not the multiple of warp_size?*/
 	//uint32_t iteration_end=((interval_end)/WARP_SIZE)*WARP_SIZE;
+	int row;
+	double val;
 	
-	
-	if(interval_begin >= interval_end)
-	{
-		temp_rows[warp_id] = -1;
-		return;
-	}	
-	if (thread_lane ==31)
-	{
-		// initialize the cary in values
-		rows[idx]=I[interval_begin];
-		vals[threadIdx.x]=0;
-	}
 	uint32_t n;
 	n=interval_begin+thread_lane;
 	while (n< interval_end)
 	{
 		uint32_t row =I[n];
-		//double val=V[n]*fetch_x(J[n], x);
-		double val=V[n]*x[J[n]];
-		
-		if (thread_lane==0)
-		{
-			if (row==rows[idx+31])
-				val+=vals[threadIdx.x+31]; //don't confused by the "plus" 31, because the former end is the new start
-			else 
-				y[rows[idx+31]] += vals[threadIdx.x+31];//try to fix the bug from orignial library functions
-		}
-		rows[idx] =row;
-		vals[threadIdx.x] =val;
-		
-        if(row == rows[idx -  1]) { vals[threadIdx.x] = val = val + vals[threadIdx.x -  1]; } 
-        if(row == rows[idx -  2]) { vals[threadIdx.x] = val = val + vals[threadIdx.x -  2]; }
-        if(row == rows[idx -  4]) { vals[threadIdx.x] = val = val + vals[threadIdx.x -  4]; }
-        if(row == rows[idx -  8]) { vals[threadIdx.x] = val = val + vals[threadIdx.x -  8]; }
-        if(row == rows[idx - 16]) { vals[threadIdx.x] = val = val + vals[threadIdx.x - 16]; }
+		double val=V[n]*tex1Dfetch(texInput, I[n]);
+		//double val=V[n]*x[J[n]];
 
-        if(thread_lane < 31 && row < rows[idx + 1] && n<interval_end-1)
-            y[row] += vals[threadIdx.x];  
+        if(row == __shfl_up_sync(FULL_MASK, row, 1)) { val + __shfl_up_sync(FULL_MASK, val, 1); } 
+        if(row == __shfl_up_sync(FULL_MASK, row, 2)) { val + __shfl_up_sync(FULL_MASK, val, 2); } 
+        if(row == __shfl_up_sync(FULL_MASK, row, 4)) { val + __shfl_up_sync(FULL_MASK, val, 4); } 
+        if(row == __shfl_up_sync(FULL_MASK, row, 8)) { val + __shfl_up_sync(FULL_MASK, val, 8); } 
+        if(row == __shfl_up_sync(FULL_MASK, row, 16)) { val + __shfl_up_sync(FULL_MASK, val, 16); } 
+
+        if(row != shfl_down_sync(FULL_MASK, row, 1 ) && n<interval_end-1)
+           atomicAdd(&y[row],vals);  
 		n+=WARP_SIZE;
 	}
 	
-	/*now we consider the reminder of interval_size/warp_size*/
-
-    /*program at one warp is automatically sychronized*/
-	if(n==(interval_end+WARP_SIZE-1))
-    {
-        // write the carry out values
-        temp_rows[warp_id] = rows[idx];
-        temp_vals[warp_id] = vals[threadIdx.x];
-    }	
-	
 }
+
 //for COO format matrix, output y=data*x
 //the basic idea is come from
 __global__ void COO_level1(const uint32_t num_nozeros, const uint32_t interval_size, 
@@ -479,107 +451,7 @@ __global__ void COO_level1(const uint32_t num_nozeros, const uint32_t interval_s
 	
 }
 
-/* The second level of the segmented reduction operation
-Why we need second level of reduction? because the program running at different block can not be sychronized 
-Notice the number of input elements is fixed, and the number is relatively much small than the dimension of matrixs
-consider block_size=512, thread_size=512 (i.e. 512 block, each block has 512 threads) and wrapSize=32 the dimension of
-temp_rows will be 512*512/32=8192, this is a fix number
-So, we should set this device function's block_size=512/32=16, thread_size=512*/
 
-__global__ void COO_level2(const int * temp_rows,
-		const double * temp_vals,
-		int * temp_rows2,
-		double * temp_vals2,
-		double * y)
-/*The bias is */									
-{
-    __shared__ int rows[thread_size2 + 1];    
-    __shared__ double vals[thread_size2 + 1];
-	uint32_t idx_t=threadIdx.x;
-	uint32_t idx_g=blockDim.x*blockIdx.x+threadIdx.x;
-	
-    if (threadIdx.x == 0)
-    {
-        rows[thread_size2] =  -1;
-        vals[thread_size2] =   0;
-	temp_rows2[blockIdx.x]=-1;
-    }
-    	
-	rows[idx_t]=temp_rows[idx_g];
-	vals[idx_t]=temp_vals[idx_g];
-	__syncthreads();
-	
-	segreduce_block(rows, vals);
-	
-	if (rows[threadIdx.x] != rows[threadIdx.x + 1])
-	{
-		if (threadIdx.x!=(thread_size2-1))
-		{
-			if(rows[threadIdx.x]>=0) y[rows[threadIdx.x]] += vals[threadIdx.x];
-		}
-		else
-		{
-			temp_rows2[blockIdx.x]=rows[threadIdx.x];
-			temp_vals2[blockIdx.x]=vals[threadIdx.x];
-		}
-	}		
-	
-}
-
-//no sychronize between blocks, so we need to restart another kernel function
-__global__ void COO_level3(const uint32_t num,
-                            const int * temp_rows,
-                            double * temp_vals,
-                            double * y)
-{
-	/*only 16 elements, single thread is enough*/
-	uint32_t i=0;
-	for (i=0;i<num-1;i++)
-	{
-		if (temp_rows[i]!=temp_rows[i+1])
-			if (temp_rows[i]>=0) y[temp_rows[i]] +=temp_vals[i];
-		else if (temp_rows[i]==temp_rows[i+1])
-			temp_vals[i+1]=temp_vals[i+1]+temp_vals[i]; //don't forget update the values! also at most situation (sparse matrix) it is unnecessary	
-	}
-	/*the last elements of input data will not disturb by any other elements, so update the output directly*/
-	if (temp_rows[i]>=0) 
-		y[temp_rows[i]] +=temp_vals[i];
-}
-
-/*The single thread version of reduction*/
-__global__ void COO_level2_serial(const int * temp_rows,
-                              const double * temp_vals,
-                                    double * y,const uint32_t p)
-{
-	uint32_t i=0;
-	for (i=0;i<(block_size*thread_size/WARP_SIZE);i++)
-	{
-		if (temp_rows[i]>=0 && temp_rows[i]>=p) 
-			y[temp_rows[i]-p]+=temp_vals[i];
-	}
-}
-
-__global__ void COO_level2_serial2(const int * temp_rows,
-                              const double * temp_vals,
-                                    double * y)
-{
-	uint32_t i=0;
-	for (i=0;i<(block_size2*thread_size2/WARP_SIZE);i++)
-	{
-		
-	if (temp_rows[i]>=0) 
- 		y[temp_rows[i]]+=temp_vals[i];
-	}
-}
-
-__global__ void COO_level1_serial(const uint32_t num, uint32_t *I, uint32_t *J, double *V, double *x, double *y)
-{
-	uint32_t i=0;
-	for (i=0;i<num;i++)
-	{
-		y[I[i]]+=V[i]*x[J[i]];
-	}
-}
 
 //y=x+gamak*y
 __global__ void kernelMyxpy(const uint32_t dimension, double gamak, const double *x, double *y)
@@ -676,48 +548,7 @@ void matrix_vectorCOO(const uint32_t num_nozeros_compensation, uint32_t *I, uint
 {
 	uint32_t interval_size2;
 	interval_size2=ceil(((double) num_nozeros_compensation)/(block_size*thread_size/WARP_SIZE));//for data with 2 million elements, we have interval size 200	
-	//printf("num_nozeros_compensation is %d, intervalSize is %d\n",num_nozeros_compensation, interval_size2 );
-	if (interval_size2>32)
-	{
-		//512*512
-		size_t sizeKernel0=(block_size*thread_size/WARP_SIZE)*sizeof(uint32_t);
-		size_t sizeKernel1=(block_size*thread_size/WARP_SIZE)*sizeof(double);		
-		int *temp_rows1;
-		double *temp_vals1;
-		int *temp_rows2;
-		double *temp_vals2;
-		cudaMalloc((void**)&temp_rows1, sizeKernel0);
-		cudaMalloc((void**)&temp_vals1, sizeKernel1);
-		cudaMalloc((void**)&temp_rows2, block_size2*sizeof(uint32_t));
-		cudaMalloc((void**)&temp_vals2, block_size2*sizeof(double));
-		COO_level1<<<block_size,thread_size>>>(num_nozeros_compensation,interval_size2, 
-					I, J, V, x_d, y_d, temp_rows1, temp_vals1);
-		COO_level2<<<block_size2,thread_size2>>>(temp_rows1,temp_vals1,temp_rows2,temp_vals2,y_d);
-		COO_level3<<<1,1>>>(block_size2,temp_rows2,temp_vals2,y_d);
-		//COO_level2_serial<<<1,1>>>(temp_rows1,temp_vals1,y_d);
-	}
-	else if (interval_size2>1)
-	{
-		//16*512
-		//printf("situation 2 happened!\n");
-		size_t sizeKernel2=(block_size2*thread_size2/WARP_SIZE)*sizeof(uint32_t);
-		size_t sizeKernel3=(block_size2*thread_size2/WARP_SIZE)*sizeof(double);
-		int *temp_rows3;
-		double *temp_vals3;
-		cudaMalloc((void**)&temp_rows3, sizeKernel2);
-		cudaMalloc((void**)&temp_vals3, sizeKernel3);
-		uint32_t interval_size3=ceil(((double) num_nozeros_compensation)/(block_size2*thread_size2/WARP_SIZE));//for data with 2 million elements, we have interval size 200	
-		COO_level1<<<block_size2,thread_size2>>>(num_nozeros_compensation, interval_size3, 
-				I, J, V, x_d, y_d, temp_rows3, temp_vals3);
-		//512 calculation excuted serially
-		COO_level2_serial2<<<1,1>>>(temp_rows3,temp_vals3,y_d);		
-	} else {
-	
-		//less than 512, all calculation excuted serially
-		//printf("situation 3 happen\n");
-		COO_level1_serial<<<1,1>>>(num_nozeros_compensation, I,J,V,x_d,y_d);
-	}
-	
+	COO_atomic(num_nozeros_compensation, interval_size2, I, J, V, x_d, y_d);
 }
 
 void matrix_vectorHYB(matrixHYB_S_d* inputMatrix, double* vector_in_d,
