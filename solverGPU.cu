@@ -3,6 +3,7 @@
 #include "convert.h"
 #include "test.h"
 
+static const bool tex = false;
 
 static inline uint32_t calPadding(uint32_t dimension,
 		const uint32_t* numInRow, const uint32_t* part_boundary, 	
@@ -81,9 +82,7 @@ void solverGPU_unprecondHYB(matrixCOO_S* localMatrix,
 	uint32_t ELL_blocks;
     uint32_t *ELL_block_cols_vec, *ELL_block_cols_vec_d;    
     uint32_t *ELL_block_bias_vec, *ELL_block_bias_vec_d;	
-	ELL_block_cols_vec = (uint32_t*)malloc(ELL_blocks*sizeof(uint32_t));  
-	ELL_block_bias_vec = (uint32_t*)malloc((ELL_blocks +1)*sizeof(uint32_t));
-
+	
     row_idx = localMatrix->row_idx; 
     numInRow = localMatrix->numInRow; 
     I = localMatrix->I; 
@@ -146,7 +145,8 @@ void solverGPU_unprecondHYB(matrixCOO_S* localMatrix,
 				(part_size +1)*sizeof(uint32_t), cudaMemcpyHostToDevice);
 		uint32_t padding = calPadding(dimension, numInRow, part_boundary, 	
 			ELL_block_cols_vec, part_size);
-		printf("totalNumCOO is %d padding is %d, waste rate on ELL is %f\n", totalNumCOO, padding, ((float)padding)/totalNum);
+		printf("totalNumCOO is %d padding is %d, waste rate on ELL is %f\n", 
+				totalNumCOO, padding, ((float)padding)/totalNum);
 
 
 	} else {
@@ -198,8 +198,8 @@ void solverGPU_unprecondHYB(matrixCOO_S* localMatrix,
 		doth=doth+vector_in[i]*vector_in[i];
 	}
 	struct timeval start1, end1;
-	gettimeofday(&start1, NULL);
 	double *bp=(double *) malloc(size1);
+	double *bp_g =(double *) malloc(size1);
 	double *pk=(double *) malloc(size1);
 	double *rk=(double *) malloc(size1);
 
@@ -207,7 +207,6 @@ void solverGPU_unprecondHYB(matrixCOO_S* localMatrix,
 	double *pk_dt = (double *) malloc(size1);
 	double *rk_dt = (double *) malloc(size1);
 	//double *x=(double *) malloc(size1);
-	double error_t,alphak_t,gamak_t;
 	error=1000;
 	//initialize
 	for (uint32_t i=0;i<dimension;i++)
@@ -217,7 +216,8 @@ void solverGPU_unprecondHYB(matrixCOO_S* localMatrix,
 		vector_out[i]=0;
 		bp[i]=0;
 	}
-	
+	printf("ELL_block_cols_vec[0] is %d\n", ELL_block_cols_vec[0]);	
+	gettimeofday(&start1, NULL);
 	while (error>threshold&&iter<MAXIter){
 		dotp0=0;
 		dotr0=0;
@@ -225,11 +225,25 @@ void solverGPU_unprecondHYB(matrixCOO_S* localMatrix,
 		uint32_t errorIdx = 0;
 		double compareError;
 		cudaMemset(bp_d, 0, size1);
-		texInput.addressMode[0] = cudaAddressModeBorder;
-		texInput.normalized = false;
-		size_t offset = 0;
+
+		//matrix_vectorTest(localMatrix, vector_in, bp, 0);
+		
 		matrix_vectorHYB(&localMatrixHYB_d, pk_d, bp_d, cb, 0,
-			   part_size, part_boundary_d);
+			   part_size, part_boundary_d, tex);
+		//cudaMemcpy(bp_g, bp_d, dimension*sizeof(double), cudaMemcpyDeviceToHost);
+		//for(int i = 0; i < dimension; ++i){
+		//	compareError = 	(bp_g[i] - bp[i])/bp_g[i];
+		//	if(errorIdx == 0  && (compareError > 0.000001 || compareError < -0.00001)){ 	
+		//		printf("bp[%d] of GPU result is %f, test value is %f\n", i, bp_g[i], bp[i]);
+		//		if(errorIdx == 0) errorIdx = i;	
+		//	}
+		//}
+		//
+		//matrix_vectorTest(localMatrix, vector_in, bp, errorIdx);
+		//cudaMemset(bp_d, 0, size1);
+		//matrix_vectorHYB(&localMatrixHYB_d, pk_d, bp_d, cb, errorIdx,
+		//	   part_size, part_boundary_d, errorIdx);
+		
 		//for (uint32_t k=0;k<5;k++) printf("pk %d at iter %d is %f\n",k, iter, pk[k]);
 		//printf("CPU start\n");
 		
@@ -268,7 +282,7 @@ void solverGPU_unprecondCUSPARSE(matrixCOO_S* localMatrix,
 {
 	//exampine the performance using cusparse library functions with
 	//CSR format
-	double dotp0,dotr0,dotr1,doth;
+	//double dotp0,dotr0,dotr1,doth;
 
 }
 
@@ -534,17 +548,17 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 			matrix_vectorELL_block(dimension, 0, ELL_block_cols_vec_L_d, 
 					ELL_block_bias_vec_L_d,
                     col_precond_d,V_precond_d,rk_d,zk1_d,
-					CACHE, part_size, part_boundary_d);
+					CACHE, part_size, part_boundary_d, tex);
 		}
 		else{
 			matrix_vectorELL_block(dimension, 0, ELL_block_cols_vec_L_d, 
 					ELL_block_bias_vec_L_d,
 					col_precond_d,V_precond_d,rk_d,zk1_d,
-					false, 0, NULL);
+					false, 0, NULL, tex);
 		}
 	}
 	if (totalNumCOO_L>0) matrix_vectorCOO(totalNumCOO_L, I_COO_L_d, J_COO_L_d, V_COO_L_d, 
-									rk_d, zk1_d);
+									rk_d, zk1_d, 0, tex);
 	cudaMemcpy(zk1_g, zk1_d, dimension*sizeof(double), cudaMemcpyDeviceToHost);
 	uint32_t errorIdx = 0;
 	float compareError;
@@ -558,13 +572,12 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 		}
 	}
 	if(errorIdx > 0){
-		matrix_vectorTest(localMatrix_precond, vector_in, zk1T, errorIdx);
+		//matrix_vectorTest(localMatrix_precond, vector_in, zk1T, errorIdx);
 		matrix_vectorELL_block(dimension, errorIdx, ELL_block_cols_vec_L_d, 
 				ELL_block_bias_vec_L_d,
 				col_precond_d,V_precond_d,rk_d,zk1_d,
-				CACHE, part_size, part_boundary_d);
+				CACHE, part_size, part_boundary_d, tex);
 	}
-	if(!BLOCK){
 	if(FACT){	
 		if (!BLOCK) {
 			matrix_vectorELL(dimension, dimension, ELL_widthLP, col_precondP_d, 
@@ -573,16 +586,16 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 			if(RODR){
 				matrix_vectorELL_block(dimension, 0, ELL_block_cols_vec_LP_d, ELL_block_bias_vec_LP_d,  
 						col_precondP_d,V_precondP_d, 
-						zk1_d, zk_d, CACHE, part_size, part_boundary_d); 
+						zk1_d, zk_d, CACHE, part_size, part_boundary_d, tex); 
 
 			} else {
 				matrix_vectorELL_block(dimension, 0, ELL_block_cols_vec_LP_d, ELL_block_bias_vec_LP_d,  
 						col_precondP_d, V_precondP_d, 
-						zk1_d, zk_d, false, 0, NULL);
+						zk1_d, zk_d, false, 0, NULL, tex);
 
 			}	
 		}
-		if (totalNumCOO_LP>0) matrix_vectorCOO(totalNumCOO_LP, I_COO_LP_d, J_COO_LP_d, V_COO_LP_d, zk1_d, zk_d);
+		if (totalNumCOO_LP>0) matrix_vectorCOO(totalNumCOO_LP, I_COO_LP_d, J_COO_LP_d, V_COO_LP_d, zk1_d, zk_d, 0, tex);
 	}	
 	//double* zkT = (double*) calloc(dimension, sizeof(double));	
 	//double* zk_g = (double*) calloc(dimension, sizeof(double));	
@@ -603,7 +616,6 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 	double errorNorm=sqrt(doth);
 	uint32_t iter=0;
 	struct timeval start1, end1;
-	struct timeval start2, end2;
 
 	gettimeofday(&start1, NULL);
 	
@@ -618,15 +630,15 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 			if(RODR){
 				matrix_vectorELL_block(dimension, 0, ELL_block_cols_vec_d, ELL_block_bias_vec_d,  
 						col_d,V_d,pk_d,bp_d,
-						CACHE, part_size, part_boundary_d);
+						CACHE, part_size, part_boundary_d, tex);
 			}
 			else{
 				matrix_vectorELL_block(dimension, 0, ELL_block_cols_vec_d, ELL_block_bias_vec_d,  
 						col_d,V_d,pk_d,bp_d,
-						false, 0, NULL);
+						false, 0, NULL, tex);
 			}
 		}
-		if (totalNumCOO>0) matrix_vectorCOO(totalNumCOO, I_COO_d, J_COO_d, V_COO_d, pk_d, bp_d);
+		if (totalNumCOO>0) matrix_vectorCOO(totalNumCOO, I_COO_d, J_COO_d, V_COO_d, pk_d, bp_d, 0, tex);
 		//cudaMemcpy(bp_g, bp_d, dimension*sizeof(double), cudaMemcpyDeviceToHost);
 		//double dotp0T = 0;
 		//double dotp0TT = 0;
@@ -669,15 +681,15 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 			if(RODR){
 				matrix_vectorELL_block(dimension, 0, ELL_block_cols_vec_L_d, ELL_block_bias_vec_L_d, 
 						col_precond_d, V_precond_d, rk_d, zk1_d, 
-						CACHE, part_size, part_boundary_d);
+						CACHE, part_size, part_boundary_d, tex);
 			}
 			else{
 				matrix_vectorELL_block(dimension, 0, ELL_block_cols_vec_L_d, ELL_block_bias_vec_L_d, 
 						col_precond_d,V_precond_d,rk_d,zk1_d,
-						false, 0, NULL);
+						false, 0, NULL, tex);
 			}
 		}
-		if (totalNumCOO_L>0) matrix_vectorCOO(totalNumCOO_L, I_COO_L_d, J_COO_L_d, V_COO_L_d, rk_d,zk1_d);
+		if (totalNumCOO_L>0) matrix_vectorCOO(totalNumCOO_L, I_COO_L_d, J_COO_L_d, V_COO_L_d, rk_d,zk1_d, 0, tex);
 		
 		if(FACT){
 			if (!BLOCK){
@@ -687,15 +699,15 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 				if(RODR){	
 					matrix_vectorELL_block(dimension, 0, ELL_block_cols_vec_LP_d, ELL_block_bias_vec_LP_d,  
 							col_precondP_d,V_precondP_d,
-							zk1_d,zk_d, CACHE, part_size, part_boundary_d);
+							zk1_d,zk_d, CACHE, part_size, part_boundary_d, tex);
 				}
 				else{
 					matrix_vectorELL_block(dimension, 0, ELL_block_cols_vec_LP_d, ELL_block_bias_vec_LP_d,  
 							col_precondP_d,V_precondP_d,
-							zk1_d,zk_d, false, 0, NULL);
+							zk1_d,zk_d, false, 0, NULL, tex);
 				}
 			}
-			if (totalNumCOO_LP>0) matrix_vectorCOO(totalNumCOO_LP, I_COO_LP_d, J_COO_LP_d, V_COO_LP_d, zk1_d,zk_d );
+			if (totalNumCOO_LP>0) matrix_vectorCOO(totalNumCOO_LP, I_COO_LP_d, J_COO_LP_d, V_COO_LP_d, zk1_d, zk_d, 0,  tex);
 		}
 		//r_k+1 * z_k+1
 		cublasDdot(handle,dimension,rk_d,1,zk_d,1,&dotrz1);

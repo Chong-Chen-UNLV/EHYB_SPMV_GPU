@@ -1,6 +1,6 @@
 #include "fspai.h"
 #include <string.h>
-#include <lapacke.h>
+//#include <lapacke.h>
 
 inline int qs_compare(const void *A, const void *B){
 	Sort_S *A_ = (Sort_S *) A;
@@ -272,8 +272,8 @@ void spaiCPU(S *SInput)
 				vecBuf, hitRow, 
 				&colDim, &rowDim, yk);
 
-		LAPACKE_sgels(LAPACK_ROW_MAJOR, 'N', rowDim, colDim, colDim, subMatrix,
-				colDim, yk, rowDim);		
+	//	LAPACKE_sgels(LAPACK_ROW_MAJOR, 'N', rowDim, colDim, colDim, subMatrix,
+	//			colDim, yk, rowDim);		
 
 		for (int p=0; p<numInRow[i]; ++p)
 		{

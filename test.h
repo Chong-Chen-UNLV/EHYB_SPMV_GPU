@@ -6,7 +6,7 @@
 #include "kernel.h"
 
 void matrix_vectorTest(matrixCOO_S *matrix, const double* vector_in, double* vector_out, 
-		unsigned int testpoint){
+		int testpoint){
 	FILE *tFile;
 	if(testpoint > 0) {
 		if ((tFile = fopen("testResult", "w")) == NULL){ 

@@ -9,38 +9,14 @@
 #define thread_size2 512
 #define WARP_SIZE 32
 
-
-texture<double, 1, cudaReadModeElementType> texInput;
-
-texInput.addressMode[0] = cudaAddressModeBorder;
-texInput.addressMode[1] = cudaAddressModeBorder;
-texInput.filterMode = cudaFilterModePoint;
-texInput.normalized = false;
-
-
-/*the device function for level 2 reduce*/
-__device__ void segreduce_block(const int * idx, double * val)
-{
-    double left = 0;
-    if( threadIdx.x >=   1 && idx[threadIdx.x] == idx[threadIdx.x -   1] ) { left = val[threadIdx.x -   1]; } __syncthreads(); val[threadIdx.x] += left; left = 0; __syncthreads();  
-    if( threadIdx.x >=   2 && idx[threadIdx.x] == idx[threadIdx.x -   2] ) { left = val[threadIdx.x -   2]; } __syncthreads(); val[threadIdx.x] += left; left = 0; __syncthreads();
-    if( threadIdx.x >=   4 && idx[threadIdx.x] == idx[threadIdx.x -   4] ) { left = val[threadIdx.x -   4]; } __syncthreads(); val[threadIdx.x] += left; left = 0; __syncthreads();
-    if( threadIdx.x >=   8 && idx[threadIdx.x] == idx[threadIdx.x -   8] ) { left = val[threadIdx.x -   8]; } __syncthreads(); val[threadIdx.x] += left; left = 0; __syncthreads();
-    if( threadIdx.x >=  16 && idx[threadIdx.x] == idx[threadIdx.x -  16] ) { left = val[threadIdx.x -  16]; } __syncthreads(); val[threadIdx.x] += left; left = 0; __syncthreads();
-    if( threadIdx.x >=  32 && idx[threadIdx.x] == idx[threadIdx.x -  32] ) { left = val[threadIdx.x -  32]; } __syncthreads(); val[threadIdx.x] += left; left = 0; __syncthreads();  
-    if( threadIdx.x >=  64 && idx[threadIdx.x] == idx[threadIdx.x -  64] ) { left = val[threadIdx.x -  64]; } __syncthreads(); val[threadIdx.x] += left; left = 0; __syncthreads();
-    if( threadIdx.x >= 128 && idx[threadIdx.x] == idx[threadIdx.x - 128] ) { left = val[threadIdx.x - 128]; } __syncthreads(); val[threadIdx.x] += left; left = 0; __syncthreads();
-    if( threadIdx.x >= 256 && idx[threadIdx.x] == idx[threadIdx.x - 256] ) { left = val[threadIdx.x - 256]; } __syncthreads(); val[threadIdx.x] += left; left = 0; __syncthreads();
-	if( threadIdx.x >= 512 && idx[threadIdx.x] == idx[threadIdx.x - 512] ) { left = val[threadIdx.x - 512]; } __syncthreads(); val[threadIdx.x] += left; left = 0; __syncthreads();
+static __inline__ __device__ double fetch_double(uint2 p){
+	    return __hiloint2double(p.y, p.x);
 }
 
-__device__ 
-double get_val(const uint32_t idx, const uint32_t scope1, const uint32_t scope2,  const double *vec, volatile double* cached_vec){
-	if(idx > scope1 && idx < scope2)
-		return cached_vec[idx - scope1];
-	else
-		return vec[idx];
-}
+texture<uint2, 1> texInput;
+texture<float, 1> texInputFloat;
+
+static bool texInited = false;
 
 /*kernel function for initialize*/
 __global__ void kernelInitialize(const uint32_t num, double *x)
@@ -114,7 +90,8 @@ __global__ void ELL_kernel_block(const uint32_t num_rows,
 			const uint32_t* num_cols_per_row_vec, 
 			const uint32_t* block_data_bias_vec,  
 			const uint32_t *indices, 
-			const double *data, const double * x, double * y) 
+			const double *data, const double * x, double * y,
+			bool tex = false) 
 {
 	
 	uint32_t block_idx = blockIdx.x; 
@@ -134,8 +111,12 @@ __global__ void ELL_kernel_block(const uint32_t num_rows,
 			col=indices[data_idx];
 			val=data[data_idx];
 
-			if (val != 0)
-				dot += val* x[col];
+			if (val != 0){
+				if(tex == false)
+					dot += val* x[col];
+				else
+					dot += val*fetch_double(tex1Dfetch(texInput, col));
+			}
 		}
 		y[row]+=dot;
 	}
@@ -182,7 +163,7 @@ __global__ void ELL_kernel_rodr(const uint32_t* num_cols_per_row_vec,
 				if(tex == false)
 					dot += val* x[col];
 				else
-					dot += tex1Dfetch(texInput, col);
+					dot += fetch_double(tex1Dfetch(texInput, col));
 
 			}
 			y[row] = dot;
@@ -297,7 +278,7 @@ __global__ void ELL_cached_kernel_rodr(const uint32_t* num_cols_per_row_vec,
 						if(tex == false)
 							fetched = x[col];
 						else
-							fetched = tex1Dfetch(x, col);
+							fetched = fetch_double(tex1Dfetch(texInput, col));
 					}
 					dot += val*fetched;
 				}
@@ -308,41 +289,72 @@ __global__ void ELL_cached_kernel_rodr(const uint32_t* num_cols_per_row_vec,
 	}		
 }
 
-/*
-__global__ void ELL_cached_kernel_float(const uint32_t num_rows,  
-				const uint32_t num_cols_per_row, 
-				const uint32_t *indices, const float* data, const double * x,
-				double * y,
-				const uint32_t* part_boundary)
-{
-	uint32_t x_idx = blockDim.x*blockIdx.x+threadIdx.x;
-	__shared__ volatile double cached_vec[vector_cache_size];  
-	uint32_t vec_start = part_boundary[blockIdx.x];
-	uint32_t vec_end = part_boundary[blockIdx.x + 1];
-	double val, dot;
-	uint32_t col;
-
-	for (uint32_t i = x_idx; i < vector_cache_size; i += ELL_threadSize){
-		cached_vec[i] = x[i + vec_start];
-	}
-	for(uint32_t row = x_idx; row < vec_end; row += ELL_threadSize){
-		dot =0;
-		for (uint32_t n=0; n< num_cols_per_row; n++){
-			col=indices[num_rows*n + row];
-			val=data[num_rows*n + row];
-			if (val != 0)
-				dot += val*get_val(col, vec_start, vec_start + vector_cache_size, x, cached_vec);
-		}
-		y[row] = dot;
-	}		
-}*/
-
-__global__ void COO_atomic(const uint32_t num_nozeros, const uint32_t interval_size, 
-				const uint32_t *I, const uint32_t *J, const double *V, 
-				const double *x, double *y) 
+__global__ void COO_shared(const uint32_t num_nozeros, const uint32_t interval_size,
+				const uint32_t *I, const uint32_t *J, const double *V,
+				const double *x, double *y)
 {
 	__shared__ volatile int rows[48*thread_size/WARP_SIZE];  //why using 48? because we need 16 additional junk elements
 	__shared__ volatile double vals[thread_size];
+
+	uint32_t thread_id = blockDim.x*blockIdx.x + threadIdx.x;
+	uint32_t thread_lane= threadIdx.x & (WARP_SIZE-1); //great idea! think about it
+	uint32_t warp_id = thread_id / WARP_SIZE;
+
+	uint32_t interval_begin=warp_id*interval_size;
+	uint32_t interval_end =min(interval_begin+interval_size, num_nozeros);
+	/*how about the interval is not the multiple of warp_size?*/
+	//uint32_t iteration_end=((interval_end)/WARP_SIZE)*WARP_SIZE;
+
+	uint32_t idx=16*(threadIdx.x/32+1) + threadIdx.x;//every warp has 16 "junk" rows elements
+
+	rows[idx-16]=-1;
+	
+	uint32_t n;
+	n=interval_begin+thread_lane;
+	while (n< interval_end)
+	{
+		uint32_t row =I[n];
+		//double val=V[n]*fetch_x(J[n], x);
+		double val=V[n]*x[J[n]];
+
+		
+		rows[idx] =row;
+		vals[threadIdx.x] =val;
+
+        if(row == rows[idx -  1]) { vals[threadIdx.x] = val = val + vals[threadIdx.x -  1]; }
+        if(row == rows[idx -  2]) { vals[threadIdx.x] = val = val + vals[threadIdx.x -  2]; }
+        if(row == rows[idx -  4]) { vals[threadIdx.x] = val = val + vals[threadIdx.x -  4]; }
+        if(row == rows[idx -  8]) { vals[threadIdx.x] = val = val + vals[threadIdx.x -  8]; }
+        if(row == rows[idx - 16]) { vals[threadIdx.x] = val = val + vals[threadIdx.x - 16]; }
+
+		if(thread_lane == 31 || n == interval_end -1){
+			//if(row == testPoint){
+			//	y[row] += val;
+			//}else
+				atomicAdd(&y[row],val);  
+		}else{
+			if(row != rows[idx + 1]){
+			//	if(row == testPoint ){
+			//		y[row] += val;
+			//	} else
+					y[row] += vals[threadIdx.x];
+					//atomicAdd(&y[row],val);  
+				
+			}
+		}
+        
+		n+=WARP_SIZE;
+	}
+	
+
+}
+
+
+
+__global__ void COO_atomic(const uint32_t num_nozeros, const uint32_t interval_size, 
+				const uint32_t *I, const uint32_t *J, const double *V, 
+				const double *x, double *y, bool tex, uint32_t testPoint) 
+{
 	
 	uint32_t thread_id = blockDim.x*blockIdx.x + threadIdx.x;
 	uint32_t thread_lane= threadIdx.x & (WARP_SIZE-1); //great idea! think about it
@@ -354,103 +366,67 @@ __global__ void COO_atomic(const uint32_t num_nozeros, const uint32_t interval_s
 	//uint32_t iteration_end=((interval_end)/WARP_SIZE)*WARP_SIZE;
 	int row;
 	double val;
+	uint32_t row_tmp;
+	double val_tmp;
 	
 	uint32_t n;
 	n=interval_begin+thread_lane;
 	while (n< interval_end)
 	{
-		uint32_t row =I[n];
-		double val=V[n]*tex1Dfetch(texInput, I[n]);
+		row = I[n];
+		if(tex == true)
+			val=V[n]*fetch_double(tex1Dfetch(texInput, J[n]));
+				
+		else
+			val = V[n]*x[J[n]];
+		
 		//double val=V[n]*x[J[n]];
-
-        if(row == __shfl_up_sync(FULL_MASK, row, 1)) { val + __shfl_up_sync(FULL_MASK, val, 1); } 
-        if(row == __shfl_up_sync(FULL_MASK, row, 2)) { val + __shfl_up_sync(FULL_MASK, val, 2); } 
-        if(row == __shfl_up_sync(FULL_MASK, row, 4)) { val + __shfl_up_sync(FULL_MASK, val, 4); } 
-        if(row == __shfl_up_sync(FULL_MASK, row, 8)) { val + __shfl_up_sync(FULL_MASK, val, 8); } 
-        if(row == __shfl_up_sync(FULL_MASK, row, 16)) { val + __shfl_up_sync(FULL_MASK, val, 16); } 
-
-        if(row != shfl_down_sync(FULL_MASK, row, 1 ) && n<interval_end-1)
-           atomicAdd(&y[row],vals);  
-		n+=WARP_SIZE;
-	}
-	
-}
-
-//for COO format matrix, output y=data*x
-//the basic idea is come from
-__global__ void COO_level1(const uint32_t num_nozeros, const uint32_t interval_size, 
-				const uint32_t *I, const uint32_t *J, const double *V, 
-				const double *x, double *y, int *temp_rows, 
-				double *temp_vals)
-{
-	__shared__ volatile int rows[48*thread_size/WARP_SIZE];  //why using 48? because we need 16 additional junk elements
-	__shared__ volatile double vals[thread_size];
-	
-	uint32_t thread_id = blockDim.x*blockIdx.x + threadIdx.x;
-	uint32_t thread_lane= threadIdx.x & (WARP_SIZE-1); //great idea! think about it
-	uint32_t warp_id = thread_id / WARP_SIZE;
-	
-	uint32_t interval_begin=warp_id*interval_size;
-	uint32_t interval_end =min(interval_begin+interval_size, num_nozeros);
-	/*how about the interval is not the multiple of warp_size?*/
-	//uint32_t iteration_end=((interval_end)/WARP_SIZE)*WARP_SIZE;
-	
-	uint32_t idx=16*(threadIdx.x/32+1) + threadIdx.x;//every warp has 16 "junk" rows elements
-	
-	rows[idx-16]=-1;
-	
-	if(interval_begin >= interval_end)
-	{
-		temp_rows[warp_id] = -1;
-		return;
-	}	
-	if (thread_lane ==31)
-	{
-		// initialize the cary in values
-		rows[idx]=I[interval_begin];
-		vals[threadIdx.x]=0;
-	}
-	uint32_t n;
-	n=interval_begin+thread_lane;
-	while (n< interval_end)
-	{
-		uint32_t row =I[n];
-		//double val=V[n]*fetch_x(J[n], x);
-		double val=V[n]*x[J[n]];
-		
-		if (thread_lane==0)
-		{
-			if (row==rows[idx+31])
-				val+=vals[threadIdx.x+31]; //don't confused by the "plus" 31, because the former end is the new start
-			else 
-				y[rows[idx+31]] += vals[threadIdx.x+31];//try to fix the bug from orignial library functions
+		val_tmp = __shfl_up_sync(FULL_MASK, val, 1);
+		row_tmp = __shfl_up_sync(FULL_MASK, row, 1);
+		if(thread_lane > 0 && row == row_tmp) { 
+			val += val_tmp; 
+		} 
+		val_tmp = __shfl_up_sync(FULL_MASK, val, 2);
+		row_tmp = __shfl_up_sync(FULL_MASK, row, 2);
+		if(thread_lane > 1 && row == row_tmp) { 
+			val += val_tmp; 
 		}
-		rows[idx] =row;
-		vals[threadIdx.x] =val;
-		
-        if(row == rows[idx -  1]) { vals[threadIdx.x] = val = val + vals[threadIdx.x -  1]; } 
-        if(row == rows[idx -  2]) { vals[threadIdx.x] = val = val + vals[threadIdx.x -  2]; }
-        if(row == rows[idx -  4]) { vals[threadIdx.x] = val = val + vals[threadIdx.x -  4]; }
-        if(row == rows[idx -  8]) { vals[threadIdx.x] = val = val + vals[threadIdx.x -  8]; }
-        if(row == rows[idx - 16]) { vals[threadIdx.x] = val = val + vals[threadIdx.x - 16]; }
-
-        if(thread_lane < 31 && row < rows[idx + 1] && n<interval_end-1)
-            y[row] += vals[threadIdx.x];  
+		val_tmp = __shfl_up_sync(FULL_MASK, val, 4);
+		row_tmp = __shfl_up_sync(FULL_MASK, row, 4);
+		if(thread_lane > 3 && row == row_tmp) { 
+			val += val_tmp; 
+		}
+		val_tmp = __shfl_up_sync(FULL_MASK, val, 8);
+		row_tmp = __shfl_up_sync(FULL_MASK, row, 8);
+		if(thread_lane > 7 && row == row_tmp) { 
+			val += val_tmp; 
+		}
+		val_tmp = __shfl_up_sync(FULL_MASK, val, 16);
+		row_tmp = __shfl_up_sync(FULL_MASK, row, 16);
+		if(thread_lane > 15 && row == row_tmp) { 
+			val += val_tmp; 
+		}
+		row_tmp = __shfl_down_sync(FULL_MASK, row, 1);
+		if(thread_lane == 31 || n == interval_end -1){
+			//if(row == testPoint){
+			//	y[row] += val;
+			//}else
+				atomicAdd(&y[row],val);  
+		}else{
+			if(row != row_tmp){
+			//	if(row == testPoint ){
+			//		y[row] += val;
+			//	} else
+					y[row] += val;
+					//atomicAdd(&y[row],val);  
+				
+			}
+		}	
 		n+=WARP_SIZE;
 	}
 	
-	/*now we consider the reminder of interval_size/warp_size*/
-
-    /*program at one warp is automatically sychronized*/
-	if(n==(interval_end+WARP_SIZE-1))
-    {
-        // write the carry out values
-        temp_rows[warp_id] = rows[idx];
-        temp_vals[warp_id] = vals[threadIdx.x];
-    }	
 	
 }
-
 
 
 //y=x+gamak*y
@@ -528,7 +504,7 @@ void matrix_vectorELL_block(const uint32_t num_rows, const uint32_t testPoint,
 			} else {
 				ELL_kernel_rodr<<<rodr_blocks, ELL_threadSize>>>(num_cols_per_row_vec, 
 						block_data_bias_vec,
-						J, V, x, y, part_boundary_d);
+						J, V, x, y, part_boundary_d, tex);
 			}
 			
 		}
@@ -543,17 +519,19 @@ void matrix_vectorELL_block(const uint32_t num_rows, const uint32_t testPoint,
 	
 }
 
-void matrix_vectorCOO(const uint32_t num_nozeros_compensation, uint32_t *I, uint32_t *J, double *V, double *x_d, double *y_d)
+void matrix_vectorCOO(const uint32_t num_nozeros_compensation, uint32_t *I, uint32_t *J, double *V, double *x_d, double *y_d, uint32_t testPoint, bool tex=false)
 {
 	uint32_t interval_size2;
-	interval_size2=ceil(((double) num_nozeros_compensation)/(block_size*thread_size/WARP_SIZE));//for data with 2 million elements, we have interval size 200	
-	COO_atomic(num_nozeros_compensation, interval_size2, I, J, V, x_d, y_d);
+	interval_size2=ceil(((double) num_nozeros_compensation)/(512*512/WARP_SIZE));//for data with 2 million elements, we have interval size 200	
+	//COO_atomic<<<512, 512>>>(num_nozeros_compensation, interval_size2, I, J, V, x_d, y_d, tex, testPoint);
+	COO_shared<<<512, 512>>>(num_nozeros_compensation, interval_size2, I, J, V, x_d, y_d);
+
 }
 
 void matrix_vectorHYB(matrixHYB_S_d* inputMatrix, double* vector_in_d,
 		double* vector_out_d, cb_s cb, const uint32_t testPoint,
 		const uint32_t part_size, const uint32_t* part_boundary_d, 
-		bool tex=false)
+		const bool tex=false)
 {
 	uint32_t dimension = inputMatrix->dimension;
 	uint32_t ELL_width = inputMatrix->ELL_width;
@@ -566,30 +544,39 @@ void matrix_vectorHYB(matrixHYB_S_d* inputMatrix, double* vector_in_d,
 	uint32_t* ELL_block_bias_vec_d = inputMatrix->ELL_block_bias_vec_d;
 	uint32_t* ELL_block_cols_vec_d = inputMatrix->ELL_block_cols_vec_d;
 	size_t offset = 0;
-	if(tex==true)
+	if(tex==true){
+		if(texInited == false){
+			texInput.addressMode[0] = cudaAddressModeBorder;
+			texInput.addressMode[1] = cudaAddressModeBorder;
+			texInput.filterMode = cudaFilterModePoint;
+			texInput.normalized = false;
+			texInited = true;
+		}
 		cudaBindTexture(&offset, texInput, vector_in_d, sizeof(double)*dimension);	
+	}
 	if(!cb.BLOCK){
 		matrix_vectorELL(dimension, dimension, ELL_width, col_d,V_d,
 				vector_in_d, vector_out_d, false, 0, NULL);
 	} else {
 		if(cb.RODR){
-			matrix_vectorELL_block(dimension, testPoint, ELL_block_cols_vec_d, 
+			matrix_vectorELL_block(dimension, 0, ELL_block_cols_vec_d, 
 					ELL_block_bias_vec_d,
 					col_d,V_d, vector_in_d, vector_out_d,
-					cb.CACHE, part_size, part_boundary_d);
+					cb.CACHE, part_size, part_boundary_d, tex);
 		}
 		else{
-			matrix_vectorELL_block(dimension, testPoint, ELL_block_cols_vec_d, 
+			matrix_vectorELL_block(dimension, 0, ELL_block_cols_vec_d, 
 					ELL_block_bias_vec_d,
 					col_d, V_d, 
 					vector_in_d, vector_out_d,
-					false, 0, NULL);
+					false, 0, NULL, tex);
 		}
 	}
 
 	if (totalNumCOO > 0) matrix_vectorCOO(totalNumCOO, I_COO_d, J_COO_d, V_COO_d, 
-			vector_in_d, vector_out_d);
+			vector_in_d, vector_out_d, testPoint, tex);
 
 	if(tex==true)
 		cudaUnbindTexture(texInput);
 }
+
