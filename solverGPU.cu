@@ -271,8 +271,8 @@ void solverGPU_unprecondHYB(matrixCOO_S* localMatrix,
 	cudaMemcpy(vector_out, vector_out_d, dimension*sizeof(double), cudaMemcpyDeviceToHost);
 	gettimeofday(&end1, NULL);	
 	double timeByMs=((end1.tv_sec * 1000000 + end1.tv_usec)-(start1.tv_sec * 1000000 + start1.tv_usec))/1000;
-	printf("iter is %d, time is %f ms, GPU Gflops is %f\n ",iter, timeByMs, 
-			(1e-9*(totalNum*2+13*dimension)*1000*iter)/timeByMs);
+	printf("iter is %d, time is %f ms, GPU Gflops is %f, under estimate flops is %f\n ",iter, timeByMs, 
+			(1e-9*(totalNum*2+13*dimension)*1000*iter)/timeByMs, (1e-9*(totalNum*2)*1000*iter)/timeByMs);
 }
 
 void solverGPU_unprecondCUSPARSE(matrixCOO_S* localMatrix, 

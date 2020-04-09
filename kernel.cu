@@ -160,10 +160,10 @@ __global__ void ELL_kernel_rodr(const uint32_t* num_cols_per_row_vec,
 				data_idx = block_data_bias + block_rowSize*n + x_idx;//however the data storage is stride with block_rowSize
 				col=indices[data_idx];
 				val=data[data_idx];
-				if(tex == false)
+				//if(tex == false)
 					dot += val* x[col];
-				else
-					dot += fetch_double(tex1Dfetch(texInput, col));
+				//else
+				//	dot += fetch_double(tex1Dfetch(texInput, col));
 
 			}
 			y[row] = dot;
@@ -337,7 +337,7 @@ __global__ void COO_shared(const uint32_t num_nozeros, const uint32_t interval_s
 			//	if(row == testPoint ){
 			//		y[row] += val;
 			//	} else
-					y[row] += vals[threadIdx.x];
+					y[row] += val;
 					//atomicAdd(&y[row],val);  
 				
 			}
@@ -374,11 +374,7 @@ __global__ void COO_atomic(const uint32_t num_nozeros, const uint32_t interval_s
 	while (n< interval_end)
 	{
 		row = I[n];
-		if(tex == true)
-			val=V[n]*fetch_double(tex1Dfetch(texInput, J[n]));
-				
-		else
-			val = V[n]*x[J[n]];
+		val = V[n]*x[J[n]];
 		
 		//double val=V[n]*x[J[n]];
 		val_tmp = __shfl_up_sync(FULL_MASK, val, 1);

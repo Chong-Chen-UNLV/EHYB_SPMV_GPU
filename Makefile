@@ -8,7 +8,7 @@ CC=g++
 CU_INC=-I/usr/local/cuda/include
 CUDA_LIB =-L/usr/local/cuda/lib64 -lcublas -lcudart -lcuda
 
-CFLAGS= -g -gdwarf-2 -O3 -funroll-loops -fopenmp -I./mt-metis-0.6.0/include -I./include -L./ -L./lib -lopenblas -lmtmetis #-std=gnu99 
+CFLAGS= -g -gdwarf-2 -O3 -funroll-loops -fopenmp -I./mt-metis-0.6.0/include -I./include -L./ -L./lib -lmtmetis #-lopenblas -std=gnu99 
 	CUFLAGS = -O3 --use_fast_math -gencode=arch=compute_61,code=compute_61 
 	CFILES          =       $(wildcard *.c)
 	CUFILES         =       $(wildcard *.cu)
