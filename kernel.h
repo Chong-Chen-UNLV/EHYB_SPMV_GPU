@@ -19,10 +19,12 @@
 
 const int ELL_threadSize = 512; 
 
-const int shared_per_block = 24*1024;
+const int shared_per_block = 32*1024;
 const int element_size = 8; //if single precision, 4, if double precision, 8 
 const int vector_cache_size = shared_per_block/element_size;
 const int block_per_part = shared_per_block/(ELL_threadSize*element_size); 
+const int step_p_blk = 8;
+const int threadSizeCOO= 256;
 
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)

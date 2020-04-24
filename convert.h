@@ -34,7 +34,8 @@ void COO2ELL_block(unsigned int *size_COO,
 		const unsigned int part_size,
 		const unsigned int block_num, 
 		const unsigned int* boundary, 
-		bool RODR);
+		bool RODR,
+		bool CACHE);
 
 void COO2ELL(const unsigned int *row_local, const unsigned int *col_local, const double* matrix_local, 
 		unsigned int **colELL,

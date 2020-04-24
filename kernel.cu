@@ -212,15 +212,15 @@ __global__ void ELL_kernel_rodr_test(const uint32_t* num_cols_per_row_vec,
 				col=indices[data_idx];
 				val=data[data_idx];
 				if(val != 0){
-					if(row == testPoint)
-						dot = dot + val* x[col];
-					else
+					//if(row == testPoint)
+					//	dot = dot + val* x[col];
+					//else
 						dot += val* x[col];
 				}
 			}
-			if(row == testPoint)
-				y[row] = dot + 1 - 0.999;
-			else
+			//if(row == testPoint)
+			//	y[row] = dot + 1 - 0.999;
+			//else
 				y[row] = dot;
 		}
 		block_idx += 1;
@@ -237,19 +237,18 @@ __global__ void ELL_cached_kernel_rodr(const uint32_t* num_cols_per_row_vec,
 	uint32_t part_idx = blockIdx.x; 
 	uint32_t x_idx = threadIdx.x;
 	__shared__ volatile double cached_vec[vector_cache_size];  
-	uint32_t vec_start = part_boundary[blockIdx.x];
-	uint32_t vec_end = part_boundary[blockIdx.x + 1];
+	int vec_start = part_boundary[blockIdx.x];
+	int vec_end = part_boundary[blockIdx.x + 1];
 	uint32_t row = 0;
 
 	for (uint32_t i = x_idx; i < vector_cache_size; i += ELL_threadSize){
-		if(i < vec_end) cached_vec[i] = x[i + vec_start];
-		else cached_vec[i] = 0;
+		cached_vec[i] = x[i + vec_start];
 	}
-	double val, fetched, dot;
-	uint32_t block_idx, data_idx, col;
+	double val, dot;
+	uint32_t block_idx, data_idx; 
+	uint32_t col;
 	uint32_t block_rowSize, block_data_bias, num_cols_per_row;
 	uint32_t block_base = part_idx * block_per_part;
-		
 	uint32_t endBlockRow;
 	if(vec_end >= vec_start+block_per_part*ELL_threadSize)
 		endBlockRow = ELL_threadSize; 
@@ -260,7 +259,7 @@ __global__ void ELL_cached_kernel_rodr(const uint32_t* num_cols_per_row_vec,
 		dot =0;
 		block_rowSize = ELL_threadSize;
 		block_idx = block_base + i;
-		if(i == block_per_part -1){
+		if(i == (block_per_part -1)){
 			block_rowSize = endBlockRow;
 		}
 		block_data_bias = block_data_bias_vec[block_idx];
@@ -269,19 +268,12 @@ __global__ void ELL_cached_kernel_rodr(const uint32_t* num_cols_per_row_vec,
 		if(row < vec_end){
 			for(uint32_t n=0; n< num_cols_per_row; ++n){
 				data_idx = block_data_bias + block_rowSize*n + x_idx;//however the data storage is stride with block_rowSize
-				col=indices[data_idx];
 				val=data[data_idx];
-				if(val != 0){
-					if(col > vec_start && col < vec_start + vector_cache_size)
-						fetched = cached_vec[col - vec_start];
-					else{
-						if(tex == false)
-							fetched = x[col];
-						else
-							fetched = fetch_double(tex1Dfetch(texInput, col));
-					}
-					dot += val*fetched;
-				}
+				col = indices[data_idx]- vec_start;
+				//if(col < 0 || col >= vector_cache_size) 
+				//	dot += val*cached_vec[col];
+				//else
+					dot += val*cached_vec[col];
 			}
 			y[row] = dot;
 		}
@@ -289,9 +281,71 @@ __global__ void ELL_cached_kernel_rodr(const uint32_t* num_cols_per_row_vec,
 	}		
 }
 
+//__global__ void ELL_cached_kernel_rodr(const uint32_t* num_cols_per_row_vec,
+//		const uint32_t* block_data_bias_vec,  
+//		const uint32_t *indices, const double *data, const double * x,
+//		double * y,
+//		const uint32_t* part_boundary,
+//		const bool tex)
+//{
+//	uint32_t part_idx = blockIdx.x; 
+//	uint32_t x_idx = threadIdx.x;
+//	__shared__ volatile double cached_vec[vector_cache_size];  
+//	uint32_t vec_start = part_boundary[blockIdx.x];
+//	uint32_t vec_end = part_boundary[blockIdx.x + 1];
+//	uint32_t row = 0;
+//
+//	for (uint32_t i = x_idx; i < vector_cache_size; i += ELL_threadSize){
+//		if(i < vec_end) cached_vec[i] = x[i + vec_start];
+//		else cached_vec[i] = 0;
+//	}
+//	double val, fetched, dot;
+//	uint32_t block_idx, data_idx, col;
+//	uint32_t block_rowSize, block_data_bias, num_cols_per_row;
+//	uint32_t block_base = part_idx * block_per_part;
+//		
+//	uint32_t endBlockRow;
+//	if(vec_end >= vec_start+block_per_part*ELL_threadSize)
+//		endBlockRow = ELL_threadSize; 
+//	else 
+//		endBlockRow = vec_end - (vec_start+(block_per_part - 1)*ELL_threadSize);
+//
+//	for(uint32_t i = 0; i < block_per_part; ++i){//the thread is step with stride ELL_threadSize
+//		dot =0;
+//		block_rowSize = ELL_threadSize;
+//		block_idx = block_base + i;
+//		if(i == block_per_part -1){
+//			block_rowSize = endBlockRow;
+//		}
+//		block_data_bias = block_data_bias_vec[block_idx];
+//		num_cols_per_row = num_cols_per_row_vec[block_idx];
+//		row = i*ELL_threadSize + vec_start + x_idx;
+//		if(row < vec_end){
+//			for(uint32_t n=0; n< num_cols_per_row; ++n){
+//				data_idx = block_data_bias + block_rowSize*n + x_idx;//however the data storage is stride with block_rowSize
+//				col=indices[data_idx];
+//				val=data[data_idx];
+//				if(val != 0){
+//					if(col > vec_start && col < vec_start + vector_cache_size)
+//						fetched = cached_vec[col - vec_start];
+//					else{
+//						if(tex == false)
+//							fetched = x[col];
+//						else
+//							fetched = fetch_double(tex1Dfetch(texInput, col));
+//					}
+//					dot += val*fetched;
+//				}
+//			}
+//			y[row] = dot;
+//		}
+//		block_idx += 1;
+//	}		
+//}
+
 __global__ void COO_shared(const uint32_t num_nozeros, const uint32_t interval_size,
 				const uint32_t *I, const uint32_t *J, const double *V,
-				const double *x, double *y)
+				const double *x, double *y, uint32_t testPoint)
 {
 	__shared__ volatile int rows[48*thread_size/WARP_SIZE];  //why using 48? because we need 16 additional junk elements
 	__shared__ volatile double vals[thread_size];
@@ -328,15 +382,15 @@ __global__ void COO_shared(const uint32_t num_nozeros, const uint32_t interval_s
         if(row == rows[idx - 16]) { vals[threadIdx.x] = val = val + vals[threadIdx.x - 16]; }
 
 		if(thread_lane == 31 || n == interval_end -1){
-			//if(row == testPoint){
-			//	y[row] += val;
-			//}else
+			if(row == testPoint){
+				y[row] += val;
+			}else
 				atomicAdd(&y[row],val);  
 		}else{
 			if(row != rows[idx + 1]){
-			//	if(row == testPoint ){
-			//		y[row] += val;
-			//	} else
+				if(row == testPoint ){
+					y[row] += val;
+				} else
 					y[row] += val;
 					//atomicAdd(&y[row],val);  
 				
@@ -347,6 +401,61 @@ __global__ void COO_shared(const uint32_t num_nozeros, const uint32_t interval_s
 	}
 	
 
+}
+__global__ void COO_shared2(const uint32_t num_nozeros,
+		const uint32_t *I, const uint32_t *J, const double *V,
+		const double *x, double *y, uint32_t testPoint)
+{
+	__shared__ volatile int rows[48*thread_size/WARP_SIZE];  //why using 48? because we need 16 additional junk elements
+	__shared__ volatile double vals[thread_size];
+
+	uint32_t thread_lane= threadIdx.x & (WARP_SIZE-1); //great idea! think about it
+	uint32_t warp_id = threadIdx.x / WARP_SIZE;
+	/*how about the interval is not the multiple of warp_size?*/
+	//uint32_t iteration_end=((interval_end)/WARP_SIZE)*WARP_SIZE;
+
+	uint32_t idx=16*(threadIdx.x/32+1) + threadIdx.x;//every warp has 16 "junk" rows elements
+	rows[idx-16]=-1;
+	rows[idx]=0;
+
+	uint32_t n;
+	uint32_t row;
+	double val;
+
+	for(uint16_t it = 0;  it < step_p_blk; ++it)
+	{
+		n = blockDim.x*blockIdx.x*step_p_blk + warp_id*WARP_SIZE*step_p_blk 
+			+ it*WARP_SIZE + thread_lane;
+		if(n < num_nozeros){
+			row =I[n];
+			//double val=V[n]*fetch_x(J[n], x);
+			val=V[n]*x[J[n]];
+
+			rows[idx] =row;
+			vals[threadIdx.x] =val;
+
+			if(row == rows[idx -  1]) { vals[threadIdx.x] = val = val + vals[threadIdx.x -  1]; }
+			if(row == rows[idx -  2]) { vals[threadIdx.x] = val = val + vals[threadIdx.x -  2]; }
+			if(row == rows[idx -  4]) { vals[threadIdx.x] = val = val + vals[threadIdx.x -  4]; }
+			if(row == rows[idx -  8]) { vals[threadIdx.x] = val = val + vals[threadIdx.x -  8]; }
+			if(row == rows[idx - 16]) { vals[threadIdx.x] = val = val + vals[threadIdx.x - 16]; }
+
+			if(thread_lane == 31 || n == num_nozeros -1){
+				//if(row == testPoint){
+				//	y[row] += val;
+				//}else
+					atomicAdd(&y[row],val);  
+			}else{
+				if(row != rows[idx + 1]){
+					//if(row == testPoint ){
+					//	atomicAdd(&y[row],val);  
+					//} else
+						atomicAdd(&y[row],val);  
+
+				}
+			}
+		}
+	}
 }
 
 
@@ -517,10 +626,11 @@ void matrix_vectorELL_block(const uint32_t num_rows, const uint32_t testPoint,
 
 void matrix_vectorCOO(const uint32_t num_nozeros_compensation, uint32_t *I, uint32_t *J, double *V, double *x_d, double *y_d, uint32_t testPoint, bool tex=false)
 {
-	uint32_t interval_size2;
-	interval_size2=ceil(((double) num_nozeros_compensation)/(512*512/WARP_SIZE));//for data with 2 million elements, we have interval size 200	
+	uint32_t blockSizeLocal;
+
+	blockSizeLocal=ceil(((double) num_nozeros_compensation)/(step_p_blk*threadSizeCOO));//for data with 2 million elements, we have interval size 200
 	//COO_atomic<<<512, 512>>>(num_nozeros_compensation, interval_size2, I, J, V, x_d, y_d, tex, testPoint);
-	COO_shared<<<512, 512>>>(num_nozeros_compensation, interval_size2, I, J, V, x_d, y_d);
+	COO_shared2<<<blockSizeLocal, threadSizeCOO>>>(num_nozeros_compensation, I, J, V, x_d, y_d, testPoint);
 
 }
 

@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
 		switch (oc) {
 			case 'm':
 				/* input matrix */
-				sprintf(fileName, "/tmp/%s.mtx", optarg);		
+				sprintf(fileName, "../read/%s.mtx", optarg);		
 				printf("filename is %s\n", fileName);
 				break;
 			case 'i':

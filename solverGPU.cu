@@ -128,7 +128,8 @@ void solverGPU_unprecondHYB(matrixCOO_S* localMatrix,
 				part_size, 
 				ELL_blocks,
 				part_boundary, 
-				RODR);
+				RODR,
+				CACHE);
 		ELL_cuda_malloc_trans_data_block(&col_d, 
 				&V_d, 
 				&ELL_block_cols_vec_d, 
@@ -232,9 +233,9 @@ void solverGPU_unprecondHYB(matrixCOO_S* localMatrix,
 			   part_size, part_boundary_d, tex);
 		//cudaMemcpy(bp_g, bp_d, dimension*sizeof(double), cudaMemcpyDeviceToHost);
 		//for(int i = 0; i < dimension; ++i){
-		//	compareError = 	(bp_g[i] - bp[i])/bp_g[i];
-		//	if(errorIdx == 0  && (compareError > 0.000001 || compareError < -0.00001)){ 	
-		//		printf("bp[%d] of GPU result is %f, test value is %f\n", i, bp_g[i], bp[i]);
+		//	compareError = 	(bp_g[i] - bp[i])/bp[i];
+		//	if(errorIdx == 0 && (compareError > 0.0000001 || compareError < -0.0000001)){ 	
+		//		printf("bp[%d] of GPU result is %f, test value is %f, difference is %f\n", i, bp_g[i], bp[i], compareError);
 		//		if(errorIdx == 0) errorIdx = i;	
 		//	}
 		//}
@@ -395,7 +396,8 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 				part_size, 
 				ELL_blocks,
 				part_boundary, 
-				RODR);
+				RODR, 
+				CACHE);
 		ELL_cuda_malloc_trans_data_block(&col_d, 
 				&V_d, 
 				&ELL_block_cols_vec_d, 
@@ -439,7 +441,7 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 				I_precond, J_precond, V_precond, 
 				row_idxL, numInRowL, maxRowNumPrecond,
 				totalNumPrecond, dimension, part_size,
-				ELL_blocks, part_boundary, RODR);
+				ELL_blocks, part_boundary, RODR, CACHE);
 		ELL_cuda_malloc_trans_data_block(&col_precond_d, &V_precond_d, 
 				&ELL_block_cols_vec_L_d, &ELL_block_bias_vec_L_d,
 				colELL_precond, matrixELL_precond,
@@ -476,7 +478,7 @@ void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrix_precond,
 					I_precondP, J_precondP, V_precondP, 
 					row_idxLP, numInRowLP, maxRowNumPrecondP, 
 					totalNumPrecondP, dimension, part_size,
-					ELL_blocks, part_boundary, RODR);
+					ELL_blocks, part_boundary, RODR, CACHE);
 			printf("the last cols_vec_LP is %d\n", ELL_block_cols_vec_LP[ELL_blocks - 1]);
 			ELL_cuda_malloc_trans_data_block(&col_precondP_d, &V_precondP_d, 
 					&ELL_block_cols_vec_LP_d, &ELL_block_bias_vec_LP_d,
