@@ -1,124 +1,72 @@
 #include "kernel.h"
 #include "solver.h"
 #include "convert.h"
+#include "Partition.h"
 
-void COO2ELL(const unsigned int *row_local, const unsigned int *col_local, 
-		const double* matrix_local, unsigned int **colELL,
-		double **matrixELL, unsigned int **I_COO, unsigned int **J_COO, 
-		double **V_COO,const unsigned int *numInRow, 
-		const unsigned int *row_idx, const unsigned int localMatrixSize, 
-		const unsigned int loc_num_of_row, 
-		unsigned int *sizeOut, unsigned max_in, unsigned int *max_out)
-{
-	unsigned int maxRowNum;
+static void sortRordrListFull(unsigned int dimension,
+		int* rodr_list, 
+		int* numInRow){
 
-	unsigned int size_COO=0, pointCOO=0;
-
-	maxRowNum=ceil(((double) localMatrixSize)*1.2/((double) loc_num_of_row));
-	if (maxRowNum > max_in){
-		maxRowNum = max_in;	
-	} else {
-		for (unsigned int i=0;i<loc_num_of_row;i++){
-			unsigned int row_idx=i+row_local[0];
-			if (numInRow[i] > maxRowNum)
-				size_COO+=numInRow[i]- maxRowNum;
-		}	
+	rowS* rodrSVec = (rowS*) malloc(dimension*sizeof(rowS));
+	for(unsigned int i = 0; i < dimension; ++i){
+		//the location of elements at SVec will be changed 
+		//record the original idx since it will be used for
+		//new rodr_list
+		rodrSVec[rodr_list[i]].idx = i; 
+		rodrSVec[rodr_list[i]].nonzeros = numInRow[i];	
+	}	
+	for(unsigned int i = 0; i < nparts; ++i){
+		qsort(rodrSVec, dimension, sizeof(rowS), rowSCompare);	
+	}	
+	for(unsigned int i = 0; i < dimension; ++i){
+		rodr_list[rodrSVec[i].idx] = i;
 	}
-	if(size_COO > 0){	
-		*I_COO=(unsigned int *)malloc(size_COO*sizeof(unsigned int));
-		*J_COO=(unsigned int *)malloc(size_COO*sizeof(unsigned int));
-		*V_COO=(double *)malloc(size_COO*sizeof(double));
-	}
-	*colELL=(unsigned int *)malloc(loc_num_of_row*maxRowNum*sizeof(unsigned int));
-	*matrixELL=(double *)malloc(loc_num_of_row*maxRowNum*sizeof(double));
-
-	unsigned int irregular=0;
-	for (unsigned int i=0;i <loc_num_of_row; i++){
-		unsigned int row_val = i+row_local[0];
-
-		//goto COO format
-		if (numInRow[i]>maxRowNum) {
-			for (unsigned int j=0;j<numInRow[i];j++){
-
-				//the ELL value should still be set as zero
-				if (j<maxRowNum){
-					(*colELL)[i+j*loc_num_of_row] = col_local[row_idx[row_val]+j];
-					(*matrixELL)[i+j*loc_num_of_row]=matrix_local[row_idx[row_val]+j];
-				}
-				else if (j >= maxRowNum){
-					//assign COO value
-					(*I_COO)[pointCOO]=row_local[row_idx[row_val]+j];
-					(*J_COO)[pointCOO]=col_local[row_idx[row_val]+j];
-					(*V_COO)[pointCOO]=matrix_local[row_idx[row_val]+j];
-					pointCOO++;
-					if(pointCOO > size_COO)
-						printf("error at pointCOO %d\n", pointCOO);
-				}
-				else;
-			}
-			irregular=irregular+1;
-		}
-		//goto ELL format
-		else {
-			for (unsigned int j=0;j<maxRowNum;j++){
-				//write the ELL data
-				if (j<numInRow[i]){
-					(*colELL)[i+j*loc_num_of_row]=col_local[row_idx[row_val]+j];
-					(*matrixELL)[i+j*loc_num_of_row]=matrix_local[row_idx[row_val]+j];
-				}
-				//write zero
-				else{
-					(*colELL)[i+j*loc_num_of_row]=0;
-					(*matrixELL)[i+j*loc_num_of_row]=0;
-				}
-			}
-		}
-	}
-	*max_out = maxRowNum;
-	*sizeOut = size_COO;
-	//printf("irregular row Number is %d\n",irregular);
+	free(rodrSVec);
 
 }
 
-static void ELL_block_cols_vec_gen_rodr(unsigned int* ELL_block_cols_vec, 
-		unsigned int* size_COO, 
-		const uint32_t* col,
-		unsigned int* block_boundary, 
-		const unsigned int* part_boundary, 
+static void colsVecGenEHYB( int* widthVecBlockELL, 
+		int* sizeCOO, 
+		int* numOfRowER,
+		int* rowVecER,
+		int* widthVecER,
+		const int* col,
+		int* blockBoundary, 
+		const int* partBoundary, 
 		const int dimension, 
-		const int max_col, 
-		const int part_num,
-		const unsigned int* row_idx,
+		const int maxCol, 
+		const int partNum,
+		const int* rowIdx,
 		const bool CACHED)
 {
-	unsigned int avg_local = 0;
-	//unsigned int block_nonz = 0;
-	unsigned int block_idx = 0;
-	unsigned int num_cols = 0;
-	unsigned int local_end, local_start;
-	unsigned int nonzero;
-	unsigned int col_th, col_accum; 
-	unsigned int *col_hist = (unsigned int*)calloc(max_col, sizeof(unsigned int));
+	int avg_local = 0;
+	// int block_nonz = 0;
+	int block_idx = 0;
+	int num_cols = 0;
+	int local_end, local_start;
+	int nonzero;
+	int col_th, col_accum; 
+	int *col_hist = ( int*)calloc(max_col, sizeof( int));
 
 	*size_COO = 0;
 	block_boundary[0] = 0;
-	uint32_t ELL_val = 0;
-	unsigned int extraRows = 0;
+	int ELL_val = 0;
+	int extraRows = 0;
 
-	for(unsigned int part_idx = 0; part_idx < part_num; ++part_idx){
-		unsigned int block_end = part_boundary[part_idx] + ELL_threadSize*block_per_part;
-		unsigned int part_end = part_boundary[part_idx + 1];
-		unsigned int part_start = part_boundary[part_idx];
+	for( int part_idx = 0; part_idx < part_num; ++part_idx){
+		int block_end = part_boundary[part_idx] + ELL_threadSize*block_per_part;
+		int part_end = part_boundary[part_idx + 1];
+		int part_start = part_boundary[part_idx];
 
 		if(block_end < part_end)
 			extraRows = part_end - block_end;
 		else
 			extraRows = 0;
 
-		for(unsigned int i = 0; i < block_per_part; ++i){
-			memset(col_hist, 0, max_col*sizeof(unsigned int));
+		for( int i = 0; i < block_per_part; ++i){
+			memset(col_hist, 0, max_col*sizeof( int));
 			col_accum = 0;
-			unsigned int local_start = part_boundary[part_idx]+i*ELL_threadSize;
+			int local_start = part_boundary[part_idx]+i*ELL_threadSize;
 			if(local_start > dimension) break;
 			if (local_start + ELL_threadSize <= part_boundary[part_idx + 1]){
 				local_end = local_start + ELL_threadSize;	
@@ -134,7 +82,7 @@ static void ELL_block_cols_vec_gen_rodr(unsigned int* ELL_block_cols_vec,
 				col_hist[nonzero - 1] += 1;
 			}
 			num_cols = 0;
-			for(unsigned int i = 0; i < max_col; ++i){
+			for( int i = 0; i < max_col; ++i){
 				col_accum += col_hist[i];
 				if(col_accum > col_th){
 					num_cols = i + 1;
@@ -146,23 +94,25 @@ static void ELL_block_cols_vec_gen_rodr(unsigned int* ELL_block_cols_vec,
 				exit(0);
 			}		
 			for(int row_val = local_start; row_val < local_end; ++row_val){
-				if(CACHED){
 					ELL_val = 0;
-					for(uint32_t j = row_idx[row_val]; j < row_idx[row_val + 1]; ++j){
-						if(col[j] < part_start || col[j] >= block_end)
+					for(int j = row_idx[row_val]; j < row_idx[row_val + 1]; ++j){
+						if(col[j] < part_start || col[j] >= part_start+ vector_cache_size){
 							*size_COO += 1;
-						else 
+							ER_numInRow[ER_numOfRow] += 1;
+							ER_line = true;
+						} else 
 							ELL_val += 1; 
 					}
-					if(ELL_val > num_cols)
+					if(ELL_val > num_cols){
 						*size_COO += ELL_val - num_cols;
+						ER_line = true;
+					}
+					if(ER_line){
+						ER_rowVec[ER_numOfRow] = row_val;
+						ER_numOfRow += 1;
+						ER_line = false;
+					}
 
-				} else {
-
-					unsigned int nonzeros = row_idx[row_val + 1] - row_idx[row_val];
-					if(nonzeros > num_cols){
-						*size_COO += nonzeros - num_cols;	
-					} 
 				}
 			}
 			ELL_block_cols_vec[block_idx] = num_cols;	
@@ -177,22 +127,22 @@ static void ELL_block_cols_vec_gen_rodr(unsigned int* ELL_block_cols_vec,
 	free(col_hist);
 }
 
-static void ELL_block_cols_vec_gen(unsigned int* ELL_block_cols_vec, unsigned int* size_COO,
-		const int dimension, const int max_col, const unsigned int *row_idx)
+static void colsVecGenBlockELL( int* ELL_block_cols_vec, int* size_COO,
+		const int dimension,const int max_col, const int *row_idx)
 {
-	unsigned int avg_local = 0;
-	//unsigned int block_nonz = 0;
-	unsigned int block_idx = 0;
-	unsigned int num_cols = 0;
-	unsigned int local_end;
-	unsigned int nonzero;
-	unsigned int col_th, col_accum; 
-	unsigned int *col_hist = (unsigned int*)calloc(max_col, sizeof(unsigned int));
+	 int avg_local = 0;
+	// int block_nonz = 0;
+	 int block_idx = 0;
+	 int num_cols = 0;
+	 int local_end;
+	 int nonzero;
+	 int col_th, col_accum; 
+	 int *col_hist = ( int*)calloc(max_col, sizeof( int));
 
 	*size_COO = 0;
 
-	for(unsigned int row = 0; row < dimension; row += ELL_threadSize){
-		memset(col_hist, 0, max_col*sizeof(unsigned int));
+	for( int row = 0; row < dimension; row += ELL_threadSize){
+		memset(col_hist, 0, max_col*sizeof( int));
 		col_accum = 0;
 		block_idx = row/ELL_threadSize;
 		if (row + ELL_threadSize <= dimension){
@@ -212,7 +162,7 @@ static void ELL_block_cols_vec_gen(unsigned int* ELL_block_cols_vec, unsigned in
 			col_hist[nonzero - 1] += 1;
 		}
 		num_cols = 0;
-		for(unsigned int i = 0; i < max_col; ++i){
+		for( int i = 0; i < max_col; ++i){
 			col_accum += col_hist[i];
 			if(col_accum > col_th){
 				num_cols = i + 1;
@@ -225,7 +175,7 @@ static void ELL_block_cols_vec_gen(unsigned int* ELL_block_cols_vec, unsigned in
 		}		
 
 		for(int row_val = row; row_val < local_end; ++row_val){
-			unsigned int nonzeros = row_idx[row_val + 1] - row_idx[row_val];
+			 int nonzeros = row_idx[row_val + 1] - row_idx[row_val];
 			if(nonzeros > num_cols){
 				*size_COO += nonzeros - num_cols;	
 			} 
@@ -235,29 +185,103 @@ static void ELL_block_cols_vec_gen(unsigned int* ELL_block_cols_vec, unsigned in
 	free(col_hist);
 }
 
-static void COO2ELL_block_core(unsigned int* colELL, double* matrixELL,
-		unsigned int* I_COO, unsigned int* J_COO, double* V_COO, const unsigned int size_COO,
-		const unsigned int* row_idx, const unsigned int* numInRow, 
-		const unsigned int loc_num_of_row, 
-		const unsigned int* ELL_block_bias_vec, const unsigned int* ELL_block_cols_vec, 
-		const unsigned int* row_local, const unsigned int* col_local, 
+
+static void vecsGenER(int* I, 
+	int* J,
+	double* V,
+	const int sizeCOO,
+	const int numOfRowsER,
+	const int* rowIdx,
+	const int* numInRow,
+	int* rodrList,
+	int** rowVecER,
+	int** biasVecER){
+	
+	numOfBlock = partSize*	
+	
+	*widthVecER = (int *) malloc(*sizeof(int));
+	*biasVecER = (int *) malloc(*sizeof(int));
+	*rowVecER = (int *) malloc(numOfRowER*sizeof(int));
+
+	sortRordrListFull(numOfRows, rodr_list, numInRow);
+
+	for(int i = 0; i< ER_numOfRows; ++i){
+		origRowVal = ER_rowVec[i]; 
+		//the Row location is not the value of row
+		//it is the value of the ER_rowVec index, which is not equal to row
+		//for example, row 100 is actually 10'th row of ER format submatrix
+		rowLocation = rodr_list[i]; 
+		ER_rowVec[rowLocation] = origRowVal;
+		warpIdx = rowLocation/warpSize;		
+		if(numInRow[i] > ER_colsVec[warpIdx]){
+			ER_colsVec[warpBlockId] = numInRow[i];
+		}
+	}
+	for(int i = 1; i < ER_numOfRows; ++i){
+		ER_biasVec[i] = ER_biasVec[i-1] + warp_size*ER_colsVec[warpBlockId]; 
+	}
+}
+
+static void COO2ER(int* I,
+		int* J,
+		double* V,
+		const int sizeCOO,
+		const int numInRowCOO,
+		const int* numOfRowER,
+		int* rowVecER,
+		int* biasVecER,
+		int* widthVecER,
+		int* colER,
+		double* valER){
+
+	COO2ErVecsGen(I, J, V, sizeCOO, 
+			numOfRowER, rowIdx, numInRow,
+			rodrList, 
+			&rowVecER, &biasVecER, &widthVecER);
+	memset(ER_col, 0, sizeof(int)*size_ER);
+	memset(ER_V, 0, sizeof(int)*size_ER);
+	COOIdx = 0;
+	for(int i = 0; i < numOfRow; ++i){
+		rowLocation = rodr_list[i]; //again the Row location is not the value of row
+		warpIdx = rowLocation/warpSize; 
+		warpLane = rowLocation - warpIdx*warpSize;
+		block_data_bias = ER_vec_bias[warpIdx]; 
+		width = ER_vec_col_num[warpIdx];
+		for(int j = 0; j < numInRow[i]; j++){
+			dataIdx = block_data_bias + warpLane + warp_size*j; 
+			ER_col[dataIdx] = J_COO[COOIdx]; 
+			ER_V[dataIdx] = V_COO[COOIdx];
+			COOIdx+=1;
+		}	
+	}
+}
+
+static void COO2EHYbCore( int* colELL, double* matrixELL,
+		int* I_COO, int* J_COO, double* V_COO, 
+		int* ER_rowVec, int* ER_numInRow, 
+		const int ER_numOfRow,
+		const int size_COO,
+		const int* row_idx, const int* numInRow, 
+		const int loc_num_of_row, 
+		const int* ELL_block_bias_vec, const int* ELL_block_cols_vec, 
+		const int* row_local, const int* col_local, 
 		const double* matrix_local,
-		unsigned int block_num, 
-		const unsigned int* part_boundary, 
+		int block_num, 
+		const int* part_boundary, 
 		volatile bool RODR, bool CACHED)
 { 
-	unsigned int block_rowSize;
-	unsigned int block_end = 0, part_start = 0, part_end = 0, extraRows = 0;
-	unsigned int irregular=0;
+	int block_rowSize;
+	int block_end = 0, part_start = 0, part_end = 0, extraRows = 0;
+	int irregular=0;
 	block_rowSize = ELL_threadSize;
-	unsigned pointCOO = 0;
-	uint32_t ELL_idx = 0;
-	unsigned int boundary_start, boundary_end;
-	unsigned int part_idx;
-	uint32_t padding = 0;
-	for (unsigned int block_idx = 0; block_idx < block_num; ++block_idx){
-		unsigned int num_cols = ELL_block_cols_vec[block_idx];
-		unsigned int block_bias = ELL_block_bias_vec[block_idx];
+	pointCOO = 0;
+	int ELL_idx = 0;
+	int boundary_start, boundary_end;
+	int part_idx;
+	int padding = 0;
+	for ( int block_idx = 0; block_idx < block_num; ++block_idx){
+		int num_cols = widthVecBlockELL[block_idx];
+		int block_bias = biasVecBLockELL[block_idx];
 		extraRows = 0;
 		if(RODR){
 			part_idx = block_idx/block_per_part;
@@ -283,17 +307,15 @@ static void COO2ELL_block_core(unsigned int* colELL, double* matrixELL,
 		}
 
 		block_rowSize = boundary_end - boundary_start;
-		for(unsigned int i = 0; i < block_rowSize; ++i){
-			unsigned int row_val = i + boundary_start;
+		for( int i = 0; i < block_rowSize; ++i){
+			int row_val = i + boundary_start;
 			if(row_val >= loc_num_of_row) 
 				break;
 			ELL_idx = 0;
-			for(uint32_t j = 0; j < numInRow[row_val]; ++j ){
-
-				uint32_t col_val = col_local[row_idx[row_val] + j] ;
-
+			for(int j = 0; j < numInRow[row_val]; ++j ){
+				int col_val = col_local[row_idx[row_val] + j] ;
 				if(ELL_idx < num_cols ){
-					if(CACHED == true && (col_val < part_start || col_val >= block_end)){
+					if(CACHED == true && (col_val < part_start || col_val >= part_start+vector_cache_size)){
 						I_COO[pointCOO]=row_local[row_idx[row_val]+j];
 						J_COO[pointCOO]=col_local[row_idx[row_val]+j];
 						V_COO[pointCOO]=matrix_local[row_idx[row_val]+j];
@@ -324,28 +346,25 @@ static void COO2ELL_block_core(unsigned int* colELL, double* matrixELL,
 
 			}
 			if(ELL_idx < num_cols ){
-				for(uint32_t j = ELL_idx; j < num_cols; ++j){
+				for(int j = ELL_idx; j < num_cols; ++j){
 					colELL[block_bias + i + j*block_rowSize] = part_start;
 					matrixELL[block_bias + i + j*block_rowSize] = 0;
 					if(part_start > 0 && (ELL_idx == 0 || colELL[block_bias] == 0))
 						printf("debug poit at %d\n", row_val);
 					padding += 1;
 				}
-
 			}
-
-
 		}
 		if(extraRows > 0){
-			for(unsigned int row_val = block_end; row_val < part_end; ++row_val){
-				for(unsigned int j = 0; j < numInRow[row_val]; ++j){
+			for( int row_val = block_end; row_val < part_end; ++row_val){
+				for( int j = 0; j < numInRow[row_val]; ++j){
 					I_COO[pointCOO]=row_local[row_idx[row_val]+j];
 					J_COO[pointCOO]=col_local[row_idx[row_val]+j];
 					V_COO[pointCOO]=matrix_local[row_idx[row_val]+j];
 					pointCOO++;
 					irregular+=1;
 					if(pointCOO > size_COO){
-						printf("error at pointCOO  %d at point 2\n", pointCOO);
+						printf("error at pointCOO %d at point 2\n", pointCOO);
 
 						exit(0);
 					}
@@ -357,54 +376,42 @@ static void COO2ELL_block_core(unsigned int* colELL, double* matrixELL,
 			irregular, padding, pointCOO, size_COO);
 }
 
-static void update_ELL_block_bias_vec(unsigned int block_num, unsigned int* ELL_block_cols_vec, unsigned int* ELL_block_bias_vec, bool rodr){
-	ELL_block_bias_vec[0] = 0;
-	for(unsigned int i = 1; i < block_num; ++i){
-		ELL_block_bias_vec[i] = ELL_block_bias_vec[i-1] + ELL_block_cols_vec[i-1]*ELL_threadSize;	
-	}	
-}
-
 /*parameters, first line: output of HYB related parameters, 2nd line: output of HYB matrices, 3rd line:input of local COO matrix 
-  4th line: CSR indeces (didn't include values), 5th line: input variables*/
+ 4th line: ER index (didn't include values), 5th line: input variables*/
 
-void COO2ELL_block(unsigned int *size_COO, 
-		unsigned int* ELL_block_cols_vec, unsigned int* ELL_block_bias_vec,
-		unsigned int **colELL, double **matrixELL, unsigned int **I_COO, 
-		unsigned int **J_COO, double **V_COO,
-		const unsigned int *row_local, const unsigned int *col_local, const double* matrix_local, 
-		const unsigned int *row_idx, const unsigned int *numInRow, const unsigned int max_col,
-		const unsigned int localMatrixSize, const unsigned int loc_num_of_row, 
-		const unsigned int part_num, const unsigned int block_num, 
-		const unsigned int* part_boundary, bool RODR, bool CACHED)
+void COO2EHYB(matrixCooS* inputMatrix, 
+		matrixEHybS* outputMatrix)
 { 
 
-	unsigned int point_COO = 0;
+	 int point_COO = 0;
+	 int ER_numOfRow;
+	 int* ER_numInRow = (int*)malloc(sizeof(int)*dimension);
+	 int* ER_rowVec = (int*)malloc(sizeof(int)*dimension);
 	/*block_boundary will not be used outside this function*/
-	unsigned int* block_boundary = (unsigned int*)malloc((block_num + 1) * sizeof(unsigned int));
+	 int* block_boundary = ( int*)malloc((block_num + 1) * sizeof( int));
 	*size_COO=0;	
-	if(RODR){
-		ELL_block_cols_vec_gen_rodr(ELL_block_cols_vec, 
-				size_COO, 
-				col_local,
-				block_boundary,
-				part_boundary, 
-				loc_num_of_row, 
-				max_col, 
-				part_num,
-				row_idx,
-				CACHED);
-	} else {
-		ELL_block_cols_vec_gen(ELL_block_cols_vec, size_COO,
-				loc_num_of_row, max_col, row_idx); 
+	ELL_block_cols_vec_gen_rodr(ELL_block_cols_vec, 
+		size_COO, 
+		&ER_numOfRow,
+		ER_rowVec,
+		ER_widthVec,
+		col_local,
+		block_boundary,
+		part_boundary, 
+		loc_num_of_row, 
+		max_col, 
+		part_num,
+		row_idx,
+		CACHED);
 	}
 
 	if(*size_COO > 0){	
-		*I_COO=(unsigned int *)malloc((*size_COO)*sizeof(unsigned int));
-		*J_COO=(unsigned int *)malloc((*size_COO)*sizeof(unsigned int));
+		*I_COO=( int *)malloc((*size_COO)*sizeof( int));
+		*J_COO=( int *)malloc((*size_COO)*sizeof( int));
 		*V_COO=(double *)malloc((*size_COO)*sizeof(double));
 	}
-	unsigned int ELL_matrixSize = 0;
-	for(unsigned int i = 0; i < block_num; ++i){
+	int ELL_matrixSize = 0;
+	for( int i = 0; i < block_num; ++i){
 		ELL_block_bias_vec[i] = ELL_matrixSize;
 		if(RODR){
 			ELL_matrixSize += (block_boundary[i+1] - block_boundary[i])*ELL_block_cols_vec[i];
@@ -412,18 +419,27 @@ void COO2ELL_block(unsigned int *size_COO,
 			ELL_matrixSize += ELL_threadSize*ELL_block_cols_vec[i];
 		}
 	}
+
 	ELL_block_bias_vec[block_num] = ELL_matrixSize;
-	*colELL=(unsigned int *)malloc(ELL_matrixSize*sizeof(unsigned int));
+	*colELL=( int *)malloc(ELL_matrixSize*sizeof( int));
 	*matrixELL=(double *)malloc(ELL_matrixSize*sizeof(double));
 
-	COO2ELL_block_core(*colELL, *matrixELL,
-			*I_COO, *J_COO, *V_COO, *size_COO,
+	COO2EHYB_block_core(*colELL, *matrixELL,
+			*I_COO, *J_COO, *V_COO, *size_COO, COO_numInRow,
 			row_idx, numInRow, loc_num_of_row, 
 			ELL_block_bias_vec, ELL_block_cols_vec, 
 			row_local, col_local, matrix_local, block_num, 
 			part_boundary, RODR, CACHED);
 
+	COO2ER(I_COO, J_COO, size_COO, COO_numInRow,
+			ER_numOfRow, ER_rowVec, 
+			ER_biasVec, ER_colsVec,
+			ER_col, ER_val);
+
+	free(*I_COO);
+	free(*J_COO);
+	free(*V_COO);
+	free(COO_numInRow);
 	free(block_boundary);
 }
-
 

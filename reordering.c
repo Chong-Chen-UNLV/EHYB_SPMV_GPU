@@ -39,23 +39,24 @@ static void sortRordrList(unsigned int dimension,
 }
 
 /*reorder function with I_rodr, J_rodr, v_rodr, rodr_list as output*/
-void matrix_reorder(const unsigned int* dimension_in, 
+void matrix_reorder(int dimension, 
 		const unsigned int totalNum,
 		const cb_s cb, 
-		const unsigned int* I, 
-		const unsigned int* J, 
+		const int* I, 
+		const int* J, 
 		const double* V, 
-		unsigned int* numInRow, 
-		unsigned int* row_idx, 
-		unsigned int* I_rodr, unsigned int* J_rodr, 
-		double* V_rodr, unsigned int* rodr_list, unsigned int* part_boundary,
-		const unsigned int nparts){
+		int* numInRow, 
+		int* numInRow2,
+		int* rowIdx, 
+		int* rodrI, int* rodrJ, 
+		double* rodrV, int* rodrList, int* partBoundary,
+		const int nParts)
+{
 
-	printf("nparts is %d\n", nparts);
-	unsigned int dimension = *dimension_in;
-	unsigned int *colVal = (unsigned int *) malloc(totalNum*sizeof(unsigned int));
+	printf("nparts is %d\n", nParts);
+	int *colVal = (int *) malloc(totalNum*sizeof(int));
 	int tempI, tempIdx, tempJ;
-	unsigned int maxCol;
+	int maxCol;
 	double tempV;
 	/*transfer the COO format to CSR format, do the partitioning*/
 	for(int i= 1; i <= dimension; i++){
@@ -81,7 +82,7 @@ void matrix_reorder(const unsigned int* dimension_in,
 	int* partBias = (int *)calloc(nparts + 1, sizeof(int));
 	double* options = mtmetis_init_options();
 	
-	unsigned int ncon = 1;
+	int ncon = 1;
 	float ubvec = 1.001;
 	options[MTMETIS_OPTION_NTHREADS] = 16;
 	mtmetis_wgt_type r_edgecut;
@@ -108,7 +109,7 @@ void matrix_reorder(const unsigned int* dimension_in,
 	gettimeofday(&end, NULL);
 	
 	printf("partition time is %ld us\n",(end.tv_sec * 1000000 + end.tv_usec)-(start.tv_sec * 1000000 + start.tv_usec));
-	
+	int* numInRow2 = (int*) malloc(sizeof(int)*dimension);	
 	int* part_filled = (int* )calloc(nparts, sizeof(int)); 	
 	for(int i = 0; i < dimension; ++i){
 		partSize[partVec[i]] += 1;
@@ -126,6 +127,9 @@ void matrix_reorder(const unsigned int* dimension_in,
 	 
 	for(int i = 0; i <= nparts; i++){
 		part_boundary[i] = partBias[i];
+	}
+	for(int i = 0; i < totalNum; i++){
+		numInRow2[i] = 0;
 	}
 	//sort the reorder list by number of nozero per row
 	//it may not working well on factorized preconditioner
@@ -163,6 +167,7 @@ void matrix_reorder(const unsigned int* dimension_in,
 	free(cwghts);
 	free(partBias);
 	free(part_filled);
+	free(numInRow2);
 }
 
 void vector_reorder(const unsigned int dimension, const double* v_in, 

@@ -7,21 +7,21 @@
 
 int main(int argc, char* argv[])
 {
-	uint32_t MAXthread = 2;	
-	uint32_t totalNum=0;
-	uint32_t lowerNum=0;
-	uint32_t lowerNumPrecond=0;
-	uint32_t totalNumPrecond=0;
-	uint32_t totalNumPrecondP=0;
+	int MAXthread = 2;	
+	int totalNum=0;
+	int lowerNum=0;
+	int lowerNumPrecond=0;
+	int totalNumPrecond=0;
+	int totalNumPrecondP=0;
 	int ret_code;
 	MM_typecode matcode,matcode2;
-	uint32_t MAXIter = 0;
+	int MAXIter = 0;
 	FILE *f,*f2;
 
-	uint32_t dimension, N, bandwidth,bandwidthPrecond;   
-	uint32_t maxRowNum, maxRowNumL, maxRowNumLP;
-	uint32_t *I, *J;
-	uint32_t *lowerI, *lowerJ;
+	int dimension, N, bandwidth,bandwidthPrecond;   
+	int maxRowNum, maxRowNumL, maxRowNumLP;
+	int *I, *J;
+	int *lowerI, *lowerJ;
 	double *V;
 	double *lowerV;
 	double *x;
@@ -33,12 +33,12 @@ int main(int argc, char* argv[])
 	char fileName[100];
 	fileName[0] = '\0';
 	char fileName2[100];
-	uint32_t parts;
+	int parts;
 	int oc;
 	cb_s cb;
     init_cb(&cb);
 			
-	while ((oc = getopt(argc, argv, "m:i:c:r:g:t:b:s:f:p:")) != -1) {
+	while ((oc = getopt(argc, argv, "m:i:r:t:f:p:")) != -1) {
 		switch (oc) {
 			case 'm':
 				/* input matrix */
@@ -57,38 +57,11 @@ int main(int argc, char* argv[])
 				if(atoi(optarg) == 1)
 					cb.PRECOND = true;
 				break;
-			case 'r':
-				if(atoi(optarg) == 1)
-					cb.RODR = true;
-				break;
-			case 'b':
-				if(atoi(optarg) == 1)
-					cb.BLOCK = true;
-				break;
-			case 'g':
-				if(atoi(optarg) == 1){
-					cb.GPU = true;
-					//cudaSetDevice(cuda_device);
-				}
-				break;
-			case 'c':
-				if(atoi(optarg) == 1)
-					cb.CACHE = true;
-				break;
+		
 			case 'f':
 				/*using SPAI instaed of factorized SPAI*/
 				if(atoi(optarg) == 1)
 					cb.FACT = false;
-				break;
-			case 's':
-				/*reorder after reordering*/
-				if(atoi(optarg) == 1){
-					if(cb.RODR == false || cb.BLOCK == false){
-						printf("sort only effect with reoder and BLOCK  == true\n");
-						exit(1);	
-					}
-					cb.SORT = true;
-				}
 				break;
 			case ':':
 				       /* error handling, see text */
@@ -107,8 +80,8 @@ int main(int argc, char* argv[])
 		printf("file name or max iteration number missing\n");
 		exit(0);
 	}
-	if (!cb.RODR && cb.CACHE){
-		printf("cache only works with RODER == ture\n");
+	if (!cb.RODR || !cb.CACHE || !cb.BLOCK){
+		printf("this program only test RODR, BLOCK, and CACHE enabled case\n");
 		exit(0);
 	}
 
@@ -145,21 +118,21 @@ int main(int argc, char* argv[])
 	totalNumPrecond=lowerNum;
 	totalNumPrecondP = lowerNum;
 
-	size_t size0=lowerNum*sizeof(uint32_t);
+	size_t size0=lowerNum*sizeof(int);
 	size_t size1=lowerNum*sizeof(double);
-	size_t size2=totalNum*sizeof(uint32_t);
+	size_t size2=totalNum*sizeof(int);
 	size_t size3=totalNum*sizeof(double);
-	size_t size4=dimension*sizeof(uint32_t);
+	size_t size4=dimension*sizeof(int);
 	size_t size5=dimension*sizeof(double);
-	size_t size6=lowerNum*sizeof(uint32_t);
+	size_t size6=lowerNum*sizeof(int);
 	size_t size7=lowerNum*sizeof(double);
 
 
-	lowerJ=(uint32_t *) malloc(size0);
-	lowerI=(uint32_t *) malloc(size0);
+	lowerJ=(int *) malloc(size0);
+	lowerI=(int *) malloc(size0);
 	lowerV=(double *) malloc(size1);
-	I=(uint32_t *) malloc(size2);
-	J=(uint32_t *) malloc(size2);
+	I=(int *) malloc(size2);
+	J=(int *) malloc(size2);
 	V=(double *) malloc(size3);
 	x=(double *) malloc(size5);
 	y=(double *) malloc(size5);
@@ -167,18 +140,18 @@ int main(int argc, char* argv[])
 	x_compare=(double *) malloc(size5);
 	error_track=(double *) malloc(MAXIter*sizeof(double));
 
-	uint32_t *numInRowL;
-	uint32_t *row_idxL;
-	uint32_t *numInRowLP;
-	uint32_t *row_idxLP;	
-	uint32_t *numInRow;
+	int *numInRowL;
+	int *row_idxL;
+	int *numInRowLP;
+	int *row_idxLP;	
+	int *numInRow;
 
-	numInRowL=(uint32_t *) malloc(size4);
-	numInRowLP=(uint32_t *) malloc(size4);
-	row_idxL=(uint32_t *) malloc(size4 + sizeof(uint32_t));
-	row_idxLP=(uint32_t *) malloc(size4 + sizeof(uint32_t));
-	numInRow=(uint32_t *) malloc(size4);
-	uint32_t tempI, tempJ;
+	numInRowL=(int *) malloc(size4);
+	numInRowLP=(int *) malloc(size4);
+	row_idxL=(int *) malloc(size4 + sizeof(int));
+	row_idxLP=(int *) malloc(size4 + sizeof(int));
+	numInRow=(int *) malloc(size4);
+	int tempI, tempJ;
 	double tempV;
 	for (int i=0; i<lowerNum; i++)
 	{
@@ -197,7 +170,7 @@ int main(int argc, char* argv[])
 	}
 
 
-	uint32_t *row_idx=(uint32_t *)malloc((dimension+1)*sizeof(uint32_t));
+	int *row_idx=(int *)malloc((dimension+1)*sizeof(int));
 	maxRowNum=0;
 	maxRowNumL=0;
 	maxRowNumLP=0;
@@ -262,16 +235,16 @@ int main(int argc, char* argv[])
 	}	
 	/*-----------------do the reordering with metis/hmetis, determine the value------------*/
 	/*suffix _rodr means reordered*/		
-	uint32_t *I_rodr, *J_rodr, *part_boundary, *rodr_list;
+	int *I_rodr, *J_rodr, *part_boundary, *rodr_list;
 	double *V_rodr, *x_rodr, *y_rodr;
 	
 	if(cb.RODR){
 		parts = ceil(dimension/(shared_per_block/element_size));
 		printf("parts is %d\n", parts);
-		rodr_list = (uint32_t* )calloc(dimension, sizeof(uint32_t)); 
-		part_boundary = (uint32_t* )calloc((parts + 1), sizeof(uint32_t)); 	
-		I_rodr = (uint32_t *) malloc(size2);
-		J_rodr = (uint32_t *) malloc(size2);
+		rodr_list = (int* )calloc(dimension, sizeof(int)); 
+		part_boundary = (int* )calloc((parts + 1), sizeof(int)); 	
+		I_rodr = (int *) malloc(size2);
+		J_rodr = (int *) malloc(size2);
 		V_rodr = (double *) malloc(size3);
 		x_rodr = (double* )calloc(dimension, sizeof(double)); 
 		y_rodr = (double* )calloc(dimension, sizeof(double)); 
@@ -299,8 +272,8 @@ int main(int argc, char* argv[])
 	}
 	/*---------------------read the preconditioner ------------------------------*/
 
-	uint32_t *I_precond=(uint32_t *) malloc(size6);
-	uint32_t *J_precond=(uint32_t *) malloc(size6);
+	int *I_precond=(int *) malloc(size6);
+	int *J_precond=(int *) malloc(size6);
 	double* V_precond=(double*) malloc(size7);	
 
 	/*int rt=pthread_barrier_init(&barr, NULL, MAXthread);
@@ -359,8 +332,8 @@ int main(int argc, char* argv[])
 	
 	gettimeofday(&end1, NULL);	
 	printf("fspai CPU time is %ld us\n",(end1.tv_sec * 1000000 + end1.tv_usec)-(start1.tv_sec * 1000000 + start1.tv_usec));
-	uint32_t *I_precondP=(uint32_t *) malloc(size6);
-	uint32_t *J_precondP=(uint32_t *) malloc(size6);
+	int *I_precondP=(int *) malloc(size6);
+	int *J_precondP=(int *) malloc(size6);
 	double *V_precondP=(double *) malloc(size7);
 	if(cb.PRECOND){	
 		for (int i=0; i<totalNumPrecond; i++)
@@ -378,7 +351,7 @@ int main(int argc, char* argv[])
 		}
 	}
 	
-	uint32_t realIter, pp, procNum;
+	int realIter, pp, procNum;
 	struct timeval start, end;
 
 	#pragma omp parallel
@@ -389,59 +362,31 @@ int main(int argc, char* argv[])
 		}
 	}
 	printf("thread num is %d\n",procNum);
-	if(cb.GPU){
-        /*please notice that we need transfer the format of matrix to HYB, so we need I, J, V completely
-	   	for GPU solver, for CPU solver, no format change is applied, so we only need row_idx**/
-        matrixCOO_S matrix, matrix_precond, matrix_precondP;
-        if(cb.RODR){
-            init_matrixCOO_S(&matrix, dimension, totalNum, maxRowNum, row_idx, numInRow, I_rodr, J_rodr, V_rodr);
-        }
-        else{
-            int* part_boundary = NULL;
-            init_matrixCOO_S(&matrix, dimension, totalNum, maxRowNum, row_idx, numInRow, I, J, V);
-        }
-		if(cb.PRECOND){
-			init_matrixCOO_S(&matrix_precond, dimension, totalNumPrecond, maxRowNumL, row_idxL, numInRowL, I_precond, J_precond, V_precond);
-			init_matrixCOO_S(&matrix_precondP, dimension, totalNumPrecondP, maxRowNumLP, row_idxLP, numInRowLP, I_precondP, J_precondP, V_precondP);
+        /*please notice that we need transfer the format of matrix to EHYB, so we need I, J, V completely
+		  for GPU solver, for CPU solver, no format change is applied, so we only need row_idx**/
+	matrixCOO_S matrix, matrix_precond, matrix_precondP;
+	init_matrixCOO_S(&matrix, dimension, totalNum, maxRowNum, row_idx, numInRow, I_rodr, J_rodr, V_rodr);
 
-			if(cb.RODR){
-				solverGPU_HYB(&matrix, &matrix_precond, &matrix_precondP,
-						y_rodr, x_rodr, MAXIter, &realIter, cb, parts, part_boundary);
-			}
-			else{
-				solverGPU_HYB(&matrix, &matrix_precond, &matrix_precondP,
-						y, x, MAXIter, &realIter, cb, parts, part_boundary);
-			}
-		} else {
-			if(cb.RODR){
-				solverGPU_unprecondHYB(&matrix, y_rodr, x_rodr, MAXIter, &realIter,
-						cb, parts, part_boundary);
-			} else{
-				solverGPU_unprecondHYB(&matrix, y, x, MAXIter, &realIter,
-						cb, parts, part_boundary);
-			}
-		}
-	}
-	else if(!(cb.GPU)){
-		if(cb.RODR){
-			solverPrecondCPU(procNum, dimension, totalNum, row_idx, J_rodr, V_rodr, totalNumPrecond, 
-					row_idxL, J_precond, V_precond,totalNumPrecondP, 
-					row_idxLP, J_precondP, V_precondP, 
-					y_rodr, x_rodr, MAXIter, &realIter);
-		}
-		else if(!cb.RODR){
-			solverPrecondCPU(procNum, dimension, totalNum, row_idx, J, V, totalNumPrecond, 
-					row_idxL, J_precond, V_precond,totalNumPrecondP, 
-					row_idxLP, J_precondP, V_precondP, 
-					y, x, MAXIter, &realIter);
-		}
-		else;
-	}
-	else;
-		
-	if(cb.RODR){
-		vector_recover(dimension,  x_rodr, x, rodr_list);
-	}
+	//if(cb.PRECOND){
+	//	init_matrixCOO_S(&matrix_precond, dimension, totalNumPrecond, maxRowNumL, row_idxL, numInRowL, I_precond, J_precond, V_precond);
+	//	init_matrixCOO_S(&matrix_precondP, dimension, totalNumPrecondP, maxRowNumLP, row_idxLP, numInRowLP, I_precondP, J_precondP, V_precondP);
+
+	//	solverGPU_EHYB(&matrix, &matrix_precond, &matrix_precondP, y_rodr, x_rodr, MAXIter, &realIter,
+	//			cb, parts, part_boundary);
+
+	//	free(I_precond);
+	//	free(J_precond);
+	//	free(V_precond);
+	//	free(I_precondP);
+	//	free(J_precondP);
+	//	free(V_precondP);
+
+	//} else {
+		solverGPU_unprecondEHYB(&matrix, y_rodr, x_rodr, MAXIter, &realIter,
+				cb, parts, part_boundary);
+	//} else;
+	
+	vector_recover(dimension,  x_rodr, x, rodr_list);
 
 	for (int i=0;i<10;i++)
 	{
@@ -452,12 +397,6 @@ int main(int argc, char* argv[])
 	free(I);
 	free(J);
 	free(V);
-	free(I_precond);
-	free(J_precond);
-	free(V_precond);
-	free(I_precondP);
-	free(J_precondP);
-	free(V_precondP);
 	free(lowerJ);
 	free(lowerI);
 	free(lowerV);
