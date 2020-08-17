@@ -39,35 +39,25 @@ static void sortRordrList(unsigned int dimension,
 }
 
 /*reorder function with I_rodr, J_rodr, v_rodr, rodr_list as output*/
-void matrix_reorder(int dimension, 
-		const unsigned int totalNum,
-		const cb_s cb, 
-		const int* I, 
-		const int* J, 
-		const double* V, 
-		int* numInRow, 
-		int* numInRow2,
-		int* rowIdx, 
-		int* rodrI, int* rodrJ, 
-		double* rodrV, int* rodrList, int* partBoundary,
-		const int nParts)
+void matrixReorder(matrixCOO* localMatrixCOO,
+		int* reorderList,
+		cb_s cb)
 {
-
+	int nparts = localMatrixCOO->nparts;
 	printf("nparts is %d\n", nParts);
-	int *colVal = (int *) malloc(totalNum*sizeof(int));
 	int tempI, tempIdx, tempJ;
 	int maxCol;
 	double tempV;
-	/*transfer the COO format to CSR format, do the partitioning*/
-	for(int i= 1; i <= dimension; i++){
-		numInRow[i-1] = 0;
-	}
-	for(int i = 0; i < totalNum; i++){
-		int rowOfst = row_idx[I[i]] + numInRow[I[i]];
-		colVal[rowOfst] = J[i]; 
-		numInRow[I[i]] += 1;
-	}
+	int* I = localMatrixCOO->I;
+	int* J = localMatrixCOO-J;
+	int* V= localMatrixCOO->V;
+	int* rowIdx = localMatrixCOO->rowIdx; 
 	
+	int* newI = (int*)malloc(sizeof(int)*localMatrixCOO->totalNum);
+	int* newJ = (int*)malloc(sizeof(int)*localMatrixCOO->totalNum);
+	int* newV = (double*)malloc(sizeof(double)*localMatrixCOO->totalNum);
+
+	/*transfer the COO format to CSR format, do the partitioning*/
 	unsigned int *partVec, *cwghts;
 	partVec = (unsigned int *) calloc(dimension, sizeof(unsigned int));
 	cwghts = (unsigned int *) calloc(dimension, sizeof(int));
@@ -93,8 +83,8 @@ void matrix_reorder(int dimension,
 	MTMETIS_PartGraphKway(
 			&dimension,
 			&ncon,
-			row_idx,
-			colVal,
+			rowIdx,
+			J,
 			NULL,
 			NULL,
 			NULL,
@@ -110,7 +100,7 @@ void matrix_reorder(int dimension,
 	
 	printf("partition time is %ld us\n",(end.tv_sec * 1000000 + end.tv_usec)-(start.tv_sec * 1000000 + start.tv_usec));
 	int* numInRow2 = (int*) malloc(sizeof(int)*dimension);	
-	int* part_filled = (int* )calloc(nparts, sizeof(int)); 	
+	int* partFilled = (int* )calloc(nparts, sizeof(int)); 	
 	for(int i = 0; i < dimension; ++i){
 		partSize[partVec[i]] += 1;
 	}
@@ -118,30 +108,30 @@ void matrix_reorder(int dimension,
 	for(int i = 1; i < nparts + 1; ++i){
 		partBias[i] = partBias[i-1] + partSize[i-1];
 	}
-	int perm_idx;	
+	int permIdx;	
 	for(int i = 0; i < dimension; i++){
-		perm_idx = part_filled[partVec[i]] + partBias[partVec[i]];
-		rodr_list[i] = perm_idx;
-		part_filled[partVec[i]]+=1;
+		permIdx = partFilled[partVec[i]] + partBias[partVec[i]];
+		reorderList[i] = permIdx;
+		partFilled[partVec[i]]+=1;
+		numInRow2[i] = 0;
 	}	
 	 
 	for(int i = 0; i <= nparts; i++){
-		part_boundary[i] = partBias[i];
+		partBoundary[i] = partBias[i];
 	}
 	for(int i = 0; i < totalNum; i++){
-		numInRow2[i] = 0;
 	}
 	//sort the reorder list by number of nozero per row
 	//it may not working well on factorized preconditioner
 	if(cb.SORT){
-		sortRordrList(dimension, nparts, part_boundary, rodr_list, numInRow);
+		sortRordrList(dimension, nparts, partBoundary, reorderList, numInRow2);
 	}
 	for(int i = 0; i < dimension; i++){
 		numInRow[i] = 0;
 	}
 	//reordering need two iteration
 	for(int i = 0; i < totalNum; i++){
-		tempI = rodr_list[I[i]];
+		tempI = rodrList[I[i]];
 		numInRow[tempI] += 1;
 	}
 	row_idx[0] = 0;
@@ -160,6 +150,12 @@ void matrix_reorder(int dimension,
 		V_rodr[tempIdx] = V[i];
 		numInRow[tempI] += 1;
 	}	
+	free(I);
+	free(J);
+	free(V);
+	localMatrixCOO->I=newI;
+	localMatrixCOO->J=newJ;
+	localMatrixCOO->V=newV;
 	free(colVal);
 	free(cutSize);
 	free(partSize);

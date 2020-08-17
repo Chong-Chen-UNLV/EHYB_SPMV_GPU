@@ -24,7 +24,6 @@ static void sortRordrListFull(unsigned int dimension,
 	free(rodrSVec);
 
 }
-
 static void colsVecGenEHYB( int* widthVecBlockELL, 
 		int* sizeCOO, 
 		int* numOfRowER,
@@ -39,6 +38,9 @@ static void colsVecGenEHYB( int* widthVecBlockELL,
 		const int* rowIdx,
 		const bool CACHED)
 {
+	/*Reoder functions did an extra iteration 
+ 	* which provides numInRowER without ER reordering
+ 	* */
 	int avg_local = 0;
 	// int block_nonz = 0;
 	int block_idx = 0;
@@ -48,7 +50,7 @@ static void colsVecGenEHYB( int* widthVecBlockELL,
 	int col_th, col_accum; 
 	int *col_hist = ( int*)calloc(max_col, sizeof( int));
 
-	*size_COO = 0;
+	*sizeCOO = 0;
 	block_boundary[0] = 0;
 	int ELL_val = 0;
 	int extraRows = 0;
@@ -94,31 +96,31 @@ static void colsVecGenEHYB( int* widthVecBlockELL,
 				exit(0);
 			}		
 			for(int row_val = local_start; row_val < local_end; ++row_val){
-					ELL_val = 0;
-					for(int j = row_idx[row_val]; j < row_idx[row_val + 1]; ++j){
-						if(col[j] < part_start || col[j] >= part_start+ vector_cache_size){
-							*size_COO += 1;
-							ER_numInRow[ER_numOfRow] += 1;
-							ER_line = true;
-						} else 
-							ELL_val += 1; 
-					}
-					if(ELL_val > num_cols){
-						*size_COO += ELL_val - num_cols;
+				ELL_val = 0;
+				for(int j = row_idx[row_val]; j < row_idx[row_val + 1]; ++j){
+					if(col[j] < part_start || col[j] >= part_start+ vector_cache_size){
+						*size_COO += 1;
+						ER_numInRow[ER_numOfRow] += 1;
 						ER_line = true;
-					}
-					if(ER_line){
-						ER_rowVec[ER_numOfRow] = row_val;
-						ER_numOfRow += 1;
-						ER_line = false;
-					}
-
+					} else 
+						ELL_val += 1; 
 				}
+				if(ELL_val > num_cols){
+					*size_COO += ELL_val - num_cols;
+					ER_line = true;
+				}
+				if(ER_line){
+					ER_rowVec[ER_numOfRow] = row_val;
+					ER_numOfRow += 1;
+					ER_line = false;
+				}
+
 			}
-			ELL_block_cols_vec[block_idx] = num_cols;	
-			block_idx += 1;
 		}
-		if(extraRows > 0){
+		ELL_block_cols_vec[block_idx] = num_cols;	
+		block_idx += 1;
+	}
+	if(extraRows > 0){
 			for(int row_val = block_end; row_val < part_end; ++row_val){
 				*size_COO += row_idx[row_val + 1] - row_idx[row_val];
 			}	
@@ -379,17 +381,21 @@ static void COO2EHYbCore( int* colELL, double* matrixELL,
 /*parameters, first line: output of HYB related parameters, 2nd line: output of HYB matrices, 3rd line:input of local COO matrix 
  4th line: ER index (didn't include values), 5th line: input variables*/
 
-void COO2EHYB(matrixCooS* inputMatrix, 
-		matrixEHybS* outputMatrix)
+void COO2EHYB(matrixCOO* inputMatrix, 
+		matrixEHYB* outputMatrix)
 { 
 
-	 int point_COO = 0;
-	 int ER_numOfRow;
-	 int* ER_numInRow = (int*)malloc(sizeof(int)*dimension);
-	 int* ER_rowVec = (int*)malloc(sizeof(int)*dimension);
+	int point_COO = 0;
+	int ER_numOfRow;
+	int* ER_numInRow = (int*)malloc(sizeof(int)*dimension);
+	int* ER_rowVec = (int*)malloc(sizeof(int)*dimension);
 	/*block_boundary will not be used outside this function*/
-	 int* block_boundary = ( int*)malloc((block_num + 1) * sizeof( int));
-	*size_COO=0;	
+	int* block_boundary = ( int*)malloc((block_num + 1) * sizeof( int));
+	int sizeCOO=0;	
+	colsVecGenBlockELL(inputMatrix->widthVecBlockELL, 
+			inputMatrix->biasVecBLockELL,
+			&sizeCOO,
+			);
 	ELL_block_cols_vec_gen_rodr(ELL_block_cols_vec, 
 		size_COO, 
 		&ER_numOfRow,

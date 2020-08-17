@@ -597,14 +597,16 @@ void matrix_vectorEHYB(matrixEHYbS* inputMatrix_d, double* vector_in_d,
 		double* vector_out_d, cb_s cb, const int testPoint)
 {
 	int dimension = inputMatrix_d->dimension;
+	int partSize = inputMatrix_d->partSize;
 	int* widthVecBlockELL_d = inputMatrix_d->widthVecBlockELL;
-	int* biasVecBLockELL_d = ;
+	int* biasVecBLockELL_d = inputMatrix_d->;
 	int* colBlockELL_d = inputMatrix_d->colBlockELL;
-	double* valBlockELL_d = inputMatrix->I_COO_d;
-	int* rowVecER_d = ;
-	int* widthVecER_d = ;
-	int* biasVecER_d = ;
-	const int numOfRowER = inputMatrix->ER_numOfRow ; 
+	double* valBlockELL_d = inputMatrix->valBlockELL;
+	int* rowVecER_d = inputMatrix_d->rowVecER;
+	int* widthVecER_d = inputMatrix_d->widthVecER;
+	int* biasVecER_d = inputMatrix_d->biasVecER;
+	int* part_boundary_d = inputMatrix_d->part_boundary;
+	const int numOfRowER = inputMatrix->numOfRowER; 
 	int* colER_d= inputMatrix->colER; 
 	double* valER_d = inputMatrix->valER;
 	

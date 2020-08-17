@@ -5,6 +5,133 @@
 #include "solver.h"
 #include <unistd.h>
 
+int matrixRead(matrixCOO* localMatrixCOO, FILE *f){
+
+	int _dimension, _N, _lowerNum;
+	if ((ret_code = mm_read_mtx_crd_size(f, &_dimension, &_N, &_lowerNum)) !=0)
+		exit(1);	
+	dimension = _dimension,
+	N = _N;
+	lowerNum = _lowerNum;
+	
+	matrixCOO localMatrixCOO;
+	readMatrix(&localMatrixCOO);
+	/*The overall number of nozeros in this matrix*/
+	totalNum=lowerNum*2-dimension;
+	totalNumPrecond=lowerNum;
+	totalNumPrecondP = lowerNum;
+
+	size_t size0=lowerNum*sizeof(int);
+	size_t size1=lowerNum*sizeof(double);
+	size_t size2=totalNum*sizeof(int);
+	size_t size3=totalNum*sizeof(double);
+	size_t size4=dimension*sizeof(int);
+	size_t size5=dimension*sizeof(double);
+	size_t size6=lowerNum*sizeof(int);
+	size_t size7=lowerNum*sizeof(double);
+
+
+	lowerJ=(int *) malloc(size0);
+	lowerI=(int *) malloc(size0);
+	lowerV=(double *) malloc(size1);
+	localMatrixCOO->I=(int *) malloc(size2);
+	localMatrixCOO->J=(int *) malloc(size2);
+	localMatrixCOO->V=(double *) malloc(size3);
+	localMatrixCOO->diag = (double *) malloc(dimension*sizeof(double));
+
+	int *numInRowL;
+	int *row_idxL;
+	int *numInRowLP;
+	int *row_idxLP;	
+	int *numInRow;
+
+	row_idxLP=(int *) malloc(size4 + sizeof(int));
+	numInRow=(int *) malloc(size4);
+	int tempI, tempJ;
+	double tempV;
+	for (int i=0; i<lowerNum; i++)
+	{
+		fscanf(f, "%d %d %lg\n", &tempI, &tempJ, &tempV);
+		lowerJ[i]=tempJ-1;  /* adjust from 1-based to 0-based */
+		lowerI[i]=tempI-1;
+		lowerV[i]=tempV;
+		numInRow[tempI-1]+=1;
+		numInRowL[tempJ-1]+=1;
+		numInRowLP[tempI-1]+=1;
+		if (tempI!=tempJ)
+		{
+			numInRow[tempJ-1]+=1;
+		}		
+		if (lowerI[i]-lowerJ[i]>bandwidth) bandwidth=lowerI[i]-lowerJ[i];
+	}
+
+
+	int *row_idx=(int *)malloc((dimension+1)*sizeof(int));
+	maxRowNum=0;
+	maxRowNumL=0;
+	maxRowNumLP=0;
+	row_idx[0] = 0;
+	row_idxL[0] = 0;
+	row_idxLP[0] = 0;
+	for (int i=1;i<= dimension;i++)
+	{
+
+		if (numInRow[i-1]>maxRowNum)
+			maxRowNum=numInRow[i-1];
+		if (numInRowL[i-1]>maxRowNumL)
+			maxRowNumL=numInRowL[i-1];
+		if (numInRowLP[i-1]>maxRowNumLP)
+			maxRowNumLP=numInRowLP[i-1];			
+
+		row_idx[i]=row_idx[i-1]+numInRow[i-1];
+		row_idxL[i]=row_idxL[i-1]+numInRowL[i-1];
+		row_idxLP[i]=row_idxLP[i-1]+numInRowLP[i-1];
+		numInRow[i-1]=0;
+		numInRowLP[i-1]=0;
+		//determine y
+	}	
+	if (numInRow[dimension-1]>maxRowNum) maxRowNum=numInRow[dimension-1];
+	if (numInRowL[dimension-1]>maxRowNumL) maxRowNumL=numInRowL[dimension-1];	
+	if (numInRowLP[dimension-1]>maxRowNumLP) maxRowNumLP=numInRowLP[dimension-1];
+	printf("maxRowNum is %d, maxRowNumPr is %d, maxRowNumLP is %d\n", maxRowNum, maxRowNumL, maxRowNumLP);
+	numInRow[dimension-1]=0;
+	numInRowLP[dimension-1]=0;
+	for (int i=0;i<dimension;i++)
+	{		
+		srand(i);
+		x_compare[i]=(double) (rand()%200-100)/100;
+		//x_compare[i]=1;
+	}
+	int index1, index2;
+
+	for (int i=0;i<lowerNum;i++)
+	{
+		tempI=lowerI[i];
+		tempJ=lowerJ[i];
+		tempV=lowerV[i];
+		index1=row_idx[tempI]+numInRow[tempI];
+		index2=row_idx[tempJ]+numInRow[tempJ];
+		numInRow[tempI]+=1;
+		I[index1]=tempI;
+		J[index1]=tempJ;
+		V[index1]=tempV;
+		y[tempI]+=tempV*x_compare[tempJ];
+		if (tempI != tempJ)
+		{
+			numInRow[tempJ]+=1;
+			I[index2]=tempJ;
+			J[index2]=tempI;
+			V[index2]=tempV;
+			y[tempJ]+=tempV*x_compare[tempI];
+		}
+		else
+		{
+			diag[tempI]=tempV;
+		}
+	}
+
+}
+
 int main(int argc, char* argv[])
 {
 	int MAXthread = 2;	
@@ -104,135 +231,15 @@ int main(int argc, char* argv[])
 		printf("Market Market type: [%s]\n", mm_typecode_to_str(matcode));
 		exit(1);
 	}
-
-	/* find out size of sparse matrix .... */
-	int _dimension, _N, _lowerNum;
-	if ((ret_code = mm_read_mtx_crd_size(f, &_dimension, &_N, &_lowerNum)) !=0)
-		exit(1);	
-	dimension = _dimension,
-	N = _N;
-	lowerNum = _lowerNum;
-
-	/*The overall number of nozeros in this matrix*/
-	totalNum=lowerNum*2-dimension;
-	totalNumPrecond=lowerNum;
-	totalNumPrecondP = lowerNum;
-
-	size_t size0=lowerNum*sizeof(int);
-	size_t size1=lowerNum*sizeof(double);
-	size_t size2=totalNum*sizeof(int);
-	size_t size3=totalNum*sizeof(double);
-	size_t size4=dimension*sizeof(int);
-	size_t size5=dimension*sizeof(double);
-	size_t size6=lowerNum*sizeof(int);
-	size_t size7=lowerNum*sizeof(double);
-
-
-	lowerJ=(int *) malloc(size0);
-	lowerI=(int *) malloc(size0);
-	lowerV=(double *) malloc(size1);
-	I=(int *) malloc(size2);
-	J=(int *) malloc(size2);
-	V=(double *) malloc(size3);
-	x=(double *) malloc(size5);
-	y=(double *) malloc(size5);
-	double *diag=(double *) malloc(size5);
+	matrixCOO localMatrixCOO;
+	x=(double *) malloc(dimension*sizeof(double));
+	y=(double *) malloc(dimension*sizeof(double));
+	double *diag=
 	x_compare=(double *) malloc(size5);
 	error_track=(double *) malloc(MAXIter*sizeof(double));
-
-	int *numInRowL;
-	int *row_idxL;
-	int *numInRowLP;
-	int *row_idxLP;	
-	int *numInRow;
-
-	numInRowL=(int *) malloc(size4);
-	numInRowLP=(int *) malloc(size4);
-	row_idxL=(int *) malloc(size4 + sizeof(int));
-	row_idxLP=(int *) malloc(size4 + sizeof(int));
-	numInRow=(int *) malloc(size4);
-	int tempI, tempJ;
-	double tempV;
-	for (int i=0; i<lowerNum; i++)
-	{
-		fscanf(f, "%d %d %lg\n", &tempI, &tempJ, &tempV);
-		lowerJ[i]=tempJ-1;  /* adjust from 1-based to 0-based */
-		lowerI[i]=tempI-1;
-		lowerV[i]=tempV;
-		numInRow[tempI-1]+=1;
-		numInRowL[tempJ-1]+=1;
-		numInRowLP[tempI-1]+=1;
-		if (tempI!=tempJ)
-		{
-			numInRow[tempJ-1]+=1;
-		}		
-		if (lowerI[i]-lowerJ[i]>bandwidth) bandwidth=lowerI[i]-lowerJ[i];
-	}
-
-
-	int *row_idx=(int *)malloc((dimension+1)*sizeof(int));
-	maxRowNum=0;
-	maxRowNumL=0;
-	maxRowNumLP=0;
-	row_idx[0] = 0;
-	row_idxL[0] = 0;
-	row_idxLP[0] = 0;
-	for (int i=1;i<= dimension;i++)
-	{
-
-		if (numInRow[i-1]>maxRowNum)
-			maxRowNum=numInRow[i-1];
-		if (numInRowL[i-1]>maxRowNumL)
-			maxRowNumL=numInRowL[i-1];
-		if (numInRowLP[i-1]>maxRowNumLP)
-			maxRowNumLP=numInRowLP[i-1];			
-
-		row_idx[i]=row_idx[i-1]+numInRow[i-1];
-		row_idxL[i]=row_idxL[i-1]+numInRowL[i-1];
-		row_idxLP[i]=row_idxLP[i-1]+numInRowLP[i-1];
-		numInRow[i-1]=0;
-		numInRowLP[i-1]=0;
-		//determine y
-	}	
-	if (numInRow[dimension-1]>maxRowNum) maxRowNum=numInRow[dimension-1];
-	if (numInRowL[dimension-1]>maxRowNumL) maxRowNumL=numInRowL[dimension-1];	
-	if (numInRowLP[dimension-1]>maxRowNumLP) maxRowNumLP=numInRowLP[dimension-1];
-	printf("maxRowNum is %d, maxRowNumPr is %d, maxRowNumLP is %d\n", maxRowNum, maxRowNumL, maxRowNumLP);
-	numInRow[dimension-1]=0;
-	numInRowLP[dimension-1]=0;
-	for (int i=0;i<dimension;i++)
-	{		
-		srand(i);
-		x_compare[i]=(double) (rand()%200-100)/100;
-		//x_compare[i]=1;
-	}
-	int index1, index2;
-
-	for (int i=0;i<lowerNum;i++)
-	{
-		tempI=lowerI[i];
-		tempJ=lowerJ[i];
-		tempV=lowerV[i];
-		index1=row_idx[tempI]+numInRow[tempI];
-		index2=row_idx[tempJ]+numInRow[tempJ];
-		numInRow[tempI]+=1;
-		I[index1]=tempI;
-		J[index1]=tempJ;
-		V[index1]=tempV;
-		y[tempI]+=tempV*x_compare[tempJ];
-		if (tempI != tempJ)
-		{
-			numInRow[tempJ]+=1;
-			I[index2]=tempJ;
-			J[index2]=tempI;
-			V[index2]=tempV;
-			y[tempJ]+=tempV*x_compare[tempI];
-		}
-		else
-		{
-			diag[tempI]=tempV;
-		}
-	}	
+	matrixRead(&localMatrixCOO, f);
+	/* find out size of sparse matrix .... */
+		
 	/*-----------------do the reordering with metis/hmetis, determine the value------------*/
 	/*suffix _rodr means reordered*/		
 	int *I_rodr, *J_rodr, *part_boundary, *rodr_list;
@@ -241,9 +248,8 @@ int main(int argc, char* argv[])
 	if(cb.RODR){
 		parts = ceil(dimension/(shared_per_block/element_size));
 		printf("parts is %d\n", parts);
-		rodr_list = (int* )calloc(dimension, sizeof(int)); 
+		localMatrixCOO->rodr_list = (int* )calloc(dimension, sizeof(int)); 
 		part_boundary = (int* )calloc((parts + 1), sizeof(int)); 	
-		I_rodr = (int *) malloc(size2);
 		J_rodr = (int *) malloc(size2);
 		V_rodr = (double *) malloc(size3);
 		x_rodr = (double* )calloc(dimension, sizeof(double)); 
@@ -254,66 +260,11 @@ int main(int argc, char* argv[])
 		so the maxRowNum should be same, only occured in different row number
 		however, maxRowNum for preconditioners is very possible to be changed 
 		*/
-		matrix_reorder(&dimension, totalNum, cb, 
-				I, J, V, numInRow, row_idx,
-				 I_rodr, J_rodr, V_rodr, rodr_list, part_boundary, parts);
-		vector_reorder(dimension, y, y_rodr, rodr_list);
-		update_numInRowL(totalNum, 
-			dimension, 
-			I_rodr, 
-			J_rodr, 
-			V_rodr, 
-			numInRowL,
-			&maxRowNumL,
-			&maxRowNumLP,
-			row_idxL, 
-			row_idxLP,
-			diag);
+		matrixReorder(&localMatrixCOO);
+		vectorReorder(dimension, y, y_rodr, rodr_list);
+		
 	}
-	/*---------------------read the preconditioner ------------------------------*/
-
-	int *I_precond=(int *) malloc(size6);
-	int *J_precond=(int *) malloc(size6);
-	double* V_precond=(double*) malloc(size7);	
-
-	/*int rt=pthread_barrier_init(&barr, NULL, MAXthread);
-	  rt=pthread_barrier_init(&barr1, NULL, MAXthread);*/
-
-	S Sthread[MAXthread];
-
-	for (int t=0;t<MAXthread;t++)
-	{
-		if(cb.RODR){
-			Sthread[t].I=I_rodr;
-			Sthread[t].J=J_rodr;
-			Sthread[t].V= V_rodr;
-		}
-		else{
-			Sthread[t].I=I;
-			Sthread[t].J=J;
-			Sthread[t].V= V;
-		}
-		Sthread[t].I_precond=I_precond;
-		Sthread[t].J_precond=J_precond;
-		Sthread[t].V_precond=V_precond;
-		Sthread[t].maxRowNum=maxRowNum;
-		Sthread[t].numInRow=numInRow;
-		Sthread[t].row_idx=row_idx;
-		Sthread[t].numInRowPrecond=numInRowL;
-		Sthread[t].row_idxPrecond=row_idxL;
-		Sthread[t].diag = diag;
-		if (t==0) Sthread[t].colStart=0;
-		else Sthread[t].colStart=(dimension/MAXthread)*t;
-		if (t==MAXthread-1) Sthread[t].colEnd=dimension;
-		else Sthread[t].colEnd=(dimension/MAXthread)*(t+1);
-		Sthread[t].id=t;
-	}	
-	struct timeval start1, end1;
-	struct timeval start2, end2;
-
-	gettimeofday(&start1, NULL);
-	omp_set_num_threads(MAXthread);
-	int rank;
+	
 	if(cb.PRECOND){
 		if(cb.FACT){
 			#pragma omp parallel private(rank)
@@ -382,7 +333,7 @@ int main(int argc, char* argv[])
 	//	free(V_precondP);
 
 	//} else {
-		solverGPU_unprecondEHYB(&matrix, y_rodr, x_rodr, MAXIter, &realIter,
+		solverGPU_unprecondEHYB(&localMatrixCOO, y_rodr, x_rodr, MAXIter, &realIter,
 				cb, parts, part_boundary);
 	//} else;
 	

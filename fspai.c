@@ -297,35 +297,39 @@ void spaiCPU(S *SInput)
 	free(sortedS);
 }
 
-void fspaiCPU(S *SInput)
+void fspaiCPU(matrixCOO* inputMatrix,
+		matrixCOO* precondMatrix)
 /*void fspai(int *I, int *J, double *V, int *I_precond, int *J_precond, double *V_precond, const int maxRowNum, const int *numInRow, 
 			const int *row_idx, const int *numInRowPrecond, const int *row_idxPrecond, const double *diag, int colStart, int colEnd)*/
 /* totalNum: number of matrix, dimension: size of vector, I: row index, J: column index, V: matrix value, *_precond: preconditioner index and value
 */
 {
-	unsigned int *J=SInput->J;
-	double *V=SInput->V;
-	unsigned int *I_precond=SInput->I_precond;
-	unsigned int *J_precond=SInput->J_precond;
-	double *V_precond=SInput->V_precond;
-	unsigned int maxRowNum=SInput->maxRowNum;
-	unsigned int *numInRow=SInput->numInRow;
-	unsigned int *row_idx=SInput->row_idx;
-	unsigned int *numInRowPrecond=SInput->numInRowPrecond;
-	unsigned int *row_idxPrecond=SInput->row_idxPrecond;
-	double *diag=SInput->diag;
-	unsigned int colStart=SInput->colStart; 
-	unsigned int colEnd=SInput->colEnd;
-	unsigned int id=SInput->id;
+/*---------------------read the preconditioner ------------------------------*/
+	int totalNum = inputMatrix->totalNum;
+	precondMatrix->precondI = (int *) malloc(totalNum*sizeof(int));
+	precondMatrix->precondJ = (int *) malloc(totalNum*sizeof(int));
+	precondMatrix->precondV = (double*) malloc(totalNum*sizeof(double));	
+		
+	struct timeval start1, end1;
+	struct timeval start2, end2;
+
+	gettimeofday(&start1, NULL);
+	omp_set_num_threads(MAXthread);
+	int rank;
+	int maxRowNum=inputMatrix->maxRowNum;
+	int *numInRow=inputMatrix->numInRow;
+	int *rowIdx=inputMatrix->rowIdx;
+	double *diag=inputMatrix->diag;
 	
-	double *sortedV= (double *)malloc(maxRowNum*sizeof(double));
-	unsigned int *sortedJ=(unsigned int *)malloc(maxRowNum*sizeof(unsigned int));
-	Sort_S *sortedS = (Sort_S *)malloc(maxRowNum*sizeof(Sort_S));
-	
-	unsigned int start,num;
+	double sortedV[maxRowNum];
+	int sortedJ[maxRowNum];
+	Sort_S sortedS[maxRowNum];
+
+	int start,num;
 	//printf("fspai start at %d end at %d maxRowNum is %d\n", colStart, colEnd,maxRowNum);
 	//Sort the matrix, using insert sort algorithm, will try quick sort algorithm
-	for (int i=colStart;i<colEnd;i++)
+	#pragma omp parallel for default(shared) private(start, num, sortedJ, sortedV, sortedS)
+	for (int i=0;i<inputMatrix->dimension;++i)
 	{
 		
 		start=row_idx[i];
@@ -342,22 +346,29 @@ void fspaiCPU(S *SInput)
 	//printf("fspai first finish\n");
 	
 	int subMatrixNum;
-	float *subMatrix=(float *) malloc(maxRowNum*maxRowNum*sizeof(double));
-	unsigned int *subI=(unsigned int *) malloc(maxRowNum*maxRowNum*sizeof(unsigned int));
-	unsigned int *subJ=(unsigned int *) malloc(maxRowNum*maxRowNum*sizeof(unsigned int));
-	double *yk=(double *)malloc(maxRowNum*sizeof(double));
-	double *xk=(double *)malloc(maxRowNum*sizeof(double));
-	unsigned int *tempJ=(unsigned int *)malloc(maxRowNum*sizeof(unsigned int));
+	//less than 400*400 which will is 625 KB, 
+	//safe to put in stack with muliple duplication
+	int subBufSize = maxRowNum*maxRowNum;
+	float subMatrix[subBufSize] = 0;
+	int subI[subBufSize] = 0;
+	int subJ[subBufSize] = 0;
+	float yk[maxRowNum] = 0;
+	double xk[maxRowNum] = 0;
+	int tempJ[maxRowNum] = 0;
 	
 	int iterNum;
 	iterNum=100;
-	float *error=(float *)malloc(iterNum*sizeof(double));
+	float error[iterNum];
 	double AY;
 	double Lk;
 	int subRowIndex, index1,index2,index3;
 	int tempCol,colIndex;
 	//Complete computation in each column seperately
-	for (int i=colStart; i<colEnd; i++)
+	#pragma omp parallel for default(shared) firstprivate(subMatrix, subI, subJ, \\
+			yk, xk, tempJ, error,\\
+			subRowIndex, index3, index2, index1,\\
+			tempCol, colIndex, realIter)
+	for (int i = 0; i < dimension; ++i)
 	{
 		subRowIndex=0;
 		start=0;
@@ -434,22 +445,19 @@ void fspaiCPU(S *SInput)
 			index3=p+row_idxPrecond[i];
 			if (p==0)
 			{
-				I_precond[index3]=i;
-				J_precond[index3]=i;
-				V_precond[index3]=Lk;
+				precondMatrix->I[index3]=i;
+				precondMatrix->J[index3]=i;
+				precondMatrix->V[index3]=Lk;
 			}
 			else
 			{
-				I_precond[index3]=i;
-				J_precond[index3]=tempJ[p-1];
-				V_precond[index3]=(-Lk)*yk[p-1];
-				if (abs(V_precond[index3])>10000)
+				precondMatrix->I[index3]=i;
+				precondMatrix->J[index3]=tempJ[p-1];
+				precondMatrix->V[index3]=(-Lk)*yk[p-1];
+				if (abs(precondMatrix->V[index3])>10000)
 					printf("error happend at line %d colum %d of preconditioner\n", i, tempJ[p-1]);
 			}
 		}
 	}
-
-	free(sortedJ);
-	free(sortedV);
-	free(sortedS);
+	
 }

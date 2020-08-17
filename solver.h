@@ -16,37 +16,43 @@ typedef struct _cb{
 	bool SORT;
 }cb_s;
 
-typedef struct _matrixCOO_S{
-    uint32_t totalNum;
-    uint32_t dimension;                 
-    uint32_t maxRowNum;
-    uint32_t* row_idx;                 
-    uint32_t* numInRow;
-    uint32_t* I;
-    uint32_t* J;
+typedef struct _matrixCOO{
+    int totalNum;
+    int dimension;                 
+    int maxRowNum;
+	int nparts;
+    int* rowIdx;                 
+    int* numInRow;
+    int* numInRow2;//used for ER part for EHYB
+    int* I;
+    int* J;
     double* V;
-}matrixCOO_S;
+	int* diag;
+}matrixCOO;
 
-typedef struct _matrixHYB_S_d{
-	uint32_t dimension;
-	uint32_t ELL_width;
-	uint32_t totalNumCOO;
-	uint32_t* col_d;
-	uint32_t* I_COO_d;
-	uint32_t* J_COO_d;
-	double* V_d;
-	double* V_COO_d;
-	uint32_t* ELL_block_bias_vec_d;
-	uint32_t* ELL_block_cols_vec_d;
-}matrixHYB_S_d;
+typedef struct _matrixEHYB{
+	int dimension;
+	int	 blocks;
+	int	 numOfRowER;
+	int* widthVecBlockELL;
+	int* biasVecBLockELL;
+	int* colBlockELL;
+	double* valBlockELL;
+	int* partBoundary;
+	int* widthVecER;
+	int* rowVecER;
+	int* biasVecER; 
+	int* colER;
+	double* valER;
+}matrixEHYB;
 
 inline void init_cb(cb_s* in_s)
 {
 	in_s->PRECOND = false;
     in_s->GPU = false;
-    in_s->RODR = false; 
-    in_s->BLOCK = false;
-    in_s->CACHE = false;
+    in_s->RODR = true; 
+    in_s->BLOCK = true;
+    in_s->CACHE = true;
 	in_s->FACT = true;
 }
 
@@ -70,12 +76,12 @@ void solverPrecondCPU(const uint32_t procNum, const uint32_t dimension,
 		const uint32_t *row_idxLP, const uint32_t *J_precondP, const double *V_precondP, 
 		const double *vector_in, double *vector_out, const uint32_t MAXIter, uint32_t *realIter);
 
-void solverGPU_unprecondHYB(matrixCOO_S* localMatrix, 
+void solverGPU_UprecondEHYB(matrixCOO_S* localMatrix, 
 		const double *vector_in, double *vector_out,  
 		const uint32_t MAXIter, uint32_t *realIter,  const cb_s cb,
 		const uint32_t part_size, const uint32_t* part_boundary);
 
-void solverGPU_HYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrixPrecond, 
+void solverGPU_EHYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrixPrecond, 
                 matrixCOO_S* localMatrixPrecondP,
         		const double *vector_in, double *vector_out,  
                 const uint32_t MAXIter, uint32_t *realIter,  const cb_s cb,

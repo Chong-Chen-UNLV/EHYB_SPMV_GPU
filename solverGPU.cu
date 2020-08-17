@@ -4,16 +4,16 @@
 #include "test.h"
 
 static inline int calPadding(int dimension,
-		const int* numInRow, const int* part_boundary, 	
-		int* ELL_block_cols_vec, const int part_size){
+		const int* numInRow, const int* partBoundary, 	
+		int* widthVecBlockELL, const int partSize){
 
 	int padded = 0;
-	for(int i = 0; i < part_size; ++i){
-		for(int j = part_boundary[i]; j < part_boundary[i+1]; ++j){
-			if(j < part_boundary[i] + block_per_part*ELL_threadSize){
-				int blockIdx = i*block_per_part + (j-part_boundary[i])/ELL_threadSize;
-				if(numInRow[j] < ELL_block_cols_vec[blockIdx])	
-					padded += (ELL_block_cols_vec[blockIdx] - numInRow[j]);
+	for(int i = 0; i < partSize; ++i){
+		for(int j = partBoundary[i]; j < part_boundary[i+1]; ++j){
+			if(j < partBoundary[i] + blockPerPart*ELLthreadSize){
+				int blockIdx = i*blockPerPart + (j - partBoundary[i])/ELLthreadSize;
+				if(numInRow[j] < widthVecBlockELL[blockIdx])	
+					padded += (widthVecBlockELL[blockIdx] - numInRow[j]);
 			}
 		}
 	}
@@ -46,69 +46,22 @@ void solverGPuUnprecondEHYB(matrixCOO_S* localMatrix,
 {
 	//This function treat y as input and x as output, (solve the equation Ax=y) y is the vector we already known, x is the vector we are looking for
 	double dotp0,dotr0,dotr1,doth;
-	int dimension, totalNum, maxRowNum, totalNumCOO; 
-    int *row_idx, *numInRow, *I, *J; 
-    double *V;
-    dimension = localMatrix->dimension; 
-    totalNum = localMatrix->totalNum; 
-    maxRowNum = localMatrix->maxRowNum; 
-
-	int ELL_blocks;
-    int *widthVecBlockELL, *widthVecBlockELL_d;    
-    int *biasVecBLockELL, *biasVecBLockELL_d;	
 	
-    row_idx = localMatrix->rowIdx; 
-    numInRow = localMatrix->numInRow; 
-    I = localMatrix->I; 
-    J = localMatrix->J;
-    V = localMatrix->V;
-	int *colBlockELL *colER;
-	int *rowVecER, *biasVecER, *widthVecER; 
-	int* ER_numOfRow;
-	double *ER_val;
-	double* matrixELL, *V_COO;
-	int *col_d;
-	double *V_d;
-	volatile bool RODR, BLOCK, CACHE;
-	int *I_COO_d, *J_COO_d;
-	double *V_COO_d;
-	BLOCK = cb.BLOCK;
-	CACHE = cb.CACHE;
-	RODR = cb.RODR;
-
 	matrixEHYbS localMatrixEHYB, localMatrixEHYB_d;
-	int *part_boundary_d;
-	
-        //RODR will change the number of blocks since it provides cache option
-	ELL_blocks = part_size*block_per_part; 
-
-    ELL_block_cols_vec = (int*)malloc(ELL_blocks*sizeof(int));  
-    ELL_block_bias_vec = (int*)malloc((ELL_blocks +1)*sizeof(int));  
+	matrixReorder(localMatrix, numInRowER);
 	
 	COO2EHYB(&localMatrix, 
-		&localMatrixEHYB,
-		biasVecBLockELL,
-		RODR,
-		CACHE);
+			&localMatrixEHYB,
+			numInRowER,
+			biasVecBLockELL,
+			RODR,
+			CACHE);
 
 	cudaMallocTransDataEHYB(localMatrixEHYB,
 			&localMatrixEHYB_d);
 
-	int padding = calPadding(dimension, numInRow, part_boundary, 	
-		ELL_block_cols_vec, part_size);
-	printf("totalNumCOO is %d padding is %d, waste rate on ELL is %f\n", 
-			totalNumCOO, padding, ((float)padding)/totalNum);
-
 	cublasHandle_t handle;
 	cublasCreate(&handle);
-
-	
-	localMatrixEHYB_d.dimension = dimension;
-	localMatrixEHYB_d.col_d = col_d;
-	localMatrixEHYB_d.V_d = V_d;
-	localMatrixEHYB_d.V_COO_d = V_COO_d;
-	localMatrixEHYB_d.ELL_block_bias_vec_d = ELL_block_bias_vec_d;
-	localMatrixEHYB_d.ELL_block_cols_vec_d = ELL_block_cols_vec_d;
 
 	double *bp_d, *pk_d, *rk_d, *vector_out_d;
 	size_t size0=dimension*sizeof(int);
@@ -222,20 +175,20 @@ void solverGPuUnprecondEHYB(matrixCOO_S* localMatrix,
 void solverGPU_unprecondCUSPARSE(matrixCOO_S* localMatrix, 
 		const double *vector_in, double *vector_out,  
 		const int MAXIter, int *realIter,  const cb_s cb,
-		const int part_size, const int* part_boundary)
+		const int partSize, const int* partBoundary)
 {
 	//exampine the performance using cusparse library functions with
 	//CSR format
 	//double dotp0,dotr0,dotr1,doth;
 	double dotp0,dotr0,dotr1,doth;
 	int dimension, totalNum, maxRowNum, totalNumCOO; 
-    int *row_idx, *numInRow, *I, *J; 
+    int *rowIdx, *numInRow, *I, *J; 
     double *V;
     dimension = localMatrix->dimension; 
     totalNum = localMatrix->totalNum; 
     maxRowNum = localMatrix->maxRowNum; 
 
-	row_idx = localMatrix->row_idx; 
+	rowIdx = localMatrix->rowIdx; 
     numInRow = localMatrix->numInRow; 
 
     I = localMatrix->I; 
@@ -245,8 +198,6 @@ void solverGPU_unprecondCUSPARSE(matrixCOO_S* localMatrix,
 	int *col_d;
 	double *V_d;
 	volatile bool RODR, BLOCK, CACHE;
-	int *I_COO_d, *J_COO_d;
-	double *V_COO_d;
 	cublasHandle_t handle;
 	cublasCreate(&handle);
 
@@ -267,6 +218,7 @@ void solverGPU_unprecondCUSPARSE(matrixCOO_S* localMatrix,
 	doth=0;
     cudaMemcpy(pk_d, vector_in, dimension*sizeof(double), cudaMemcpyHostToDevice);
     cudaMemcpy(rk_d, vector_in, dimension*sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(rowIdx_d, rowIdx, dimension*sizeof(int), cudaMemcpyHostToDevice);
 	for (int i=0;i<dimension;i++) {
 		doth=doth+vector_in[i]*vector_in[i];
 	}

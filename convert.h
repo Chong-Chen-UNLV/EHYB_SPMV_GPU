@@ -3,11 +3,11 @@
 #include "solver.h"
 #include "kernel.h"
 
-static inline unsigned int get_blocks_rodr(const unsigned int* boundary, 
-		const unsigned int block_size){
-	unsigned int block_num = 0;
-	for(unsigned int i = 0; i < block_size; ++i){
-		unsigned int partRows = boundary[i + 1] - boundary[i];
+static inline int get_blocks_rodr(const int* boundary, 
+		const int block_size){
+	int block_num = 0;
+	for(int i = 0; i < block_size; ++i){
+		int partRows = boundary[i + 1] - boundary[i];
 		block_num += ceil((float) partRows/ELL_threadSize);	
 	}	
 	return block_num;
@@ -15,33 +15,33 @@ static inline unsigned int get_blocks_rodr(const unsigned int* boundary,
 
 
 
-void COO2ELL_block(unsigned int *size_COO, 
-		unsigned int* ELL_block_cols_vec, 
-		unsigned int* ELL_block_bias_vec,
-		unsigned int **colELL, 
+void COO2ELL_block(int *size_COO, 
+		int* ELL_block_cols_vec, 
+		int* ELL_block_bias_vec,
+		int **colELL, 
 		double **matrixELL, 
-		unsigned int **I_COO, 
-		unsigned int **J_COO, 
+		int **I_COO, 
+		int **J_COO, 
 		double **V_COO,
-		const unsigned int *row_local, 
-		const unsigned int *col_local, 
+		const int *row_local, 
+		const int *col_local, 
 		const double* matrix_local, 
-		const unsigned int *row_idx, 
-		const unsigned int *numInRow, 
-		const unsigned int max_col, 
-		const unsigned int localMatrixSize, 
-		const unsigned int loc_num_of_row, 
-		const unsigned int part_size,
-		const unsigned int block_num, 
-		const unsigned int* boundary, 
+		const int *row_idx, 
+		const int *numInRow, 
+		const int max_col, 
+		const int localMatrixSize, 
+		const int loc_num_of_row, 
+		const int part_size,
+		const int block_num, 
+		const int* boundary, 
 		bool RODR,
 		bool CACHE);
 
-void COO2ELL(const unsigned int *row_local, const unsigned int *col_local, const double* matrix_local, 
-		unsigned int **colELL,
-	double **matrixELL, unsigned int **I_COO, unsigned int **J_COO, double **V_COO,const unsigned int *numInRow, 
-	const unsigned int *row_idx, const unsigned int localMatrixSize, const unsigned int loc_num_of_row, 
-	unsigned int *sizeOut, unsigned max_in, unsigned int *max_out);
+void COO2ELL(const int *row_local, const int *col_local, const double* matrix_local, 
+		int **colELL,
+	double **matrixELL, int **I_COO, int **J_COO, double **V_COO,const int *numInRow, 
+	const int *row_idx, const int localMatrixSize, const int loc_num_of_row, 
+	int *sizeOut, max_in, int *max_out);
 
 //void matrix_vectorHYB(struct abc inputMatrix);
 #endif
