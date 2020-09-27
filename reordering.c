@@ -35,7 +35,6 @@ static void sortRordrList(unsigned int dimension,
 		rodr_list[rodrSVec[i].idx] = i;
 	}
 	free(rodrSVec);
-
 }
 
 /*reorder function with I_rodr, J_rodr, v_rodr, rodr_list as output*/
@@ -43,6 +42,10 @@ void matrixReorder(matrixCOO* localMatrixCOO,
 		int* reorderList,
 		cb_s cb)
 {
+	int dimension = inputMatrix->dimension;
+	inputMatrix->partBoundary = (int*) malloc(dimension*sizeof(int));
+	localMatrixCOO->nparts = ceil(dimension/vectorCacheSize);
+	int* partBoundary = inputMatrix->partBoundary;
 	int nparts = localMatrixCOO->nparts;
 	printf("nparts is %d\n", nParts);
 	int tempI, tempIdx, tempJ;
@@ -52,11 +55,13 @@ void matrixReorder(matrixCOO* localMatrixCOO,
 	int* J = localMatrixCOO-J;
 	int* V= localMatrixCOO->V;
 	int* rowIdx = localMatrixCOO->rowIdx; 
+	int* reorderList = localMatrixCOO->reorderList;
 	
 	int* newI = (int*)malloc(sizeof(int)*localMatrixCOO->totalNum);
 	int* newJ = (int*)malloc(sizeof(int)*localMatrixCOO->totalNum);
-	int* newV = (double*)malloc(sizeof(double)*localMatrixCOO->totalNum);
+	double* newV = (double*)malloc(sizeof(double)*localMatrixCOO->totalNum);
 
+	int* numInRow2 = localMatrixCOO->numInRow2;
 	/*transfer the COO format to CSR format, do the partitioning*/
 	unsigned int *partVec, *cwghts;
 	partVec = (unsigned int *) calloc(dimension, sizeof(unsigned int));
@@ -99,7 +104,7 @@ void matrixReorder(matrixCOO* localMatrixCOO,
 	gettimeofday(&end, NULL);
 	
 	printf("partition time is %ld us\n",(end.tv_sec * 1000000 + end.tv_usec)-(start.tv_sec * 1000000 + start.tv_usec));
-	int* numInRow2 = (int*) malloc(sizeof(int)*dimension);	
+	int numInRow2[dimension] = 0;	
 	int* partFilled = (int* )calloc(nparts, sizeof(int)); 	
 	for(int i = 0; i < dimension; ++i){
 		partSize[partVec[i]] += 1;
@@ -117,37 +122,41 @@ void matrixReorder(matrixCOO* localMatrixCOO,
 	}	
 	 
 	for(int i = 0; i <= nparts; i++){
-		partBoundary[i] = partBias[i];
+		inputMatrix->partBoundary[i] = partBias[i];
 	}
+	//numInRow2 means "real" numInRow in the  
+	//block ELL part of EHYB, notice that some of the
+	//elements will still go to ER part even its col 
+	//index belongs to same block of this row 
 	for(int i = 0; i < totalNum; i++){
+		if(partVec[J[i]] == partVec[I[i]]){
+			numInRow2[I[i]]+=1;
+		}
 	}
 	//sort the reorder list by number of nozero per row
 	//it may not working well on factorized preconditioner
 	if(cb.SORT){
 		sortRordrList(dimension, nparts, partBoundary, reorderList, numInRow2);
 	}
-	for(int i = 0; i < dimension; i++){
-		numInRow[i] = 0;
-	}
 	//reordering need two iteration
-	for(int i = 0; i < totalNum; i++){
-		tempI = rodrList[I[i]];
-		numInRow[tempI] += 1;
+	for(int i = 0; i < dimension ; i++){
+		rowIdx[reorderList[i]] = rowIdx[i-1] + numInRow[i-1];
 	}
-	row_idx[0] = 0;
-	for(int i= 1; i <= dimension; i++){
-		row_idx[i] = row_idx[i-1] + numInRow[i-1];
+	memset(numInRow, 0 , dimension*sizeof(int));
+	rowIdx[0] = 0;
+	for(int i= 1; i<=dimension; i++){
+		rowIdx[i] = rowIdx[i-1] + numInRow[i-1];
 		numInRow[i-1] = 0;
 	}
-	for(int i = 0; i < totalNum; i++){
-		tempI = rodr_list[I[i]];
-		tempJ = rodr_list[J[i]];	
-		tempIdx = row_idx[tempI] + numInRow[tempI];
-		I_rodr[tempIdx] = tempI;
-		J_rodr[tempIdx] = tempJ;
+	for(int i = 0; i < localMatrixCOO->totalNum; i++){
+		tempI = reorderList[I[i]];
+		tempJ = reorderList[J[i]];	
+		tempIdx = rowIdx[tempI] + numInRow[tempI];
+		newI[tempIdx] = tempI;
+		newJ[tempIdx] = tempJ;
 		if(tempI == tempJ && V[i] == 0)
 			printf("error happend tempIdx is %d with tempI %d  V is %f\n", tempIdx, tempI, V[i]);
-		V_rodr[tempIdx] = V[i];
+		newV[tempIdx] = V[i];
 		numInRow[tempI] += 1;
 	}	
 	free(I);
@@ -156,17 +165,15 @@ void matrixReorder(matrixCOO* localMatrixCOO,
 	localMatrixCOO->I=newI;
 	localMatrixCOO->J=newJ;
 	localMatrixCOO->V=newV;
-	free(colVal);
 	free(cutSize);
 	free(partSize);
 	free(partVec);
 	free(cwghts);
 	free(partBias);
-	free(part_filled);
-	free(numInRow2);
+	free(partFilled);
 }
 
-void vector_reorder(const unsigned int dimension, const double* v_in, 
+void vectorReorder(const unsigned int dimension, const double* v_in, 
 			double* v_rodr, const unsigned int* rodr_list){
 	for(int i=0; i < dimension; i++) v_rodr[rodr_list[i]] = v_in[i];	
 }

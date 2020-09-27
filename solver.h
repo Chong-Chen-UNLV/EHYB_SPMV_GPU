@@ -4,8 +4,6 @@
 #include <omp.h>
 #include <stdint.h>
 
-struct abc{ int a; int b; int c;};
-
 typedef struct _cb{
 	bool PRECOND;
 	bool GPU;
@@ -23,17 +21,20 @@ typedef struct _matrixCOO{
 	int nparts;
     int* rowIdx;                 
     int* numInRow;
-    int* numInRow2;//used for ER part for EHYB
+    int* numInRow2;//"real" numInRow for vetex goto blockELL
     int* I;
     int* J;
     double* V;
-	int* diag;
+    double* diag;
+	int* reorderList;
 }matrixCOO;
 
 typedef struct _matrixEHYB{
 	int dimension;
-	int	 blocks;
-	int	 numOfRowER;
+	int	nParts;
+	int	numOfRowER;
+	int* reorderList;
+	int* reorderListER;
 	int* widthVecBlockELL;
 	int* biasVecBLockELL;
 	int* colBlockELL;
@@ -69,22 +70,13 @@ inline void init_matrixCOO_S(matrixCOO_S* matrix, uint32_t dimension,
     matrix->V = V;
 }
 
-void solverPrecondCPU(const uint32_t procNum, const uint32_t dimension, 
-		const uint32_t totalNum, const uint32_t *row_idx, const uint32_t *J, 
-		const double *V, const uint32_t totalNumPrecond, const uint32_t *row_idxL, 
-		const uint32_t *J_precond, const double *V_precond, const uint32_t totalNumPrecondP,
-		const uint32_t *row_idxLP, const uint32_t *J_precondP, const double *V_precondP, 
-		const double *vector_in, double *vector_out, const uint32_t MAXIter, uint32_t *realIter);
+void solverGPuUprecondEHYB(matrixEHYB* localMatrix, 
+		const double* vectorIn, double* vectorOut,  
+		const int MAXIter, int* realIter);
 
-void solverGPU_UprecondEHYB(matrixCOO_S* localMatrix, 
+void solverGPuUnprecondCUSPARSE(matrixCOO* localMatrix, 
 		const double *vector_in, double *vector_out,  
-		const uint32_t MAXIter, uint32_t *realIter,  const cb_s cb,
-		const uint32_t part_size, const uint32_t* part_boundary);
-
-void solverGPU_EHYB(matrixCOO_S* localMatrix, matrixCOO_S* localMatrixPrecond, 
-                matrixCOO_S* localMatrixPrecondP,
-        		const double *vector_in, double *vector_out,  
-                const uint32_t MAXIter, uint32_t *realIter,  const cb_s cb,
-                const uint32_t partition_size, const uint32_t* part_boundary);
+		const int MAXIter, int *realIter,  const cb_s cb,
+		const int partSize, const int* partBoundary);
 
 #endif
