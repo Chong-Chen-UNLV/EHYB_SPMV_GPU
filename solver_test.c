@@ -5,39 +5,36 @@
 #include "solver.h"
 #include <unistd.h>
 
-static int matrixRead(matrixCOO* localMatrixCOO, double* x_compare, double* y, FILE *f)
+static int matrixRead(matrixCOO* localMatrixCOO, double** xCompare_in, double* y, FILE *f)
 {
 	int _dimension, _N, _lowerNum;
+	int ret_code, totalNum, lowerNum;
 	if ((ret_code = mm_read_mtx_crd_size(f, &_dimension, &_N, &_lowerNum)) !=0)
 		exit(1);	
-	dimension = _dimension,
-	N = _N;
+	localMatrixCOO->dimension = _dimension;
 	lowerNum = _lowerNum;
+	totalNum = lowerNum*2-_dimension;
 	
-	matrixCOO localMatrixCOO;
-	readMatrix(&localMatrixCOO);
+	*xCompare_in = (double*)malloc(_dimension*sizeof(double));
+	double*	xCompare = *xCompare_in;
 	/*The overall number of nozeros in this matrix*/
-	totalNum=lowerNum*2-dimension;
-
 	localMatrixCOO->totalNum = totalNum;
-	localMatrixCOO->dimension = dimension;
-
-	localMatrixCOO->nParts = ceil((float dimension)/vectorCacheSize);
+	localMatrixCOO->nParts = ceil(((float) _dimension)/vectorCacheSize);
 	printf("parts is %d\n", localMatrixCOO->nParts);
-	localMatrixCOO->partBoundary = (int* )calloc(dimension, sizeof(int));
-	localMatrixCOO->reorderList = (int* )calloc(dimension, sizeof(int));
-	localMatrixCOO->numInRow = (int* )calloc(dimension, sizeof(int));
-	localMatrixCOO->numInRow2 = (int* )calloc(dimension, sizeof(int));
+	localMatrixCOO->partBoundary = (int* )calloc(_dimension, sizeof(int));
+	localMatrixCOO->reorderList = (int* )calloc(_dimension, sizeof(int));
+	localMatrixCOO->numInRow = (int* )calloc(_dimension, sizeof(int));
+	localMatrixCOO->numInRow2 = (int* )calloc(_dimension, sizeof(int));
 
-	lowerI=(int *) malloc(lowerNum*sizeof(int));
-	lowerJ=(int *) malloc(lowerNum*sizeof(int));
-	lowerV=(double *) malloc(lowerNum*sizeof(double));
+	int* lowerI=(int *) malloc(lowerNum*sizeof(int));
+	int* lowerJ=(int *) malloc(lowerNum*sizeof(int));
+	double* lowerV=(double *) malloc(lowerNum*sizeof(double));
 
 	localMatrixCOO->I=(int *) malloc(totalNum*sizeof(int));
 	localMatrixCOO->J=(int *) malloc(totalNum*sizeof(int));
 	localMatrixCOO->V=(double *) malloc(totalNum*sizeof(double));
-	localMatrixCOO->diag = (double *) malloc(dimension*sizeof(double));
-	localMatrixCOO->nParts = dimension/vectorCacheSize;
+	localMatrixCOO->diag = (double *) malloc(_dimension*sizeof(double));
+	localMatrixCOO->nParts = _dimension/vectorCacheSize;
 	int* numInRow = localMatrixCOO->numInRow;
 	int* I = localMatrixCOO->I;
 	int* J = localMatrixCOO->J;
@@ -58,25 +55,26 @@ static int matrixRead(matrixCOO* localMatrixCOO, double* x_compare, double* y, F
 		}		
 	}
 
-	localMatrixCOO->rowIdx=(int *)malloc((dimension+1)*sizeof(int));
+	localMatrixCOO->rowIdx=(int *)malloc((_dimension+1)*sizeof(int));
 	int* rowIdx = localMatrixCOO->rowIdx;
-	maxRowNum=0;
+	int maxCol = 0;
 	rowIdx[0] = 0;
 	
-	for (int i=1;i<= dimension;i++){
-		if (numInRow[i-1]>maxRowNum)
-			maxRowNum=numInRow[i-1];
+	for (int i=1;i<= _dimension;i++){
+		if (numInRow[i-1]>maxCol)
+			maxCol = numInRow[i-1];
 
 		rowIdx[i]=rowIdx[i-1]+numInRow[i-1];
 		numInRow[i-1]=0;
 	}	
-	if (numInRow[dimension-1]>maxRowNum) maxRowNum=numInRow[dimension-1];
+	if (numInRow[_dimension-1] > maxCol) maxCol=numInRow[_dimension-1];
 	
-	printf("maxRowNum is %d, maxRowNumPr is %d, maxRowNumLP is %d\n", maxRowNum, maxRowNumL, maxRowNumLP);
-	numInRow[dimension-1]=0;
-	for (int i=0;i<dimension;i++){
+	printf("maxCol is %d\n", maxCol);
+	localMatrixCOO->maxCol = maxCol;
+	numInRow[_dimension-1]=0;
+	for (int i=0;i < _dimension;i++){
 		srand(i);
-		x_compare[i]=(double) (rand()%200-100)/100;
+		xCompare[i]=(double) (rand()%200-100)/100;
 		//x_compare[i]=1;
 	}
 	int index1, index2;
@@ -85,20 +83,20 @@ static int matrixRead(matrixCOO* localMatrixCOO, double* x_compare, double* y, F
 		tempI=lowerI[i];
 		tempJ=lowerJ[i];
 		tempV=lowerV[i];
-		index1=row_idx[tempI]+numInRow[tempI];
-		index2=row_idx[tempJ]+numInRow[tempJ];
+		index1=rowIdx[tempI]+numInRow[tempI];
+		index2=rowIdx[tempJ]+numInRow[tempJ];
 		numInRow[tempI]+=1;
 		I[index1]=tempI;
 		J[index1]=tempJ;
 		V[index1]=tempV;
-		y[tempI]+=tempV*x_compare[tempJ];
+		y[tempI]+=tempV*xCompare[tempJ];
 		if (tempI != tempJ)
 		{
 			numInRow[tempJ]+=1;
 			I[index2]=tempJ;
 			J[index2]=tempI;
 			V[index2]=tempV;
-			y[tempJ]+=tempV*x_compare[tempI];
+			y[tempJ]+=tempV*xCompare[tempI];
 		}
 		else
 		{
@@ -124,7 +122,7 @@ int main(int argc, char* argv[])
 	FILE *f,*f2;
 
 	int dimension, N, bandwidth,bandwidthPrecond;   
-	int maxRowNum, maxRowNumL, maxRowNumLP;
+	int maxCol;
 	int *I, *J;
 	double *V;
 	double *x;
@@ -208,15 +206,15 @@ int main(int argc, char* argv[])
 		exit(1);
 	}
 	matrixCOO localMatrixCOO;
-	x=(double *) malloc(dimension*sizeof(double));
-	y=(double *) malloc(dimension*sizeof(double));
-	x_compare=(double *) malloc(size5);
-	matrixRead(&localMatrixCOO, x_compare, y, f);
+	
+	matrixRead(&localMatrixCOO, &xCompare, y, f);
 	fclose(f);
-	xReorder = (double* )calloc(localMatrixCOO->dimension, sizeof(double)); 
-	yReorder = (double* )calloc(localMatrixCOO->dimension, sizeof(double)); 
+	x=(double *) malloc(localMatrixCOO.dimension*sizeof(double));
+	y=(double *) malloc(localMatrixCOO.dimension*sizeof(double));
+	double *xReorder = (double* )calloc(localMatrixCOO.dimension, sizeof(double)); 
+	double *yReorder = (double* )calloc(localMatrixCOO.dimension, sizeof(double)); 
 	matrixReorder(&localMatrixCOO);
-	vectorReorder(dimension, y, yReorder, localMatrixCOO->reorderList);
+	vectorReorder(dimension, y, yReorder, localMatrixCOO.reorderList);
 
 	int realIter; 
 
@@ -224,24 +222,24 @@ int main(int argc, char* argv[])
 
 	solverGPuUnprecondEHYB(&localMatrixCOO, yReorder, xReorder, MAXIter, &realIter);
 	
-	vectorRecover(dimension, xReorder, x, localMatrixCOO->reorderList);
+	vectorRecover(dimension, xReorder, x, localMatrixCOO.reorderList);
 
 	for (int i=0;i<10;i++)
 	{
 		//printf("Xeon_phi I is %d J %d is V is %f\n",I_precond[i+10000], J_precond[i+10000], V_precond[i+10000]);
 		//printf("CPU I is %d, J is %d, V is %f\n",I_precond2[i+10000],J_precond2[i+10000],V_precond2[i+10000]);
-		printf("at %d x is %f x_compare is  %f\n",i, x[i], x_compare[i]);
+		printf("at %d x is %f x_compare is  %f\n",i, x[i], xCompare[i]);
 	}
-	free(localMatrixCOO->I);
-	free(localMatrixCOO->J);
-	free(localMatrixCOO->V);
+	free(localMatrixCOO.I);
+	free(localMatrixCOO.J);
+	free(localMatrixCOO.V);
 	free(x);
 	free(y);
 	
-	free(localMatrixCOO->numInRow);
-	free(localMatrixCOO->rowIdx);
-	free(x_compare);
-	free(localMatrixCOO->diag);
+	free(localMatrixCOO.numInRow);
+	free(localMatrixCOO.rowIdx);
+	free(xCompare);
+	free(localMatrixCOO.diag);
 	//interval2=(end_time2-start_time2)*1000/CLOCKS_PER_SEC;
 
 	//printf("time consuming CPU is %f, time consuming GPU is %f, speedup is %f\n", interval1, interval2, interval1/interval2);

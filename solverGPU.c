@@ -1,24 +1,8 @@
 #include "kernel.h"
 #include "solver.h"
 #include "convert.h"
-#include "test.h"
-
-static inline int calPadding(int dimension,
-		const int* numInRow, const int* partBoundary, 	
-		int* widthVecBlockELL, const int partSize){
-
-	int padded = 0;
-	for(int i = 0; i < partSize; ++i){
-		for(int j = partBoundary[i]; j < part_boundary[i+1]; ++j){
-			if(j < partBoundary[i] + blockPerPart*ELLthreadSize){
-				int blockIdx = i*blockPerPart + (j - partBoundary[i])/ELLthreadSize;
-				if(numInRow[j] < widthVecBlockELL[blockIdx])	
-					padded += (widthVecBlockELL[blockIdx] - numInRow[j]);
-			}
-		}
-	}
-	return padded;
-}
+#include "reordering.h"
+//#include "test.h"
 
 static void cudaMallocTransDataEHYB(matrixEHYB* localMatrix, matrixEHYB* localMatrix_d, 
 		const int sizeBlockELL, const int sizeER){
@@ -28,15 +12,15 @@ static void cudaMallocTransDataEHYB(matrixEHYB* localMatrix, matrixEHYB* localMa
 	localMatrix_d->nParts = localMatrix->nParts;
 	localMatrix_d->nParts = localMatrix->nParts;
 
-    cudaMalloc((void **) &(localMatrix_d->biasVecBLockELL), localMatrix->nParts*blockPerPart*sizeof(int));
+    cudaMalloc((void **) &(localMatrix_d->biasVecBlockELL), localMatrix->nParts*blockPerPart*sizeof(int));
     cudaMalloc((void **) &(localMatrix_d->widthVecBlockELL), localMatrix->nParts*blockPerPart*sizeof(int));
     cudaMalloc((void **) &(localMatrix_d->partBoundary), (localMatrix->nParts+1)*sizeof(int));
     cudaMalloc((void **) &(localMatrix_d->valBlockELL), sizeBlockELL*sizeof(double));
     cudaMalloc((void **) &(localMatrix_d->colBlockELL), sizeBlockELL*sizeof(int));
 
     cudaMalloc((void **) &(localMatrix_d->rowVecER), localMatrix_d->numOfRowER*sizeof(int));
-    cudaMalloc((void **) &(localMatrix_d->biasVecER), ceil((float localMatrix->numOfRowER)/warpSize)*sizeof(int));
-    cudaMalloc((void **) &(localMatrix_d->widthVecER), ceil((float localMatrix->numOfRowER)/warpSize)*sizeof(int));
+    cudaMalloc((void **) &(localMatrix_d->biasVecER), ceil(((float) localMatrix->numOfRowER)/warpSize)*sizeof(int));
+    cudaMalloc((void **) &(localMatrix_d->widthVecER), ceil(((float) localMatrix->numOfRowER)/warpSize)*sizeof(int));
     cudaMalloc((void **) &(localMatrix_d->colER), sizeER*sizeof(int));
     cudaMalloc((void **) &(localMatrix_d->valER), sizeER*sizeof(double));
 
@@ -47,13 +31,13 @@ static void cudaMallocTransDataEHYB(matrixEHYB* localMatrix, matrixEHYB* localMa
     cudaMemcpy(localMatrix_d->colBlockELL, localMatrix->colBlockELL, sizeBlockELL*sizeof(int), cudaMemcpyHostToDevice);
 
     cudaMemcpy(localMatrix_d->rowVecER, localMatrix->rowVecER, localMatrix_d->numOfRowER*sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(localMatrix_d->biasVecER, localMatrix->biasVecER, ceil((float localMatrix->numOfRowER)/warpSize)*sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(localMatrix_d->widthVecER, localMatrix->widthVecER, ceil((float localMatrix->numOfRowER)/warpSize)*sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(localMatrix_d->biasVecER, localMatrix->biasVecER, ceil(((float) localMatrix->numOfRowER)/warpSize)*sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(localMatrix_d->widthVecER, localMatrix->widthVecER, ceil(((float) localMatrix->numOfRowER)/warpSize)*sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(localMatrix_d->colER, localMatrix->colER, sizeER*sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(localMatrix_d->valER, localMatrix->valER, sizeER*sizeof(double), cudaMemcpyHostToDevice);
 }
 
-void solverGPuUnprecondEHYB(matrixEHYB* localMatrix, 
+void solverGPuUnprecondEHYB(matrixCOO* localMatrix, 
 		const double *vectorIn, double *vectorOut,  
 		const int MAXIter, int *realIter)
 {
@@ -61,15 +45,17 @@ void solverGPuUnprecondEHYB(matrixEHYB* localMatrix,
 	double dotp0,dotr0,dotr1,doth;
 	
 	matrixEHYB localMatrixEHYB, localMatrixEHYB_d;
-	matrixReorder(localMatrix, numInRowER);
+	matrixReorder(localMatrix);
 	
 	int sizeBlockELL, sizeER;
-	COO2EHYB(&localMatrix, 
+	int dimension = localMatrix->dimension;
+	int totalNum = localMatrix->totalNum;
+	COO2EHYB(localMatrix, 
 			&localMatrixEHYB,
-			sizeBlockELL,
-			sizeER);
+			&sizeBlockELL,
+			&sizeER);
 
-	cudaMallocTransDataEHYB(localMatrixEHYB,
+	cudaMallocTransDataEHYB(&localMatrixEHYB,
 			&localMatrixEHYB_d, 
 			sizeBlockELL,
 			sizeER);
@@ -78,8 +64,8 @@ void solverGPuUnprecondEHYB(matrixEHYB* localMatrix,
 	cublasCreate(&handle);
 
 	double *bp_d, *pk_d, *rk_d, *vectorOut_d;
-	size_t size0=dimension*sizeof(int);
-	size_t size1=dimension*sizeof(double);
+	size_t size0 = dimension*sizeof(int);
+	size_t size1 = dimension*sizeof(double);
 	cudaMalloc((void **) &bp_d,size1);
 	cudaMalloc((void **) &pk_d,size1);
 	cudaMalloc((void **) &rk_d,size1);
@@ -111,24 +97,23 @@ void solverGPuUnprecondEHYB(matrixEHYB* localMatrix,
 	//initialize
 	for (int i=0;i<dimension;i++)
 	{
-		pk[i]=vector_in[i];
-		rk[i]=vector_in[i];
-		vector_out[i]=0;
+		pk[i]=vectorIn[i];
+		rk[i]=vectorIn[i];
+		vectorOut[i]=0;
 		bp[i]=0;
 	}
-	printf("ELL_block_cols_vec[0] is %d\n", ELL_block_cols_vec[0]);	
 	gettimeofday(&start1, NULL);
 	while (error>threshold&&iter<MAXIter){
 		dotp0=0;
 		dotr0=0;
 		dotr1=0;
-		int errorIdx = 0;
-		double compareError;
+		//int errorIdx = 0;
+		//double compareError;
 		cudaMemset(bp_d, 0, size1);
 
-		//matrix_vectorTest(localMatrix, vector_in, bp, 0);
+		//matrix_vectorTest(localMatrix, vectorIn, bp, 0);
 		
-		matrixVectorEHYB(&localMatrixEHYB_d, pk_d, bp_d, cb, 0);
+		matrixVectorEHYB(&localMatrixEHYB_d, pk_d, bp_d, 0);
 		//cudaMemcpy(bp_g, bp_d, dimension*sizeof(double), cudaMemcpyDeviceToHost);
 		//for(int i = 0; i < dimension; ++i){
 		//	compareError = 	(bp_g[i] - bp[i])/bp[i];
@@ -138,7 +123,7 @@ void solverGPuUnprecondEHYB(matrixEHYB* localMatrix,
 		//	}
 		//}
 
-		//matrix_vectorTest(localMatrix, vector_in, bp, errorIdx);
+		//matrix_vectorTest(localMatrix, vectorIn, bp, errorIdx);
 		//mimicHYB(ELL_block_cols_vec,
 		//		ELL_block_bias_vec,
 		//		part_boundary,
@@ -148,7 +133,7 @@ void solverGPuUnprecondEHYB(matrixEHYB* localMatrix,
 		//		J_COO,
 		//		V_COO,
 		//		totalNumCOO,
-		//		vector_in,
+		//		vectorIn,
 		//		errorIdx);
 		//
 		//cudaMemset(bp_d, 0, size1);
@@ -164,7 +149,7 @@ void solverGPuUnprecondEHYB(matrixEHYB* localMatrix,
 		alphak=dotr0/dotp0;
 		_alphak = -alphak;
 		
-		cublasDaxpy(handle,dimension,&alphak,pk_d,1,vector_out_d,1);
+		cublasDaxpy(handle,dimension,&alphak,pk_d,1,vectorOut_d,1);
 		cublasDaxpy(handle,dimension,&_alphak,bp_d,1,rk_d,1);
 		cublasDdot(handle,dimension,rk_d,1,rk_d,1,&dotr1);
 		
@@ -179,21 +164,21 @@ void solverGPuUnprecondEHYB(matrixEHYB* localMatrix,
 		//printf("error at %d is %f\n",iter, error);
 		iter++;
 	}
-	cudaMemcpy(vector_out, vector_out_d, dimension*sizeof(double), cudaMemcpyDeviceToHost);
+	cudaMemcpy(vectorOut, vectorOut_d, dimension*sizeof(double), cudaMemcpyDeviceToHost);
 	gettimeofday(&end1, NULL);	
 	double timeByMs=((end1.tv_sec * 1000000 + end1.tv_usec)-(start1.tv_sec * 1000000 + start1.tv_usec))/1000;
 	printf("iter is %d, time is %f ms, GPU Gflops is %f, under estimate flops is %f\n ",iter, timeByMs, 
 			(1e-9*(totalNum*2+13*dimension)*1000*iter)/timeByMs, (1e-9*(totalNum*2)*1000*iter)/timeByMs);
-	cudaFree(localMatrixHYB_d->valER);
-	cudaFree(localMatrixHYB_d->colER);
-	cudaFree(localMatrixHYB_d->biasVecER);
-	cudaFree(localMatrixHYB_d->widthVecER);
-	cudaFree(localMatrixHYB_d->rowVecER);
-	cudaFree(localMatrixHYB_d->biasVecBLockELL);
-	cudaFree(localMatrixHYB_d->widthVecBlockELL);
-	cudaFree(localMatrixHYB_d->colBlockELL);
-	cudaFree(localMatrixHYB_d->valBlockELL);
-	cudaFree(localMatrixHYB_d->partBoundary);
+	cudaFree(localMatrixEHYB_d.valER);
+	cudaFree(localMatrixEHYB_d.colER);
+	cudaFree(localMatrixEHYB_d.biasVecER);
+	cudaFree(localMatrixEHYB_d.widthVecER);
+	cudaFree(localMatrixEHYB_d.rowVecER);
+	cudaFree(localMatrixEHYB_d.biasVecBlockELL);
+	cudaFree(localMatrixEHYB_d.widthVecBlockELL);
+	cudaFree(localMatrixEHYB_d.colBlockELL);
+	cudaFree(localMatrixEHYB_d.valBlockELL);
+	cudaFree(localMatrixEHYB_d.partBoundary);
 }
 
 void solverGPuUnprecondCUSPARSE(matrixCOO* localMatrix, 
@@ -205,33 +190,36 @@ void solverGPuUnprecondCUSPARSE(matrixCOO* localMatrix,
 	//CSR format
 	//double dotp0,dotr0,dotr1,doth;
 	double dotp0,dotr0,dotr1,doth;
-	int dimension, totalNum, maxRowNum, totalNumCOO; 
-    int *rowIdx, *numInRow, *I, *J; 
-    double *V;
+	int dimension, totalNum; 
+    int *rowIdx, *J; 
+    double* V;
     dimension = localMatrix->dimension; 
     totalNum = localMatrix->totalNum; 
-    maxRowNum = localMatrix->maxRowNum; 
 
 	rowIdx = localMatrix->rowIdx; 
-    numInRow = localMatrix->numInRow; 
+    int* numInRow = localMatrix->numInRow; 
 
-    I = localMatrix->I; 
     J = localMatrix->J;
     V = localMatrix->V;
 	
-	int *col_d;
+	int* col_d;
+	int* rowIdx_d;
 	double *V_d;
 	volatile bool RODR, BLOCK, CACHE;
-	cublasHandle_t handle;
-	cublasCreate(&handle);
+	cublasHandle_t handleBlas;
+	cublasCreate(&handleBlas);
+	cusparseHandle_t handleSparse;
+	cusparseCreate(&handleSparse);
 
 	double *bp_d, *pk_d, *rk_d, *vector_out_d;
-	size_t size0=dimension*sizeof(int);
 	size_t size1=dimension*sizeof(double);
 	cudaMalloc((void **) &bp_d,size1);
 	cudaMalloc((void **) &pk_d,size1);
 	cudaMalloc((void **) &rk_d,size1);
+	cudaMalloc((void **) &rowIdx_d,size1);
 	cudaMalloc((void **) &vector_out_d,size1);
+	cudaMalloc((void **) &col_d,totalNum*sizeof(int));
+	cudaMalloc((void **) &V_d,totalNum*sizeof(double));
 	//double *x=(double *) malloc(size1);
 	double threshold=0.0000001;
 	int iter=0;
@@ -243,6 +231,8 @@ void solverGPuUnprecondCUSPARSE(matrixCOO* localMatrix,
     cudaMemcpy(pk_d, vector_in, dimension*sizeof(double), cudaMemcpyHostToDevice);
     cudaMemcpy(rk_d, vector_in, dimension*sizeof(double), cudaMemcpyHostToDevice);
     cudaMemcpy(rowIdx_d, rowIdx, dimension*sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(col_d, J, totalNum*sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(V_d, V, totalNum*sizeof(double), cudaMemcpyHostToDevice);
 	for (int i=0;i<dimension;i++) {
 		doth=doth+vector_in[i]*vector_in[i];
 	}
@@ -268,47 +258,54 @@ void solverGPuUnprecondCUSPARSE(matrixCOO* localMatrix,
 	//if BSR doing the format change 
 	//cusparseStatus_tcusparseDcsr2gebsr_bufferSize(handle, dir, m, n, descrA, csrValA, csrRowPtrA, 
 	//		csrColIndA, rowBlockDim, colBlockDim, pBufferSize);
-	cusparseOperation_t transA = cusparseOperation_t.CUSPARSE_OPERATION_NON_TRANSPOSE;
-
+	cusparseOperation_t transA = CUSPARSE_OPERATION_NON_TRANSPOSE;
+	cusparseMatDescr_t descr = 0;
+	int status = cusparseCreateMatDescr(&descr);
+	if (status != CUSPARSE_STATUS_SUCCESS ) {
+		exit(0);	
+	}
+	cusparseSetMatType (descr, CUSPARSE_MATRIX_TYPE_GENERAL);
+	cusparseSetMatIndexBase (descr, CUSPARSE_INDEX_BASE_ZERO);
 	gettimeofday(&start1, NULL);
-
+	double one = 1.0;
+	double zero = 0.0;
 	while (error>threshold&&iter<MAXIter){
 		dotp0=0;
 		dotr0=0;
 		dotr1=0;
-		int errorIdx = 0;
-		double compareError;
+		//int errorIdx = 0;
+		//double compareError;
 		
 		cudaMemset(bp_d, 0, size1);
 		cusparseStatus_t smpvStatus = 
-		cusparseDcsrmv(handle,
+		cusparseDcsrmv(handleSparse,
 				transA,
 				dimension,
 				dimension,
 				totalNum,
-				1.0,
-				CUSPARSE_MATRIX_TYPE_GENERAL,
+				&one,
+				descr,
 				V_d,
 				rowIdx_d,
 				col_d,
 				pk_d,
-				0.0,
+				&zero,
 				bp_d);
 
-		cublasDdot(handle,dimension,bp_d,1,pk_d,1,&dotp0);
-		cublasDdot(handle,dimension,rk_d,1,rk_d,1,&dotr0);
+		cublasDdot(handleBlas,dimension,bp_d,1,pk_d,1,&dotp0);
+		cublasDdot(handleBlas,dimension,rk_d,1,rk_d,1,&dotr0);
 			
 		alphak=dotr0/dotp0;
 		_alphak = -alphak;
 		
-		cublasDaxpy(handle,dimension,&alphak,pk_d,1,vector_out_d,1);
-		cublasDaxpy(handle,dimension,&_alphak,bp_d,1,rk_d,1);
-		cublasDdot(handle,dimension,rk_d,1,rk_d,1,&dotr1);
+		cublasDaxpy(handleBlas,dimension,&alphak,pk_d,1,vector_out_d,1);
+		cublasDaxpy(handleBlas,dimension,&_alphak,bp_d,1,rk_d,1);
+		cublasDdot(handleBlas,dimension,rk_d,1,rk_d,1,&dotr1);
 		
 		gamak=dotr1/dotr0;
 
-		cublasDscal(handle,dimension,&gamak,pk_d,1);
-		cublasDaxpy(handle,dimension,&const1, rk_d, 1, pk_d, 1);
+		cublasDscal(handleBlas,dimension,&gamak,pk_d,1);
+		cublasDaxpy(handleBlas,dimension,&const1, rk_d, 1, pk_d, 1);
 		
 		//printf("at iter %d, alphak is %f, gamak is %f\n",iter, alphak,gamak);
 		error=sqrt(dotr1)/sqrt(doth);

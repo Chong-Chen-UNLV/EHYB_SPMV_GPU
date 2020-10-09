@@ -12,6 +12,7 @@
 //#include <mpi.h>
 
 #include <cublas_v2.h>
+#include <cusparse_v2.h>
 #include <cuda_runtime.h>
 #include <cuda_runtime_api.h>
 #include <cuda.h>
@@ -19,8 +20,11 @@
 
 const int memPerThread = 32;
 const int threadELL = 1024;
+const int warpSize = 32;
+const int warpPerBlock = threadELL/warpSize;
 const int sharedPerBlock = memPerThread*threadELL;//1024 is the maximum threads per block
 const int elementSize = 8; //if single precision, 4, if double precision, 8 
+const int loopInKernel =  memPerThread/elementSize;
 const int vectorCacheSize = sharedPerBlock/elementSize;
 const int blockPerPart = sharedPerBlock/(warpSize*elementSize); 
 
@@ -42,7 +46,6 @@ void initialize_r(int num, double *rk, double *vector_in);
 void myxpy(const int dimension, double gamak, const double *x, double *y);
 
 void matrixVectorEHYB(matrixEHYB* inputMatrix, double* vector_in_d,
-		double* vector_out_d, cb_s cb, const int testPoint,
-		const int part_size, const int* part_boundary, const bool tex);
+		double* vector_out_d, const int testPoint);
 
 #endif

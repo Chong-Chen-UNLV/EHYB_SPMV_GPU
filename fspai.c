@@ -1,4 +1,5 @@
 #include "fspai.h"
+#include "solver.h"
 #include <string.h>
 //#include <lapacke.h>
 
@@ -364,9 +365,9 @@ void fspaiCPU(matrixCOO* inputMatrix,
 	int subRowIndex, index1,index2,index3;
 	int tempCol,colIndex;
 	//Complete computation in each column seperately
-	#pragma omp parallel for default(shared) firstprivate(subMatrix, subI, subJ, \\
-			yk, xk, tempJ, error,\\
-			subRowIndex, index3, index2, index1,\\
+	#pragma omp parallel for default(shared) firstprivate(subMatrix, subI, subJ, \
+			yk, xk, tempJ, error, \
+			subRowIndex, index3, index2, index1,\
 			tempCol, colIndex, realIter)
 	for (int i = 0; i < dimension; ++i)
 	{
