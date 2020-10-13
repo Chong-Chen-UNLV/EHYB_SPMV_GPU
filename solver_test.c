@@ -5,7 +5,7 @@
 #include "solver.h"
 #include <unistd.h>
 
-static int matrixRead(matrixCOO* localMatrixCOO, double** xCompare_in, double* y, FILE *f)
+static int matrixRead(matrixCOO* localMatrixCOO, double** xCompare_in, double** y_in, FILE *f)
 {
 	int _dimension, _N, _lowerNum;
 	int ret_code, totalNum, lowerNum;
@@ -16,7 +16,9 @@ static int matrixRead(matrixCOO* localMatrixCOO, double** xCompare_in, double* y
 	totalNum = lowerNum*2-_dimension;
 	
 	*xCompare_in = (double*)malloc(_dimension*sizeof(double));
+	*y_in = (double*)malloc(_dimension*sizeof(double));
 	double*	xCompare = *xCompare_in;
+	double*	y = *y_in;
 	/*The overall number of nozeros in this matrix*/
 	localMatrixCOO->totalNum = totalNum;
 	localMatrixCOO->nParts = ceil(((float) _dimension)/vectorCacheSize);
@@ -34,7 +36,6 @@ static int matrixRead(matrixCOO* localMatrixCOO, double** xCompare_in, double* y
 	localMatrixCOO->J=(int *) malloc(totalNum*sizeof(int));
 	localMatrixCOO->V=(double *) malloc(totalNum*sizeof(double));
 	localMatrixCOO->diag = (double *) malloc(_dimension*sizeof(double));
-	localMatrixCOO->nParts = _dimension/vectorCacheSize;
 	int* numInRow = localMatrixCOO->numInRow;
 	int* I = localMatrixCOO->I;
 	int* J = localMatrixCOO->J;
@@ -83,6 +84,8 @@ static int matrixRead(matrixCOO* localMatrixCOO, double** xCompare_in, double* y
 		tempI=lowerI[i];
 		tempJ=lowerJ[i];
 		tempV=lowerV[i];
+		if(tempJ >= _dimension || tempI >= _dimension)
+			exit(0);
 		index1=rowIdx[tempI]+numInRow[tempI];
 		index2=rowIdx[tempJ]+numInRow[tempJ];
 		numInRow[tempI]+=1;
@@ -207,9 +210,8 @@ int main(int argc, char* argv[])
 	}
 	matrixCOO localMatrixCOO;
 	
-	matrixRead(&localMatrixCOO, &xCompare, y, f);
+	matrixRead(&localMatrixCOO, &xCompare, &y, f);
 	fclose(f);
-	x=(double *) malloc(localMatrixCOO.dimension*sizeof(double));
 	y=(double *) malloc(localMatrixCOO.dimension*sizeof(double));
 	double *xReorder = (double* )calloc(localMatrixCOO.dimension, sizeof(double)); 
 	double *yReorder = (double* )calloc(localMatrixCOO.dimension, sizeof(double)); 

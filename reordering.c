@@ -45,7 +45,6 @@ void matrixReorder(matrixCOO* inputMatrix)
 {
 	unsigned int dimension = inputMatrix->dimension;
 	inputMatrix->partBoundary = (int*) malloc(dimension*sizeof(int));
-	inputMatrix->nParts = ceil(dimension/vectorCacheSize);
 	int* partBoundary = inputMatrix->partBoundary;
 	unsigned int nParts = inputMatrix->nParts;
 	printf("nParts is %d\n", nParts);
@@ -59,7 +58,7 @@ void matrixReorder(matrixCOO* inputMatrix)
 	free(inputMatrix->J);
 	int* I = inputMatrix->I;
 	double* V= inputMatrix->V;
-	uint32_t* rowIdx = (uint32_t*)malloc(sizeof(uint32_t)*dimension); 
+	uint32_t* rowIdx = (uint32_t*)malloc(sizeof(uint32_t)*(dimension + 1)); 
 	int* reorderList = inputMatrix->reorderList;
 	int* numInRow = inputMatrix->numInRow;
 	
@@ -77,6 +76,7 @@ void matrixReorder(matrixCOO* inputMatrix)
 		cwghts[i] = 1;
 		rowIdx[i] = inputMatrix->rowIdx[i]; 
 	}
+	rowIdx[dimension] = inputMatrix->rowIdx[dimension];
 	partVec = (unsigned int *) calloc(dimension, sizeof(int));
 	//partweights = (int *)calloc(nParts*sizeof(int));
 	int* cutSize = (int *)calloc(nParts, sizeof(int));
