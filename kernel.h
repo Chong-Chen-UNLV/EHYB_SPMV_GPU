@@ -18,9 +18,10 @@
 #include <cuda.h>
 #include "solver.h"
 
+#define warpSize 32
+
 const int memPerThread = 32;
 const int threadELL = 1024;
-const int warpSize = 32;
 const int warpPerBlock = threadELL/warpSize;
 const int sharedPerBlock = memPerThread*threadELL;//1024 is the maximum threads per block
 const int elementSize = 8; //if single precision, 4, if double precision, 8 

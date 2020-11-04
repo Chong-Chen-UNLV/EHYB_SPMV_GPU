@@ -6,16 +6,14 @@
  * different parts, and reduce the dependent between parts 
  * when conduct iterative SpMV operations.
  * The library used (or will be used) here includes mu-metis,
- * PaToH (third part library), and in to future I will use 
- * graphic partition methods developed by me 
+ * PaToH (third part library), and in the future I will use 
+ * graphic partition methods developed by myself 
  * */
 
 #include "Partition.h"
 #include "solver.h"
 #include "kernel.h"
-
 #include<string.h>
-
 
 static void sortRordrList(int dimension,
 		int nParts,
@@ -24,17 +22,17 @@ static void sortRordrList(int dimension,
 		int* numInRow){
 
 	rowS* rodrSVec = (rowS*) malloc(dimension*sizeof(rowS));
-	for(unsigned int i = 0; i < dimension; ++i){
+	for(int i = 0; i < dimension; ++i){
 		//the location of elements at SVec will be changed 
 		//record the original idx since it will be used for
 		//new rodr_list
 		rodrSVec[rodr_list[i]].idx = i; 
 		rodrSVec[rodr_list[i]].nonzeros = numInRow[i];	
 	}	
-	for(unsigned int i = 0; i < nParts; ++i){
+	for(int i = 0; i < nParts; ++i){
 		qsort(&rodrSVec[part_boundary[i]], (part_boundary[i+1] - part_boundary[i]), sizeof(rowS), rowSCompare);	
 	}	
-	for(unsigned int i = 0; i < dimension; ++i){
+	for(int i = 0; i < dimension; ++i){
 		rodr_list[rodrSVec[i].idx] = i;
 	}
 	free(rodrSVec);
@@ -49,13 +47,10 @@ void matrixReorder(matrixCOO* inputMatrix)
 	unsigned int nParts = inputMatrix->nParts;
 	printf("nParts is %d\n", nParts);
 	int tempI, tempIdx, tempJ;
-	int maxCol;
-	double tempV;
 	uint32_t* J = (uint32_t*)malloc(sizeof(uint32_t)*inputMatrix->totalNum);
 	for(int i = 0; i < inputMatrix->totalNum; ++i){
 		J[i] = inputMatrix->J[i];
 	}
-	free(inputMatrix->J);
 	int* I = inputMatrix->I;
 	double* V= inputMatrix->V;
 	uint32_t* rowIdx = (uint32_t*)malloc(sizeof(uint32_t)*(dimension + 1)); 
@@ -66,13 +61,13 @@ void matrixReorder(matrixCOO* inputMatrix)
 	int* newJ = (int*)malloc(sizeof(int)*inputMatrix->totalNum);
 	double* newV = (double*)malloc(sizeof(double)*inputMatrix->totalNum);
 
-	int* numInRow2 = inputMatrix->numInRow2;
+	int* numInRow2 = (int *) calloc(dimension, sizeof(int));
 	/*transfer the COO format to CSR format, do the partitioning*/
 	unsigned int *partVec, *cwghts;
 	partVec = (unsigned int *) calloc(dimension, sizeof(unsigned int));
 	cwghts = (unsigned int *) calloc(dimension, sizeof(int));
 
-	for(int i=0; i < dimension; i++){
+	for(uint32_t i=0; i < dimension; i++){
 		cwghts[i] = 1;
 		rowIdx[i] = inputMatrix->rowIdx[i]; 
 	}
@@ -113,44 +108,53 @@ void matrixReorder(matrixCOO* inputMatrix)
 	printf("partition time is %ld us\n",(end.tv_sec * 1000000 + end.tv_usec)-(start.tv_sec * 1000000 + start.tv_usec));
 	numInRow2[dimension] = 0;	
 	int* partFilled = (int* )calloc(nParts, sizeof(int)); 	
-	for(int i = 0; i < dimension; ++i){
+	for(uint32_t i = 0; i < dimension; ++i){
 		partSize[partVec[i]] += 1;
 	}
 	partBias[0] = 0;
-	for(int i = 1; i < nParts + 1; ++i){
+	for(uint32_t i = 1; i < nParts + 1; ++i){
 		partBias[i] = partBias[i-1] + partSize[i-1];
 	}
-	int permIdx;	
-	for(int i = 0; i < dimension; i++){
+
+	int permIdx, partId;	
+	//the reorderList is the step 1 result
+	//which will be updated later by sorting
+	for(uint32_t i = 0; i < dimension; i++){
 		permIdx = partFilled[partVec[i]] + partBias[partVec[i]];
 		reorderList[i] = permIdx;
 		partFilled[partVec[i]]+=1;
-		numInRow2[i] = 0;
+		numInRow[i] = 0;
 	}	
-	 
-	for(int i = 0; i <= nParts; i++){
+	//partBoundary will not be changed, but reorderList will be changed in next step 
+	for(uint32_t i = 0; i <= nParts; i++){
 		inputMatrix->partBoundary[i] = partBias[i];
 	}
+	//reordering needs two iteration
 	//numInRow2 means "real" numInRow in the  
-	//block ELL part of EHYB, notice that some of the
+	//blockELL part of EHYB, notice that some of the
 	//elements will still go to ER part even its col 
 	//index belongs to same block of this row 
-	for(int i = 0; i < inputMatrix->totalNum; i++){
-		if(partVec[J[i]] == partVec[I[i]]){
-			numInRow2[I[i]]+=1;
-		}
+	for(int i = 0; i < inputMatrix->totalNum; ++i){
+		partId = partVec[inputMatrix->I[i]];	
+		if(partVec[inputMatrix->J[i]] == partId)
+			numInRow2[inputMatrix->I[i]] += 1;//no need to do reordering
 	}
+	//update the reorderList by sort, the result is the final reorderList 
+	//used for matrix reordering
 	sortRordrList(dimension, nParts, partBoundary, reorderList, numInRow2);
-	//reordering need two iteration
-	for(int i = 0; i < dimension ; i++){
-		rowIdx[reorderList[i]] = rowIdx[i-1] + numInRow[i-1];
+	for(unsigned int i = 0; i < dimension; i++){
+		numInRow[reorderList[i]] += rowIdx[i+1] - rowIdx[i];
 	}
-	memset(numInRow, 0 , dimension*sizeof(int));
+	//this function changes reorderList
 	rowIdx[0] = 0;
-	for(int i= 1; i<=dimension; i++){
+	for(uint32_t i= 1; i<=dimension; i++){
 		rowIdx[i] = rowIdx[i-1] + numInRow[i-1];
+		inputMatrix->rowIdx[i] = rowIdx[i];
 		numInRow[i-1] = 0;
 	}
+	memset(numInRow, 0 , dimension*sizeof(int));
+	//matrix reordering, maybe we have a better solution
+	int partStart, partEnd;
 	for(int i = 0; i < inputMatrix->totalNum; i++){
 		tempI = reorderList[I[i]];
 		tempJ = reorderList[J[i]];	
@@ -161,9 +165,14 @@ void matrixReorder(matrixCOO* inputMatrix)
 			printf("error happend tempIdx is %d with tempI %d  V is %f\n", tempIdx, tempI, V[i]);
 		newV[tempIdx] = V[i];
 		numInRow[tempI] += 1;
+		partStart = partBoundary[partVec[I[i]]];
+		partEnd = partStart + vectorCacheSize; 
+		if(tempJ >= partStart && tempJ < partEnd)
+			inputMatrix->numInRow2[tempI] += 1;	
 	}	
 	free(I);
 	free(J);
+	free(inputMatrix->J);
 	free(V);
 	inputMatrix->I=newI;
 	inputMatrix->J=newJ;
@@ -174,6 +183,8 @@ void matrixReorder(matrixCOO* inputMatrix)
 	free(cwghts);
 	free(partBias);
 	free(partFilled);
+	free(rowIdx);
+	free(numInRow2);
 }
 
 void vectorReorder(int dimension, const double* v_in, 

@@ -1,6 +1,5 @@
 #ifndef REORDERING_H
 #define REORDERING_H
-#include <mtmetis.h>
 #include "solver.h"
 
 

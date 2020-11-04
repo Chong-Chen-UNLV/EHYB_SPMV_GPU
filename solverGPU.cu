@@ -2,14 +2,14 @@
 #include "solver.h"
 #include "convert.h"
 #include "reordering.h"
-//#include "test.h"
-
+#include "test.h"
+extern int waprSize;
 static void cudaMallocTransDataEHYB(matrixEHYB* localMatrix, matrixEHYB* localMatrix_d, 
 		const int sizeBlockELL, const int sizeER){
                 
-	//cudaSetDevice(cuda_device);
+	
 	localMatrix_d->dimension = localMatrix->dimension;
-	localMatrix_d->nParts = localMatrix->nParts;
+	localMatrix_d->numOfRowER = localMatrix->numOfRowER;
 	localMatrix_d->nParts = localMatrix->nParts;
 
     cudaMalloc((void **) &(localMatrix_d->biasVecBlockELL), localMatrix->nParts*blockPerPart*sizeof(int));
@@ -43,10 +43,19 @@ void solverGPuUnprecondEHYB(matrixCOO* localMatrix,
 {
 	//This function treat y as input and x as output, (solve the equation Ax=y) y is the vector we already known, x is the vector we are looking for
 	double dotp0,dotr0,dotr1,doth;
-	
+	cudaSetDevice(0);
+	int *a;
+	cudaError_t err = cudaSuccess;
+	err = cudaMalloc((void **) &a, 100*sizeof(int));
 	matrixEHYB localMatrixEHYB, localMatrixEHYB_d;
-	matrixReorder(localMatrix);
-	
+	if (err != cudaSuccess)
+	{   
+		fprintf(stderr, "Failed to allocate device vector A (error code %s)!\n", cudaGetErrorString(err));
+		exit(EXIT_FAILURE);
+	}   
+
+
+
 	int sizeBlockELL, sizeER;
 	int dimension = localMatrix->dimension;
 	int totalNum = localMatrix->totalNum;
@@ -64,7 +73,6 @@ void solverGPuUnprecondEHYB(matrixCOO* localMatrix,
 	cublasCreate(&handle);
 
 	double *bp_d, *pk_d, *rk_d, *vectorOut_d;
-	size_t size0 = dimension*sizeof(int);
 	size_t size1 = dimension*sizeof(double);
 	cudaMalloc((void **) &bp_d,size1);
 	cudaMalloc((void **) &pk_d,size1);
@@ -89,9 +97,6 @@ void solverGPuUnprecondEHYB(matrixCOO* localMatrix,
 	double *pk=(double *) malloc(size1);
 	double *rk=(double *) malloc(size1);
 
-	double *bp_dt = (double *) malloc(size1);
-	double *pk_dt = (double *) malloc(size1);
-	double *rk_dt = (double *) malloc(size1);
 	//double *x=(double *) malloc(size1);
 	error=1000;
 	//initialize
@@ -107,21 +112,21 @@ void solverGPuUnprecondEHYB(matrixCOO* localMatrix,
 		dotp0=0;
 		dotr0=0;
 		dotr1=0;
-		//int errorIdx = 0;
-		//double compareError;
+		int errorIdx = 0;
+		double compareError;
 		cudaMemset(bp_d, 0, size1);
 
-		//matrix_vectorTest(localMatrix, vectorIn, bp, 0);
+		matrix_vectorTest(localMatrix, vectorIn, bp, 0);
 		
 		matrixVectorEHYB(&localMatrixEHYB_d, pk_d, bp_d, 0);
-		//cudaMemcpy(bp_g, bp_d, dimension*sizeof(double), cudaMemcpyDeviceToHost);
-		//for(int i = 0; i < dimension; ++i){
-		//	compareError = 	(bp_g[i] - bp[i])/bp[i];
-		//	if(errorIdx == 0 && (compareError > 0.0000001 || compareError < -0.0000001)){ 	
-		//		printf("bp[%d] of GPU result is %f, test value is %f, difference is %f\n", i, bp_g[i], bp[i], compareError);
-		//		if(errorIdx == 0) errorIdx = i;	
-		//	}
-		//}
+		cudaMemcpy(bp_g, bp_d, dimension*sizeof(double), cudaMemcpyDeviceToHost);
+		for(int i = 0; i < dimension; ++i){
+			compareError = 	(bp_g[i] - bp[i])/bp[i];
+			if(errorIdx == 0 && (compareError > 0.0000001 || compareError < -0.0000001)){ 	
+				printf("bp[%d] of GPU result is %f, test value is %f, difference is %f\n", i, bp_g[i], bp[i], compareError);
+				if(errorIdx == 0) errorIdx = i;	
+			}
+		}
 
 		//matrix_vectorTest(localMatrix, vectorIn, bp, errorIdx);
 		//mimicHYB(ELL_block_cols_vec,
@@ -197,15 +202,12 @@ void solverGPuUnprecondCUSPARSE(matrixCOO* localMatrix,
     totalNum = localMatrix->totalNum; 
 
 	rowIdx = localMatrix->rowIdx; 
-    int* numInRow = localMatrix->numInRow; 
-
     J = localMatrix->J;
     V = localMatrix->V;
 	
 	int* col_d;
 	int* rowIdx_d;
 	double *V_d;
-	volatile bool RODR, BLOCK, CACHE;
 	cublasHandle_t handleBlas;
 	cublasCreate(&handleBlas);
 	cusparseHandle_t handleSparse;
@@ -242,9 +244,9 @@ void solverGPuUnprecondCUSPARSE(matrixCOO* localMatrix,
 	double *pk=(double *) malloc(size1);
 	double *rk=(double *) malloc(size1);
 
-	double *bp_dt = (double *) malloc(size1);
-	double *pk_dt = (double *) malloc(size1);
-	double *rk_dt = (double *) malloc(size1);
+	//double *bp_dt = (double *) malloc(size1);
+	//double *pk_dt = (double *) malloc(size1);
+	//double *rk_dt = (double *) malloc(size1);
 	//double *x=(double *) malloc(size1);
 	error=1000;
 	//initialize

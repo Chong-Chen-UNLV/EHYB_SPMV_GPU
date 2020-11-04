@@ -20,6 +20,7 @@ inline int rowSCompare(const void *A, const void *B){
 	if(A_->nonzeros > B_->nonzeros) return -1;
 	if(A_->nonzeros == B_->nonzeros) return 0;
 	if(A_->nonzeros < B_->nonzeros) return 1;
+	return 1;
 }
 
 #endif

@@ -109,35 +109,20 @@ static int matrixRead(matrixCOO* localMatrixCOO, double** xCompare_in, double** 
 	free(lowerV);
 	free(lowerI);
 	free(lowerJ);
+	return 1;
 }
 
 int main(int argc, char* argv[])
 {
-	int MAXthread = 2;	
-	int totalNum=0;
-	int lowerNum=0;
-	int lowerNumPrecond=0;
-	int totalNumPrecond=0;
-	int totalNumPrecondP=0;
-	int ret_code;
-	MM_typecode matcode,matcode2;
+	MM_typecode matcode;
 	int MAXIter = 0;
-	FILE *f,*f2;
+	FILE *f;
 
-	int dimension, N, bandwidth,bandwidthPrecond;   
-	int maxCol;
-	int *I, *J;
-	double *V;
 	double *x;
 	double *y;
 	double *xCompare;
-	double *errorTrack;
-	double resultError;
-	int finish;
 	char fileName[100];
 	fileName[0] = '\0';
-	char fileName2[100];
-	int parts;
 	int oc;
 	cb_s cb;
     init_cb(&cb);
@@ -155,7 +140,7 @@ int main(int argc, char* argv[])
 				break;
 			case 't':
 				/* the number of threads*/
-				MAXthread = atoi(optarg);
+				//MAXthread = atoi(optarg);
 				break;
 			case 'p':
 				if(atoi(optarg) == 1)
@@ -212,11 +197,12 @@ int main(int argc, char* argv[])
 	
 	matrixRead(&localMatrixCOO, &xCompare, &y, f);
 	fclose(f);
-	y=(double *) malloc(localMatrixCOO.dimension*sizeof(double));
+	x = (double *) calloc(localMatrixCOO.dimension, sizeof(double));
+	y = (double *) calloc(localMatrixCOO.dimension, sizeof(double));
 	double *xReorder = (double* )calloc(localMatrixCOO.dimension, sizeof(double)); 
 	double *yReorder = (double* )calloc(localMatrixCOO.dimension, sizeof(double)); 
 	matrixReorder(&localMatrixCOO);
-	vectorReorder(dimension, y, yReorder, localMatrixCOO.reorderList);
+	vectorReorder(localMatrixCOO.dimension, y, yReorder, localMatrixCOO.reorderList);
 
 	int realIter; 
 
@@ -224,7 +210,7 @@ int main(int argc, char* argv[])
 
 	solverGPuUnprecondEHYB(&localMatrixCOO, yReorder, xReorder, MAXIter, &realIter);
 	
-	vectorRecover(dimension, xReorder, x, localMatrixCOO.reorderList);
+	vectorRecover(localMatrixCOO.dimension, xReorder, x, localMatrixCOO.reorderList);
 
 	for (int i=0;i<10;i++)
 	{
@@ -239,6 +225,7 @@ int main(int argc, char* argv[])
 	free(y);
 	
 	free(localMatrixCOO.numInRow);
+	free(localMatrixCOO.numInRow2);
 	free(localMatrixCOO.rowIdx);
 	free(xCompare);
 	free(localMatrixCOO.diag);

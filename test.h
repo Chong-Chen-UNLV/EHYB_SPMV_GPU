@@ -5,7 +5,7 @@
 #include "solver.h"
 #include "kernel.h"
 
-void mimicHYB(int* ELL_block_cols_vec,
+/*void mimicHYB(int* ELL_block_cols_vec,
 		int* ELL_block_bias_vec,
 		const int* part_boundary,
 		int* colELL,
@@ -72,8 +72,8 @@ void mimicHYB(int* ELL_block_cols_vec,
 		}
 		fclose(tFile);
 	}
-}
-void matrix_vectorTest(matrixCOO_S *matrix, const double* vector_in, double* vector_out, 
+}*/
+void matrix_vectorTest(matrixCOO *matrix, const double* vector_in, double* vector_out, 
 		int testpoint){
 	FILE *tFile;
 	if(testpoint > 0) {
