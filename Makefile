@@ -1,19 +1,19 @@
 ################################################################################
 #
-## Build script for project
+## Build script for projct
 #
 #################################################################################
 CC=g++
 
-CU_INC=-I/opt/packages/cuda/10.1/include
-CUDA_LIB =-L/opt/packages/cuda/10.1/lib64 -lcublas -lcudart 
+CU_INC=-I/usr/local/cuda-9.2/include
+CUDA_LIB =-L/usr/local/cuda-9.2/lib64 -lcublas -lcusparse -lcudart 
 
-CFLAGS= -g -gdwarf-2 -O0 -funroll-loops -fopenmp -I./mt-metis-0.6.0/include -I./include -L./ -L./lib -lmtmetis #-lopenblas -std=gnu99 
-	CUFLAGS = -O0 --use_fast_math -gencode=arch=compute_60,code=compute_60 
-	CFILES          =       $(wildcard *.c)
-	CUFILES         =       $(wildcard *.cu)
-	OBJECTS         =       $(CFILES:.c=.o)
-CU_OBJECTS      =       $(CUFILES:.cu=.o)
+CFLAGS= -g -Wall -gdwarf-2 -O3 -funroll-loops -fopenmp -I./mt-metis-0.6.0/include -I./include -L./ -L./lib -lmtmetis #-lopenblas -std=gnu99 
+	CUFLAGS = -O3 --use_fast_math -gencode arch=compute_61,code=sm_61
+	CFILES = convert.c mmio.c reordering.c solver.c solver_test.c      
+	CUFILES = $(wildcard *.cu)
+	OBJECTS = $(CFILES:.c=.o)
+CU_OBJECTS = $(CUFILES:.cu=.o)
 
 all : $(OBJECTS) $(CU_OBJECTS)
 	$(CC) -m64 $^ $(CFLAGS) $(CU_INC) $(CUDA_LIB)  -o Solver_test.out
