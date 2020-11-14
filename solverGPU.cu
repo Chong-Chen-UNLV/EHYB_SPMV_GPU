@@ -107,20 +107,7 @@ void solverGPuUnprecondEHYB(matrixCOO* localMatrix,
 		int errorIdx = 0;
 		double compareError;
 		cudaMemset(bp_d, 0, size1);
-
-		//matrix_vectorTest(localMatrix, vectorIn, bp, -1);
-		//matrix_vectorTestEHYB(&localMatrixEHYB, vectorIn, bp_g, -1);
-		
 		matrixVectorEHYB(&localMatrixEHYB_d, pk_d, bp_d, -1);
-		cudaMemcpy(bp_g, bp_d, dimension*sizeof(double), cudaMemcpyDeviceToHost);
-		for(int i = 0; i < dimension; ++i){
-			compareError = 	(bp_g[i] - bp[i])/bp[i];
-			if(errorIdx == 0 && (compareError > 0.0000001 || compareError < -0.0000001)){ 	
-				printf("bp[%d] of GPU result is %f, test value is %f, difference is %f\n", i, bp_g[i], bp[i], compareError);
-				if(errorIdx == 0) 
-					errorIdx = i;	
-			}
-		}
 		
 		cublasDdot(handle,dimension,bp_d,1,pk_d,1,&dotp0);
 		cublasDdot(handle,dimension,rk_d,1,rk_d,1,&dotr0);

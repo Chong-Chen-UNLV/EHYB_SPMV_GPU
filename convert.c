@@ -5,52 +5,6 @@
 
 #define warpSize 32
 
-static bool checkRowErr(double* V, double* valBlockELL, double* valER, 
-		int numInRowCOO, int widthBlockELL, int widthER, 
-		int biasCOO, int biasBlockELL, int biasER,
-		double *val1, double *val2){
-	*val1 = 0; 
-	*val2 = 0;
-	for(int i = 0; i < numInRowCOO; ++i){
-		*val1 += V[biasCOO + i];
-	}	
-	for(int i = 0; i < widthBlockELL; ++i){
-		*val2 += valBlockELL[biasBlockELL + i*warpSize];
-	}
-	if(widthER > 0){
-		for(int i = 0; i < widthER; ++i){
-			*val2 += valER[biasER + i*warpSize];
-		}
-	}
-	if (*val1 - *val2 < .001 && *val1 - *val2 > -.001)
-		return false;
-	else 
-		return true;
-}
-static void checkBlockELL(matrixEHYB* inputMatrix){
-	
-	for(int part = 0; part < inputMatrix->nParts; ++part){
-		int vecStart = inputMatrix->partBoundary[part];
-		int vecEnd = vecStart + vectorCacheSize;
-		int blockPartStart = part*blockPerPart;
-		for(int block = 0; block < blockPerPart; ++block){
-			int blockBias = inputMatrix->biasVecBlockELL[blockPartStart + block];
-			int width = inputMatrix->widthVecBlockELL[blockPerPart + block];
-			int row = vecStart + block*warpSize;
-			for(int i = 0; i < 32; ++i){
-				if(row + i < vecEnd){
-					for(int n = 0; n < width; ++n){
-						int dataIdx = blockBias + i + n*warpSize;
-						int col = inputMatrix->colBlockELL[dataIdx];
-						double val = inputMatrix->valBlockELL[dataIdx];
-						if(val == 1)
-							printf("error found!\n");
-					}
-				}
-			}
-		}
-	}
-}
 static void sortRordrListFull(unsigned int dimension,
 		int* reorderList, 
 		int* numInRow)
@@ -251,6 +205,7 @@ static void COO2EHYBCore(matrixCOO* inputMatrix,
 				} else {
 					if(numInRowER[rowVal] > 0){
 						printf("error: got to technical not ER line\n");	
+						exit(0);
 					}
 					widthER = -1;
 				}
@@ -308,7 +263,7 @@ static void COO2EHYBCore(matrixCOO* inputMatrix,
 					valER[biasER+rowLocInBlockER+j*warpSize]=V[rowIdx[rowVal]+j];
 					irregular+=1;
 					if(j > widthER){
-						printf("error at ER%d\n");
+						printf("error at ER width%d\n");
 						exit(0);
 					}
 				}
