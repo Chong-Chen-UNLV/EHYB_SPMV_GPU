@@ -3,14 +3,15 @@
 #include "convert.h"
 #include "reordering.h"
 #include "test.h"
-extern int waprSize;
+
 static void cudaMallocTransDataEHYB(matrixEHYB* localMatrix, matrixEHYB* localMatrix_d, 
 		const int sizeBlockELL, const int sizeER){
-                
-	
+
+
 	localMatrix_d->dimension = localMatrix->dimension;
 	localMatrix_d->numOfRowER = localMatrix->numOfRowER;
 	localMatrix_d->nParts = localMatrix->nParts;
+	int blockNumER = ceil(((float) localMatrix->numOfRowER)/warpSize);
 
     cudaMalloc((void **) &(localMatrix_d->biasVecBlockELL), localMatrix->nParts*blockPerPart*sizeof(int));
     cudaMalloc((void **) &(localMatrix_d->widthVecBlockELL), localMatrix->nParts*blockPerPart*sizeof(int));
@@ -19,46 +20,36 @@ static void cudaMallocTransDataEHYB(matrixEHYB* localMatrix, matrixEHYB* localMa
     cudaMalloc((void **) &(localMatrix_d->colBlockELL), sizeBlockELL*sizeof(int));
 
     cudaMalloc((void **) &(localMatrix_d->rowVecER), localMatrix_d->numOfRowER*sizeof(int));
-    cudaMalloc((void **) &(localMatrix_d->biasVecER), ceil(((float) localMatrix->numOfRowER)/warpSize)*sizeof(int));
-    cudaMalloc((void **) &(localMatrix_d->widthVecER), ceil(((float) localMatrix->numOfRowER)/warpSize)*sizeof(int));
+    cudaMalloc((void **) &(localMatrix_d->biasVecER), blockNumER*sizeof(int));
+    cudaMalloc((void **) &(localMatrix_d->widthVecER), blockNumER*sizeof(int));
     cudaMalloc((void **) &(localMatrix_d->colER), sizeER*sizeof(int));
     cudaMalloc((void **) &(localMatrix_d->valER), sizeER*sizeof(double));
 
-    cudaMemcpy(localMatrix_d->biasVecER, localMatrix->biasVecER, localMatrix->nParts*blockPerPart*sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(localMatrix_d->widthVecER, localMatrix->widthVecER, localMatrix->nParts*blockPerPart*sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(localMatrix_d->biasVecBlockELL, localMatrix->biasVecBlockELL, localMatrix->nParts*blockPerPart*sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(localMatrix_d->widthVecBlockELL, localMatrix->widthVecBlockELL, localMatrix->nParts*blockPerPart*sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(localMatrix_d->partBoundary, localMatrix->partBoundary, (localMatrix->nParts+1)*sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(localMatrix_d->valBlockELL, localMatrix->valBlockELL, sizeBlockELL*sizeof(double), cudaMemcpyHostToDevice);
     cudaMemcpy(localMatrix_d->colBlockELL, localMatrix->colBlockELL, sizeBlockELL*sizeof(int), cudaMemcpyHostToDevice);
 
     cudaMemcpy(localMatrix_d->rowVecER, localMatrix->rowVecER, localMatrix_d->numOfRowER*sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(localMatrix_d->biasVecER, localMatrix->biasVecER, ceil(((float) localMatrix->numOfRowER)/warpSize)*sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(localMatrix_d->widthVecER, localMatrix->widthVecER, ceil(((float) localMatrix->numOfRowER)/warpSize)*sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(localMatrix_d->biasVecER, localMatrix->biasVecER, blockNumER*sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(localMatrix_d->widthVecER, localMatrix->widthVecER, blockNumER*sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(localMatrix_d->colER, localMatrix->colER, sizeER*sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(localMatrix_d->valER, localMatrix->valER, sizeER*sizeof(double), cudaMemcpyHostToDevice);
 }
-
+extern "C"
 void solverGPuUnprecondEHYB(matrixCOO* localMatrix, 
 		const double *vectorIn, double *vectorOut,  
 		const int MAXIter, int *realIter)
 {
 	//This function treat y as input and x as output, (solve the equation Ax=y) y is the vector we already known, x is the vector we are looking for
 	double dotp0,dotr0,dotr1,doth;
-	cudaSetDevice(0);
-	int *a;
-	cudaError_t err = cudaSuccess;
-	err = cudaMalloc((void **) &a, 100*sizeof(int));
-	matrixEHYB localMatrixEHYB, localMatrixEHYB_d;
-	if (err != cudaSuccess)
-	{   
-		fprintf(stderr, "Failed to allocate device vector A (error code %s)!\n", cudaGetErrorString(err));
-		exit(EXIT_FAILURE);
-	}   
-
-
 
 	int sizeBlockELL, sizeER;
 	int dimension = localMatrix->dimension;
 	int totalNum = localMatrix->totalNum;
+	matrixEHYB localMatrixEHYB, localMatrixEHYB_d;
+
 	COO2EHYB(localMatrix, 
 			&localMatrixEHYB,
 			&sizeBlockELL,
@@ -68,7 +59,7 @@ void solverGPuUnprecondEHYB(matrixCOO* localMatrix,
 			&localMatrixEHYB_d, 
 			sizeBlockELL,
 			sizeER);
-
+	printf("sizeER is %d\n", sizeER);
 	cublasHandle_t handle;
 	cublasCreate(&handle);
 
@@ -106,6 +97,7 @@ void solverGPuUnprecondEHYB(matrixCOO* localMatrix,
 		rk[i]=vectorIn[i];
 		vectorOut[i]=0;
 		bp[i]=0;
+		bp_g[i]=0;
 	}
 	gettimeofday(&start1, NULL);
 	while (error>threshold&&iter<MAXIter){
@@ -116,37 +108,19 @@ void solverGPuUnprecondEHYB(matrixCOO* localMatrix,
 		double compareError;
 		cudaMemset(bp_d, 0, size1);
 
-		matrix_vectorTest(localMatrix, vectorIn, bp, 0);
+		//matrix_vectorTest(localMatrix, vectorIn, bp, -1);
+		//matrix_vectorTestEHYB(&localMatrixEHYB, vectorIn, bp_g, -1);
 		
-		matrixVectorEHYB(&localMatrixEHYB_d, pk_d, bp_d, 0);
+		matrixVectorEHYB(&localMatrixEHYB_d, pk_d, bp_d, -1);
 		cudaMemcpy(bp_g, bp_d, dimension*sizeof(double), cudaMemcpyDeviceToHost);
 		for(int i = 0; i < dimension; ++i){
 			compareError = 	(bp_g[i] - bp[i])/bp[i];
 			if(errorIdx == 0 && (compareError > 0.0000001 || compareError < -0.0000001)){ 	
 				printf("bp[%d] of GPU result is %f, test value is %f, difference is %f\n", i, bp_g[i], bp[i], compareError);
-				if(errorIdx == 0) errorIdx = i;	
+				if(errorIdx == 0) 
+					errorIdx = i;	
 			}
 		}
-
-		//matrix_vectorTest(localMatrix, vectorIn, bp, errorIdx);
-		//mimicHYB(ELL_block_cols_vec,
-		//		ELL_block_bias_vec,
-		//		part_boundary,
-		//		colELL,
-		//		matrixELL,
-		//		I_COO,
-		//		J_COO,
-		//		V_COO,
-		//		totalNumCOO,
-		//		vectorIn,
-		//		errorIdx);
-		//
-		//cudaMemset(bp_d, 0, size1);
-		//matrix_vectorHYB(&localMatrixHYB_d, pk_d, bp_d, cb, errorIdx,
-		//	   part_size, part_boundary_d, errorIdx);
-		//
-		//for (int k=0;k<5;k++) printf("pk %d at iter %d is %f\n",k, iter, pk[k]);
-		//printf("CPU start\n");
 		
 		cublasDdot(handle,dimension,bp_d,1,pk_d,1,&dotp0);
 		cublasDdot(handle,dimension,rk_d,1,rk_d,1,&dotr0);

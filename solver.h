@@ -58,7 +58,7 @@ inline void init_cb(cb_s* in_s)
 	in_s->FACT = true;
 }
 
-
+extern "C"
 void solverGPuUnprecondEHYB(matrixCOO* localMatrix, 
 		const double* vectorIn, double* vectorOut,  
 		const int MAXIter, int* realIter);

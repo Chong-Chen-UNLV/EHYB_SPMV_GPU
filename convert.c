@@ -3,7 +3,54 @@
 #include "convert.h"
 #include "Partition.h"
 
+#define warpSize 32
 
+static bool checkRowErr(double* V, double* valBlockELL, double* valER, 
+		int numInRowCOO, int widthBlockELL, int widthER, 
+		int biasCOO, int biasBlockELL, int biasER,
+		double *val1, double *val2){
+	*val1 = 0; 
+	*val2 = 0;
+	for(int i = 0; i < numInRowCOO; ++i){
+		*val1 += V[biasCOO + i];
+	}	
+	for(int i = 0; i < widthBlockELL; ++i){
+		*val2 += valBlockELL[biasBlockELL + i*warpSize];
+	}
+	if(widthER > 0){
+		for(int i = 0; i < widthER; ++i){
+			*val2 += valER[biasER + i*warpSize];
+		}
+	}
+	if (*val1 - *val2 < .001 && *val1 - *val2 > -.001)
+		return false;
+	else 
+		return true;
+}
+static void checkBlockELL(matrixEHYB* inputMatrix){
+	
+	for(int part = 0; part < inputMatrix->nParts; ++part){
+		int vecStart = inputMatrix->partBoundary[part];
+		int vecEnd = vecStart + vectorCacheSize;
+		int blockPartStart = part*blockPerPart;
+		for(int block = 0; block < blockPerPart; ++block){
+			int blockBias = inputMatrix->biasVecBlockELL[blockPartStart + block];
+			int width = inputMatrix->widthVecBlockELL[blockPerPart + block];
+			int row = vecStart + block*warpSize;
+			for(int i = 0; i < 32; ++i){
+				if(row + i < vecEnd){
+					for(int n = 0; n < width; ++n){
+						int dataIdx = blockBias + i + n*warpSize;
+						int col = inputMatrix->colBlockELL[dataIdx];
+						double val = inputMatrix->valBlockELL[dataIdx];
+						if(val == 1)
+							printf("error found!\n");
+					}
+				}
+			}
+		}
+	}
+}
 static void sortRordrListFull(unsigned int dimension,
 		int* reorderList, 
 		int* numInRow)
@@ -107,7 +154,7 @@ static void vecsGenBlockELL(matrixCOO* inputMatrix,
 			}	
 		}
 	}
-	if( numOfRowER == 0){
+	if(numOfRowER == 0){
 		printf("perfect matrix, not in the scope of this study\n");		
 		exit(0);
 	}
@@ -155,7 +202,7 @@ static void COO2EHYBCore(matrixCOO* inputMatrix,
 	double* V = inputMatrix->V;
 
 	int* widthVecBlockELL = outputMatrix->widthVecBlockELL;
-	int* biasVecBLockELL = outputMatrix->biasVecBlockELL;
+	int* biasVecBlockELL = outputMatrix->biasVecBlockELL;
 	int* colBlockELL = outputMatrix->colBlockELL; 
 	double* valBlockELL = outputMatrix->valBlockELL; 
 
@@ -177,7 +224,7 @@ static void COO2EHYBCore(matrixCOO* inputMatrix,
 
 	for(int blockIdx = 0; blockIdx < nBlocks; ++blockIdx){
 		widthBlockELL = widthVecBlockELL[blockIdx];
-		biasBlockELL = biasVecBLockELL[blockIdx]; 
+		biasBlockELL = biasVecBlockELL[blockIdx]; 
 		partIdx = blockIdx/blockPerPart;
 		partStart = partBoundary[partIdx];
 		partEnd = partBoundary[partIdx + 1];
@@ -193,6 +240,10 @@ static void COO2EHYBCore(matrixCOO* inputMatrix,
 			if(rowVal < partEnd){
 				if(reorderListER[rowVal] < outputMatrix->numOfRowER){
 					rowLocER = reorderListER[rowVal];
+					if(rowVecER[rowLocER] != rowVal){
+						printf("error at rowVecER\n");
+						exit(0);
+					}
 					blockIdxER = rowLocER/warpSize;
 					rowLocInBlockER = rowLocER - blockIdxER*warpSize;
 					biasER = biasVecER[blockIdxER];
@@ -205,6 +256,10 @@ static void COO2EHYBCore(matrixCOO* inputMatrix,
 				}
 				for(int j = 0; j < numInRow[rowVal]; ++j){
 					int tmpIdx = j + rowIdx[rowVal];	
+					if(I[tmpIdx] != rowVal){
+						printf("row val check failed\n");
+						exit(0);
+					}
 					if(J[tmpIdx] < fetchEnd && J[tmpIdx] >= partStart && writedInRowELL < widthBlockELL){
 						colBlockELL[biasBlockELL+i+writedInRowELL*warpSize] = J[tmpIdx];
 						valBlockELL[biasBlockELL+i+writedInRowELL*warpSize] = V[tmpIdx];
@@ -223,9 +278,20 @@ static void COO2EHYBCore(matrixCOO* inputMatrix,
 						writedInRowER += 1;
 					}
 				}
-			} 
+				while(writedInRowELL < widthBlockELL){
+					colBlockELL[biasBlockELL+i+writedInRowELL*warpSize] = partStart;
+					valBlockELL[biasBlockELL+i+writedInRowELL*warpSize] = 0;
+					writedInRowELL+=1;
+				}
+				double val1, val2;
+			} else {
+				for(int j = 0; j < widthBlockELL; ++j){
+					colBlockELL[biasBlockELL+i+j*warpSize] = partStart;
+					valBlockELL[biasBlockELL+i+j*warpSize] = 0;
+				}
+			}	
+			
 		}	
-
 		if(extraRows > 0){
 			for(int rowVal = (partStart + warpSize*blockPerPart); rowVal < partEnd; ++rowVal){
 				if(rowVecER[reorderListER[rowVal]] != rowVal){
@@ -267,6 +333,7 @@ void COO2EHYB(matrixCOO* inputMatrix,
 	int* numInRowER = (int*)calloc(inputMatrix->dimension, sizeof(int));
 	outputMatrix->dimension = inputMatrix->dimension;
 	outputMatrix->nParts = inputMatrix->nParts;
+	outputMatrix->partBoundary = inputMatrix->partBoundary;
 	outputMatrix->widthVecBlockELL = (int*)calloc(outputMatrix->nParts*blockPerPart, sizeof(int));
 	outputMatrix->biasVecBlockELL = (int*)calloc(outputMatrix->nParts*blockPerPart, sizeof(int));
 	/*block_boundary will not be used outside this function*/
@@ -274,33 +341,34 @@ void COO2EHYB(matrixCOO* inputMatrix,
 
 	*sizeBlockELL = 0;
 	for(int i = 0; i < blockPerPart*outputMatrix->nParts; ++i){
+		outputMatrix->biasVecBlockELL[i] = *sizeBlockELL; 
 		*sizeBlockELL += warpSize*outputMatrix->widthVecBlockELL[i]; 
 	}
-	outputMatrix->valBlockELL = (double*) malloc(sizeof(double)*(*sizeBlockELL));
-	outputMatrix->colBlockELL = (int*) malloc(sizeof(int)*(*sizeBlockELL));
-
+	outputMatrix->valBlockELL = (double*)calloc((*sizeBlockELL), sizeof(double));
+	outputMatrix->colBlockELL = (int*)calloc((*sizeBlockELL), sizeof(int));
 	int blockNumER = ceil((float (outputMatrix->numOfRowER))/warpSize);
 	outputMatrix->biasVecER = (int*)calloc(blockNumER, sizeof(int));
 	outputMatrix->widthVecER = (int*)calloc(blockNumER, sizeof(int));
 
 	vecsGenER(outputMatrix, numInRowER, reorderListER);
 	for(int i = 1; i < blockNumER; ++i){
-		outputMatrix->biasVecER[i] = outputMatrix->biasVecER[i-1] + warpSize*(outputMatrix->widthVecER[i]); 
+		outputMatrix->biasVecER[i] = outputMatrix->biasVecER[i-1] + warpSize*(outputMatrix->widthVecER[i-1]); 
 	}
 	*sizeER = 0;	
 	for(int i = 0; i < blockNumER; ++i){
 		*sizeER += warpSize*outputMatrix->widthVecER[i];
 	}
 
-	outputMatrix->valER = (double*) malloc(sizeof(double)*(*sizeER));
-	outputMatrix->colER = (int*) malloc(sizeof(int)*(*sizeER));
+	outputMatrix->valER = (double*) calloc((*sizeER), sizeof(double));
+	outputMatrix->colER = (int*) calloc((*sizeER), sizeof(int));
 
 	COO2EHYBCore(inputMatrix, 
 			outputMatrix,
 			reorderListER,
 			numInRowER);
-
-	free(reorderListER);
+	
+	//checkBlockELL(outputMatrix);
+	outputMatrix->reorderListER = reorderListER;
 	free(numInRowER);
 }
 

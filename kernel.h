@@ -17,8 +17,7 @@
 #include <cuda_runtime_api.h>
 #include <cuda.h>
 #include "solver.h"
-
-#define warpSize 32
+#define warpSize  32
 
 const int memPerThread = 32;
 const int threadELL = 1024;

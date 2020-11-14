@@ -5,78 +5,66 @@
 #include "solver.h"
 #include "kernel.h"
 
-/*void mimicHYB(int* ELL_block_cols_vec,
-		int* ELL_block_bias_vec,
-		const int* part_boundary,
-		int* colELL,
-		double* matrixELL,
-		int* I_COO,
-		int* J_COO,
-		double* V_COO,
-		int size_COO,
-		const double* vector_in,
-		const int testpoint){
-
+void matrix_vectorTestEHYB(matrixEHYB *inputMatrix, const double* vector_in, double* vector_out,
+		int testpoint){
 	FILE *tFile;
-	double shared_data[vector_cache_size ];
-	memset(shared_data, 0, sizeof(double)*vector_cache_size);
-	if(testpoint > 0){
-		if ((tFile = fopen("HYBResult", "w")) == NULL){ 
+	int track = 0;	
+	if(testpoint >= 0) {
+		if ((tFile = fopen("testResultEHYB", "w")) == NULL){ 
 			printf("file open error\n");
 			exit(1);
 		}
-		int part_idx = 0;
-		int block_rowSize = 0;
-		while(part_boundary[part_idx + 1] < testpoint) part_idx++;
-		int block_idx = part_idx*block_per_part + (testpoint - part_boundary[part_idx])/ELL_threadSize; 
-		int part_start = part_boundary[part_idx];
-		int part_end = part_boundary[part_idx + 1];
-		int boundary_start = part_boundary[part_idx] + (block_idx%block_per_part)*ELL_threadSize;
-		int block_end = part_boundary[part_idx] + block_per_part*ELL_threadSize;	
-		int row_local = testpoint-(block_idx%block_per_part)*ELL_threadSize - part_start;
-		int block_data_bias = ELL_block_bias_vec[block_idx];
-		int boundary_end;
-		
-		if((block_idx + 1)%block_per_part == 0){
-			if(part_end > block_end){
-				boundary_end = block_end;
-			}
-			else boundary_end = part_end;
-		} else {
-			boundary_end = boundary_start + ELL_threadSize;
-		}
-		block_rowSize = boundary_end - boundary_start;
-		for(int i = part_start; i < part_start + vector_cache_size; ++ i){
-			shared_data[i - part_start] = vector_in[i];	
-		}
-		int col_num = ELL_block_cols_vec[block_idx];
-		double accum = 0;
-		for(int i = 0; i < col_num; ++i){
-			int data_idx = block_data_bias + block_rowSize*i + row_local;
-			double data = matrixELL[data_idx];
-			int col = colELL[data_idx];
-			double vec = shared_data[col - part_start];
-			accum += data*vec;
-			fprintf(tFile, "row is %d V is %f vec is %f accum is %f\n", 
-					testpoint, data, vec, accum);
-		}
-		fprintf(tFile, "-------start COO format------------\n" );	
-					
-		for(int i = 0; i < size_COO; ++i){
-			if(I_COO[i] == testpoint){
-				double vec = vector_in[J_COO[i]];
-				accum += V_COO[i]*vec;
-				fprintf(tFile, "row is %d V is %f vec is %f accum is %f\n", 
-					testpoint, V_COO[i], vec, accum);
-			}
-		}
-		fclose(tFile);
 	}
-}*/
+	for(int part = 0; part < inputMatrix->nParts; ++part){
+		int vecStart = inputMatrix->partBoundary[part];
+		int vecEnd = vecStart + vectorCacheSize;
+		int blockPartStart = part*blockPerPart;
+		for(int block = 0; block < blockPerPart; ++block){
+			int blockBias = inputMatrix->biasVecBlockELL[blockPartStart + block];
+			int width = inputMatrix->widthVecBlockELL[blockPerPart + block];
+			int row = vecStart + block*warpSize;
+			for(int i = 0; i < 32; ++i){
+				if(row + i < vecEnd && row + i < inputMatrix->dimension){
+					for(int n = 0; n < width; ++n){
+						int dataIdx = blockBias + i + n*warpSize;
+						int col = inputMatrix->colBlockELL[dataIdx];
+						double val = inputMatrix->valBlockELL[dataIdx];
+						vector_out[row + i] += val*vector_in[col];
+						if(row + i == testpoint && testpoint >= 0){ fprintf(tFile, 
+								"row is %d V is %f vec is %f accum is %f\n", 
+								testpoint, val, vector_in[col], vector_out[row + i]);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	int dataIdx, col;
+	double val;
+	for(int i = 0; i < inputMatrix->numOfRowER; ++i){
+		int width = inputMatrix->widthVecER[i/warpSize];
+		int bias = inputMatrix->biasVecER[i/warpSize];
+		int row = inputMatrix->rowVecER[i];
+		for(int n = 0; n < width; ++n){
+			dataIdx = bias + i - ((i >> 5)<<5) + n*warpSize; 
+			col = inputMatrix->colER[dataIdx];
+			val = inputMatrix->valER[dataIdx]; 
+			vector_out[row] += val*vector_in[col];
+			if(row  == testpoint && testpoint >= 0){ fprintf(tFile, 
+					"row is %d V is %f vec is %f accum is %f\n", 
+					testpoint, val, vector_in[col], vector_out[row]);
+			}
+		}
+	}
+	if(testpoint >= 0)
+		fclose(tFile);
+}
+
 void matrix_vectorTest(matrixCOO *matrix, const double* vector_in, double* vector_out, 
 		int testpoint){
 	FILE *tFile;
-	if(testpoint > 0) {
+	if(testpoint >= 0) {
 		if ((tFile = fopen("testResult", "w")) == NULL){ 
 			printf("file open error\n");
 			exit(1);
@@ -85,13 +73,15 @@ void matrix_vectorTest(matrixCOO *matrix, const double* vector_in, double* vecto
 	for(unsigned int i = 0; i < matrix->dimension; ++i) vector_out[i] = 0;
 	for(unsigned int i = 0; i < matrix->totalNum; ++i){
 		vector_out[matrix->I[i]] += matrix->V[i]*vector_in[matrix->J[i]];	
-		
-		if(matrix->I[i] == testpoint && testpoint > 0){ fprintf(tFile, 
+		if(matrix->I[i] == testpoint && testpoint >= 0){ fprintf(tFile, 
 				"row is %d V is %f vec is %f accum is %f\n", 
 				testpoint, matrix->V[i], vector_in[matrix->J[i]], vector_out[matrix->I[i]]);
 		}
+		//if(vector_out[matrix->I[i]] > 0 && vector_out[matrix->I[i]] < 1)
+		//	printf("strange vector out\n");
+
 	}
-	if(testpoint > 0)
+	if(testpoint >= 0)
 		fclose(tFile);
 }
 

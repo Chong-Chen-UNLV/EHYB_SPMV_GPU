@@ -117,7 +117,6 @@ int main(int argc, char* argv[])
 	MM_typecode matcode;
 	int MAXIter = 0;
 	FILE *f;
-
 	double *x;
 	double *y;
 	double *xCompare;
@@ -194,11 +193,8 @@ int main(int argc, char* argv[])
 		exit(1);
 	}
 	matrixCOO localMatrixCOO;
-	
 	matrixRead(&localMatrixCOO, &xCompare, &y, f);
 	fclose(f);
-	x = (double *) calloc(localMatrixCOO.dimension, sizeof(double));
-	y = (double *) calloc(localMatrixCOO.dimension, sizeof(double));
 	double *xReorder = (double* )calloc(localMatrixCOO.dimension, sizeof(double)); 
 	double *yReorder = (double* )calloc(localMatrixCOO.dimension, sizeof(double)); 
 	matrixReorder(&localMatrixCOO);
@@ -210,6 +206,7 @@ int main(int argc, char* argv[])
 
 	solverGPuUnprecondEHYB(&localMatrixCOO, yReorder, xReorder, MAXIter, &realIter);
 	
+	x = (double *) calloc(localMatrixCOO.dimension, sizeof(double));
 	vectorRecover(localMatrixCOO.dimension, xReorder, x, localMatrixCOO.reorderList);
 
 	for (int i=0;i<10;i++)
