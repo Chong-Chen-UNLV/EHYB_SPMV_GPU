@@ -234,14 +234,14 @@ static void COO2EHYBCore(matrixCOO* inputMatrix,
 					}
 				}
 				while(writedInRowELL < widthBlockELL){
-					colBlockELL[biasBlockELL+i+writedInRowELL*warpSize] = partStart;
+					colBlockELL[biasBlockELL+i+writedInRowELL*warpSize] = blockStart + writedInRowELL%warpSize;
 					valBlockELL[biasBlockELL+i+writedInRowELL*warpSize] = 0;
 					writedInRowELL+=1;
 				}
 				double val1, val2;
 			} else {
 				for(int j = 0; j < widthBlockELL; ++j){
-					colBlockELL[biasBlockELL+i+j*warpSize] = partStart;
+					colBlockELL[biasBlockELL+i+j*warpSize] = partStart + j;
 					valBlockELL[biasBlockELL+i+j*warpSize] = 0;
 				}
 			}	

@@ -85,8 +85,6 @@ __global__ void kernelCachedBlockedELL_test(const int* widthVecBlockELL,
 	int partIdx = blockIdx.x; 
 	int xIdx = threadIdx.x;
 	__shared__ volatile double cachedVec[vectorCacheSize];  
-	__shared__ volatile int sharedBias[blockPerPart];  
-	__shared__ volatile int sharedWidth[blockPerPart];  
 	int vecStart = partBoundary[blockIdx.x];
 	int vecEnd = partBoundary[blockIdx.x + 1];
 	int warpLane = xIdx - ((xIdx>>5)<<5); //xIdx%32 = xIdx - (xIdx/32)*32)
@@ -95,10 +93,7 @@ __global__ void kernelCachedBlockedELL_test(const int* widthVecBlockELL,
 	for (int i = xIdx; i < vectorCacheSize; i += threadELL){
 		cachedVec[i] = x[i + vecStart];
 	}
-	if(xIdx < blockPerPart){
-		sharedBias[xIdx] = biasVecBlockELL[blockStartIdx + xIdx];	
-		sharedWidth[xIdx] = widthVecBlockELL[blockStartIdx+ xIdx];	
-	}
+	
 	__syncthreads();
 	double val, dot;
 	int dataIdx; 
@@ -110,11 +105,11 @@ __global__ void kernelCachedBlockedELL_test(const int* widthVecBlockELL,
 		dot = 0;
 		//each iteration go through (1024/warpSize)=32 blocks in blockELL format, which is i >> 5
 		//the warpIdx is xIdx>>5
-		biasIdx = (i<<5) + (xIdx>>5);
-		bias = sharedBias[biasIdx]; 
-		width = sharedWidth[biasIdx];
 		row = i*threadELL + vecStart + xIdx;
 		if(row < vecEnd){
+			biasIdx = (i<<5) + (xIdx>>5) + blockStartIdx;
+			bias = biasVecBlockELL[biasIdx]; 
+			width = widthVecBlockELL[biasIdx];
 			for(int n=0; n< width; ++n){
 				dataIdx = bias + warpSize*n + warpLane;//however the data storage is stride with block_rowSize
 				val= valBlockELL[dataIdx];
@@ -143,8 +138,8 @@ __global__ void kernelCachedBlockedELL(const int* widthVecBlockELL,
 	int partIdx = blockIdx.x; 
 	int xIdx = threadIdx.x;
 	__shared__ volatile double cachedVec[vectorCacheSize];  
-	__shared__ volatile int sharedBias[blockPerPart];  
-	__shared__ volatile int sharedWidth[blockPerPart];  
+	//__shared__ volatile int sharedBias[blockPerPart];  
+	//__shared__ volatile int sharedWidth[blockPerPart];  
 	int vecStart = partBoundary[blockIdx.x];
 	int vecEnd = partBoundary[blockIdx.x + 1];
 	int warpLane = xIdx - ((xIdx>>5)<<5); //xIdx%32 = xIdx - (xIdx/32)*32)
@@ -153,10 +148,10 @@ __global__ void kernelCachedBlockedELL(const int* widthVecBlockELL,
 	for (int i = xIdx; i < vectorCacheSize; i += threadELL){
 		cachedVec[i] = x[i + vecStart];
 	}
-	if(xIdx < blockPerPart){
-		sharedBias[xIdx] = biasVecBlockELL[blockStartIdx + xIdx];	
-		sharedWidth[xIdx] = widthVecBlockELL[blockStartIdx+ xIdx];	
-	}
+	//if(xIdx < blockPerPart){
+	//	sharedBias[xIdx] = biasVecBlockELL[blockStartIdx + xIdx];	
+	//	sharedWidth[xIdx] = widthVecBlockELL[blockStartIdx+ xIdx];	
+	//}
 	__syncthreads();
 	double val, dot;
 	int dataIdx; 
@@ -166,13 +161,11 @@ __global__ void kernelCachedBlockedELL(const int* widthVecBlockELL,
 	#pragma unroll
 	for(int i = 0; i < loopInKernel; ++i){//the thread is step with stride threadELL
 		dot = 0;
-		//each iteration go through (1024/warpSize)=32 blocks in blockELL format, which is i >> 5
-		//the warpIdx is xIdx>>5
-		biasIdx = (i<<5) + (xIdx>>5);
-		bias = sharedBias[biasIdx]; 
-		width = sharedWidth[biasIdx];
 		row = i*threadELL + vecStart + xIdx;
 		if(row < vecEnd){
+			biasIdx = (i<<5) + (xIdx>>5) + blockStartIdx;
+			bias = biasVecBlockELL[biasIdx]; 
+			width = widthVecBlockELL[biasIdx];
 			for(int n=0; n< width; ++n){
 				dataIdx = bias + warpSize*n + warpLane;//however the data storage is stride with block_rowSize
 				val= valBlockELL[dataIdx];
@@ -184,7 +177,7 @@ __global__ void kernelCachedBlockedELL(const int* widthVecBlockELL,
 			//else 
 			y[row] = dot;
 		}
-	}		
+	}
 }
 
 

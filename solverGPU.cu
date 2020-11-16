@@ -108,7 +108,6 @@ void solverGPuUnprecondEHYB(matrixCOO* localMatrix,
 		double compareError;
 		cudaMemset(bp_d, 0, size1);
 		matrixVectorEHYB(&localMatrixEHYB_d, pk_d, bp_d, -1);
-		
 		cublasDdot(handle,dimension,bp_d,1,pk_d,1,&dotp0);
 		cublasDdot(handle,dimension,rk_d,1,rk_d,1,&dotr0);
 			
