@@ -107,7 +107,7 @@ __global__ void kernelCachedBlockedELL_test(const int* widthVecBlockELL,
 		//the warpIdx is xIdx>>5
 		row = i*threadELL + vecStart + xIdx;
 		if(row < vecEnd){
-			biasIdx = (i<<5) + (xIdx>>5) + blockStartIdx;
+			biasIdx = i*warpPerBlock + (xIdx>>5) + blockStartIdx;
 			bias = biasVecBlockELL[biasIdx]; 
 			width = widthVecBlockELL[biasIdx];
 			for(int n=0; n< width; ++n){
@@ -163,7 +163,7 @@ __global__ void kernelCachedBlockedELL(const int* widthVecBlockELL,
 		dot = 0;
 		row = i*threadELL + vecStart + xIdx;
 		if(row < vecEnd){
-			biasIdx = (i<<5) + (xIdx>>5) + blockStartIdx;
+			biasIdx = i*warpPerBlock + (xIdx>>5) + blockStartIdx;
 			bias = biasVecBlockELL[biasIdx]; 
 			width = widthVecBlockELL[biasIdx];
 			for(int n=0; n< width; ++n){
