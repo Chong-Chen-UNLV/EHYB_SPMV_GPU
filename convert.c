@@ -43,14 +43,13 @@ static void vecsGenBlockELL(matrixCOO* inputMatrix,
 	int numCols = 0;
 	int maxCol = inputMatrix->maxCol;
 	int nonZeros;
-	int colTh = 0, colAccum = 0; 
-	int *colHist = ( int*)calloc(maxCol, sizeof( int));
+	//int colTh = 0, colAccum = 0; 
+	//int *colHist = ( int*)calloc(maxCol, sizeof( int));
 	int *numInRow = inputMatrix->numInRow;
 	int *numInRow2 = inputMatrix->numInRow2; 
 
 	int extraRows = 0;
 	int numOfRowER = 0;
-	int actualRow;
 	int toER = 0;
 
 	for(int partIdx = 0; partIdx < inputMatrix->nParts; ++partIdx){
@@ -64,39 +63,19 @@ static void vecsGenBlockELL(matrixCOO* inputMatrix,
 		for(int iter = 0; iter < blockPerPart; ++iter){
 			blockIdx = iter + blockPerPart*partIdx;
 			int blockStart = partStart + iter*warpSize;
-			memset(colHist, 0, maxCol*sizeof(int));
-			actualRow = 0;
+			numCols = 0;
 			for(int row = blockStart; (row < blockStart + warpSize && row < partEnd); ++row){
-				if(numInRow2[row] > 0){
-					colHist[numInRow2[row]- 1] += 1;
-					actualRow += 1;	
-				}
+				if(numInRow2[row] > numCols)
+					numCols = numInRow2[row];
 				if(numInRow2[row] != numInRow[row]){
 					numOfRowER += 1;
 					numInRowER[row] = numInRow[row] - numInRow2[row];
 					toER += numInRowER[row];
 				}
 			}
-			colTh = ceil(float(actualRow)*0.75);
-			colAccum = 0;
-			for( int i = 0; i < maxCol; ++i){
-				colAccum += colHist[i];
-				if(colAccum > colTh){
-					numCols = i + 1;
-					break;
-				}
-			}
-			if(numCols == 0){
+			if(numCols == 0 && blockStart < partEnd){
 				printf("error at ELL_block convert rodr\n");
 				exit(0);
-			}
-			for(int row = blockStart; (row < blockStart + warpSize && row < partEnd); ++row){
-				if(numInRow2[row] > numCols){
-					if(numInRowER[row] == 0)
-						numOfRowER += 1;
-					numInRowER[row] += numInRow2[row] - numCols;
-					toER += numInRow2[row] - numCols;
-				}
 			}
 			outputMatrix->widthVecBlockELL[blockIdx] = numCols;
 		}
@@ -116,8 +95,6 @@ static void vecsGenBlockELL(matrixCOO* inputMatrix,
 	outputMatrix->numOfRowER = numOfRowER;
 	outputMatrix->rowVecER = (int*)malloc(numOfRowER*sizeof(int));
 	outputMatrix->biasVecER = (int*)malloc(ceil(((float) numOfRowER)/warpSize)*sizeof(int));
-	free(colHist);
-
 }
 
 static void vecsGenER(matrixEHYB* inputMatrix, int* numInRowER, int* reorderListER)
@@ -215,10 +192,14 @@ static void COO2EHYBCore(matrixCOO* inputMatrix,
 						printf("row val check failed\n");
 						exit(0);
 					}
-					if(J[tmpIdx] < fetchEnd && J[tmpIdx] >= partStart && writedInRowELL < widthBlockELL){
+					if(J[tmpIdx] < fetchEnd && J[tmpIdx] >= partStart){
 						colBlockELL[biasBlockELL+i+writedInRowELL*warpSize] = J[tmpIdx];
 						valBlockELL[biasBlockELL+i+writedInRowELL*warpSize] = V[tmpIdx];
 						writedInRowELL += 1;	
+						if(writedInRowELL > widthBlockELL){
+							printf("write more elements to blockELL than its width\n");
+							exit(1);
+						}
 					} else {
 						if(widthER < 0){
 							printf("go to noexist irrigular line\n");

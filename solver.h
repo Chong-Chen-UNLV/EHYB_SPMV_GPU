@@ -65,6 +65,6 @@ void solverGPuUnprecondEHYB(matrixCOO* localMatrix,
 
 void solverGPuUnprecondCUSPARSE(matrixCOO* localMatrix, 
 		const double *vector_in, double *vector_out,  
-		const int MAXIter, int *realIter);
+		const int MAXIter);
 
 #endif

@@ -148,8 +148,7 @@ void solverGPuUnprecondEHYB(matrixCOO* localMatrix,
 
 void solverGPuUnprecondCUSPARSE(matrixCOO* localMatrix, 
 		const double *vector_in, double *vector_out,  
-		const int MAXIter, int *realIter,  const cb_s cb,
-		const int partSize, const int* partBoundary)
+		const int MAXIter)
 {
 	//exampine the performance using cusparse library functions with
 	//CSR format
@@ -192,7 +191,7 @@ void solverGPuUnprecondCUSPARSE(matrixCOO* localMatrix,
 	doth=0;
     cudaMemcpy(pk_d, vector_in, dimension*sizeof(double), cudaMemcpyHostToDevice);
     cudaMemcpy(rk_d, vector_in, dimension*sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(rowIdx_d, rowIdx, dimension*sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(rowIdx_d, rowIdx, (dimension+1)*sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(col_d, J, totalNum*sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(V_d, V, totalNum*sizeof(double), cudaMemcpyHostToDevice);
 	for (int i=0;i<dimension;i++) {
@@ -278,7 +277,7 @@ void solverGPuUnprecondCUSPARSE(matrixCOO* localMatrix,
 	cudaMemcpy(vector_out, vector_out_d, dimension*sizeof(double), cudaMemcpyDeviceToHost);
 	gettimeofday(&end1, NULL);	
 	double timeByMs=((end1.tv_sec * 1000000 + end1.tv_usec)-(start1.tv_sec * 1000000 + start1.tv_usec))/1000;
-	printf("iter is %d, time is %f ms, GPU Gflops is %f, under estimate flops is %f\n ",iter, timeByMs, 
+	printf("iter is %d, time is %f ms, GPU csrmv Gflops is %f, under estimate flops is %f\n ",iter, timeByMs, 
 			(1e-9*(totalNum*2+13*dimension)*1000*iter)/timeByMs, (1e-9*(totalNum*2)*1000*iter)/timeByMs);
 
 }

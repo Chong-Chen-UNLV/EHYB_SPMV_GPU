@@ -195,6 +195,16 @@ int main(int argc, char* argv[])
 	matrixCOO localMatrixCOO;
 	matrixRead(&localMatrixCOO, &xCompare, &y, f);
 	fclose(f);
+	x = (double *) calloc(localMatrixCOO.dimension, sizeof(double));
+	//solverGPuUnprecondCUSPARSE(&localMatrixCOO, y, x, MAXIter);
+	//for (int i=0;i<10;i++)
+	//{
+	//	//printf("Xeon_phi I is %d J %d is V is %f\n",I_precond[i+10000], J_precond[i+10000], V_precond[i+10000]);
+	//	//printf("CPU I is %d, J is %d, V is %f\n",I_precond2[i+10000],J_precond2[i+10000],V_precond2[i+10000]);
+	//	printf("at %d x is %f x_compare is  %f\n",i, x[i], xCompare[i]);
+	//}
+	//memset(x, 0, sizeof(double)*localMatrixCOO.dimension);
+	//return 0;
 	double *xReorder = (double* )calloc(localMatrixCOO.dimension, sizeof(double)); 
 	double *yReorder = (double* )calloc(localMatrixCOO.dimension, sizeof(double)); 
 	matrixReorder(&localMatrixCOO);
@@ -206,7 +216,6 @@ int main(int argc, char* argv[])
 
 	solverGPuUnprecondEHYB(&localMatrixCOO, yReorder, xReorder, MAXIter, &realIter);
 	
-	x = (double *) calloc(localMatrixCOO.dimension, sizeof(double));
 	vectorRecover(localMatrixCOO.dimension, xReorder, x, localMatrixCOO.reorderList);
 
 	for (int i=0;i<10;i++)
