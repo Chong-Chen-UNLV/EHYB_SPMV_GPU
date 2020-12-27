@@ -130,18 +130,18 @@ static void COO2EHYBCore(matrixCOO* inputMatrix,
 	int* numInRow = inputMatrix->numInRow;
 	int* I = inputMatrix->I;
 	int* J = inputMatrix->J;
-	double* V = inputMatrix->V;
+	float* V = inputMatrix->V;
 
 	int* widthVecBlockELL = outputMatrix->widthVecBlockELL;
 	int* biasVecBlockELL = outputMatrix->biasVecBlockELL;
 	int* colBlockELL = outputMatrix->colBlockELL; 
-	double* valBlockELL = outputMatrix->valBlockELL; 
+	float* valBlockELL = outputMatrix->valBlockELL; 
 
 	int* widthVecER = outputMatrix->widthVecER;
 	int* rowVecER = outputMatrix->rowVecER; 
 	int* biasVecER = outputMatrix->biasVecER;
 	int* colER = outputMatrix->colER; 
-	double* valER = outputMatrix->valER; 
+	float* valER = outputMatrix->valER; 
 
 	int partIdx, partStart, partEnd, fetchEnd, extraRows;
 	int rowLocER, blockIdxER, rowLocInBlockER, biasER, widthER;     	
@@ -219,7 +219,7 @@ static void COO2EHYBCore(matrixCOO* inputMatrix,
 					valBlockELL[biasBlockELL+i+writedInRowELL*warpSize] = 0;
 					writedInRowELL+=1;
 				}
-				double val1, val2;
+				float val1, val2;
 			} else {
 				for(int j = 0; j < widthBlockELL; ++j){
 					colBlockELL[biasBlockELL+i+j*warpSize] = partStart + j;
@@ -280,7 +280,7 @@ void COO2EHYB(matrixCOO* inputMatrix,
 		outputMatrix->biasVecBlockELL[i] = *sizeBlockELL; 
 		*sizeBlockELL += warpSize*outputMatrix->widthVecBlockELL[i]; 
 	}
-	outputMatrix->valBlockELL = (double*)calloc((*sizeBlockELL), sizeof(double));
+	outputMatrix->valBlockELL = (float*)calloc((*sizeBlockELL), sizeof(float));
 	outputMatrix->colBlockELL = (int*)calloc((*sizeBlockELL), sizeof(int));
 	int blockNumER = ceil((float (outputMatrix->numOfRowER))/warpSize);
 	outputMatrix->biasVecER = (int*)calloc(blockNumER, sizeof(int));
@@ -295,7 +295,7 @@ void COO2EHYB(matrixCOO* inputMatrix,
 		*sizeER += warpSize*outputMatrix->widthVecER[i];
 	}
 
-	outputMatrix->valER = (double*) calloc((*sizeER), sizeof(double));
+	outputMatrix->valER = (float*) calloc((*sizeER), sizeof(float));
 	outputMatrix->colER = (int*) calloc((*sizeER), sizeof(int));
 
 	COO2EHYBCore(inputMatrix, 
