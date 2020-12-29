@@ -16,10 +16,10 @@
 #include <cuda_runtime.h>
 #include <cuda_runtime_api.h>
 #include <cuda.h>
-#include "solver.h"
+#include "spmv.h"
 #define warpSize  32
 
-const int memPerThread = 48;
+const int memPerThread = 32;
 const int threadELL = 1024;
 const int warpPerBlock = threadELL/warpSize;
 const int sharedPerBlock = memPerThread*threadELL;//1024 is the maximum threads per block

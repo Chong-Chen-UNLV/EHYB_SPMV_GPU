@@ -1,9 +1,8 @@
-#include "fspai.h"
-#include "mmio.h"
 #include "kernel.h"
 #include "reordering.h"
-#include "solver.h"
+#include "spmv.h"
 #include <unistd.h>
+#include "mmio.h"
 
 static int matrixRead(matrixCOO* localMatrixCOO, float** xCompare_in, float** y_in, FILE *f)
 {
@@ -75,7 +74,7 @@ static int matrixRead(matrixCOO* localMatrixCOO, float** xCompare_in, float** y_
 	numInRow[_dimension-1]=0;
 	for (int i=0;i < _dimension;i++){
 		srand(i);
-		xCompare[i]=1;
+		xCompare[i]=0.0001;
 		//x_compare[i]=1;
 	}
 	int index1, index2;
@@ -196,13 +195,14 @@ int main(int argc, char* argv[])
 	matrixRead(&localMatrixCOO, &xCompare, &y, f);
 	fclose(f);
 	x = (float *) calloc(localMatrixCOO.dimension, sizeof(float));
-	solverGPuUnprecondCUSPARSE(&localMatrixCOO, y, x, MAXIter);
-	for (int i=0;i<10;i++)
-	{
-		printf("at %d x is %f x_compare is  %f\n",i, x[i], xCompare[i]);
-	}
-	memset(x, 0, sizeof(float)*localMatrixCOO.dimension);
-	return 0;
+
+	//solverGPuUnprecondCUSPARSE(&localMatrixCOO, y, x, MAXIter);
+	//for (int i=0;i<10;i++)
+	//{
+	//	printf("at %d x is %f x_compare is  %f\n",i, x[i], xCompare[i]);
+	//}
+	//memset(x, 0, sizeof(float)*localMatrixCOO.dimension);
+	//return 0;
 	float *xReorder = (float* )calloc(localMatrixCOO.dimension, sizeof(float)); 
 	float *yReorder = (float* )calloc(localMatrixCOO.dimension, sizeof(float)); 
 	matrixReorder(&localMatrixCOO);
@@ -212,14 +212,12 @@ int main(int argc, char* argv[])
 
 	//format change is completed in the solver function
 
-	solverGPuUnprecondEHYB(&localMatrixCOO, yReorder, xReorder, MAXIter, &realIter);
+	spmvGPuEHYB(&localMatrixCOO, yReorder, xReorder, MAXIter, &realIter);
 	
 	vectorRecover(localMatrixCOO.dimension, xReorder, x, localMatrixCOO.reorderList);
 
 	for (int i=0;i<10;i++)
 	{
-		//printf("Xeon_phi I is %d J %d is V is %f\n",I_precond[i+10000], J_precond[i+10000], V_precond[i+10000]);
-		//printf("CPU I is %d, J is %d, V is %f\n",I_precond2[i+10000],J_precond2[i+10000],V_precond2[i+10000]);
 		printf("at %d x is %f x_compare is  %f\n",i, x[i], xCompare[i]);
 	}
 	free(localMatrixCOO.I);

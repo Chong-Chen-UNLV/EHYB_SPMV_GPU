@@ -75,7 +75,7 @@ __global__ void kernelER(const int numOfRowER,
 
 __global__ void kernelCachedBlockedELL_test(const int* widthVecBlockELL,
 		const int* biasVecBlockELL,  
-		const int *colBlockELL, 
+		const int16_t *colBlockELL, 
 		const float *valBlockELL, 
 		const float * x,
 		float * y,
@@ -113,7 +113,7 @@ __global__ void kernelCachedBlockedELL_test(const int* widthVecBlockELL,
 			for(int n=0; n< width; ++n){
 				dataIdx = bias + warpSize*n + warpLane;//however the data storage is stride with block_rowSize
 				val= valBlockELL[dataIdx];
-				col = colBlockELL[dataIdx]- vecStart;
+				col = colBlockELL[dataIdx];
 				if(row == testPoint)
 					dot += val*cachedVec[col] - 1 + 0.999;
 				else
@@ -129,7 +129,7 @@ __global__ void kernelCachedBlockedELL_test(const int* widthVecBlockELL,
 
 __global__ void kernelCachedBlockedELL(const int* widthVecBlockELL,
 		const int* biasVecBlockELL,  
-		const int *colBlockELL, 
+		const int16_t *colBlockELL, 
 		const float *valBlockELL, 
 		const float * x,
 		float * y,
@@ -169,7 +169,7 @@ __global__ void kernelCachedBlockedELL(const int* widthVecBlockELL,
 			for(int n=0; n< width; ++n){
 				dataIdx = bias + warpSize*n + warpLane;//however the data storage is stride with block_rowSize
 				val= valBlockELL[dataIdx];
-				col = colBlockELL[dataIdx]- vecStart;
+				col = colBlockELL[dataIdx];
 				dot += val*cachedVec[col];
 			}
 			//if(row == testPoint)
@@ -222,7 +222,7 @@ void initialDeviceArray(int num, float *x)
 void matrixVectorBlockELL(const int nParts, const int testPoint, 
 		const int* widthVecBlockELL_d, 
 		const int* biasVecBlockELL_d,    
-		const int* colBlockELL_d,
+		const int16_t* colBlockELL_d,
 		const float* valBlockELL_d, 
 		const int* partBoundary_d,
 		const float *x_d, float *y_d)

@@ -11,7 +11,7 @@
  * */
 
 #include "Partition.h"
-#include "solver.h"
+#include "spmv.h"
 #include "kernel.h"
 #include<string.h>
 

@@ -1,6 +1,6 @@
 #ifndef REORDERING_H
 #define REORDERING_H
-#include "solver.h"
+#include "spmv.h"
 
 
 void matrixReorder(matrixCOO* localMatrixCOO);

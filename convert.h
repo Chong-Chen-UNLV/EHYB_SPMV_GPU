@@ -1,6 +1,6 @@
 #ifndef CONVERT_H 
 #define CONVERT_H 
-#include "solver.h"
+#include "spmv.h"
 #include "kernel.h"
 
 static inline int get_blocks_rodr(const int* boundary, 
