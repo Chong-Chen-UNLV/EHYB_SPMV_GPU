@@ -149,7 +149,7 @@ static void COO2EHYBCore(matrixCOO* inputMatrix,
 	int irregular=0;
 	int writedInRowELL = 0;
 	int writedInRowER = 0;
-	int padding = 0;
+	int wasteElement = 0;
 	int nBlocks = inputMatrix->nParts*blockPerPart;
 	
 
@@ -217,6 +217,7 @@ static void COO2EHYBCore(matrixCOO* inputMatrix,
 				while(writedInRowELL < widthBlockELL){
 					colBlockELL[biasBlockELL+i+writedInRowELL*warpSize] = 0;
 					valBlockELL[biasBlockELL+i+writedInRowELL*warpSize] = 0;
+					wasteElement += 1;
 					writedInRowELL+=1;
 				}
 				float val1, val2;
@@ -224,6 +225,7 @@ static void COO2EHYBCore(matrixCOO* inputMatrix,
 				for(int j = 0; j < widthBlockELL; ++j){
 					colBlockELL[biasBlockELL+i+j*warpSize] = 0;
 					valBlockELL[biasBlockELL+i+j*warpSize] = 0;
+					wasteElement += 1;
 				}
 			}	
 			
@@ -253,6 +255,7 @@ static void COO2EHYBCore(matrixCOO* inputMatrix,
 		extraRows = 0;
 	}
 
+	printf("wasteElement is %d\n", wasteElement);
 }
 
 /*parameters, first line: output of HYB related parameters, 2nd line: output of HYB matrices, 3rd line:input of local COO matrix 
