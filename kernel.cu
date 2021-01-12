@@ -127,7 +127,8 @@ __global__ void kernelCachedBlockedELL_test(const int* widthVecBlockELL,
 	}		
 }
 
-__global__ void kernelCachedBlockedELL(const int* widthVecBlockELL,
+__global__ void kernelCachedBlockedELL(int *biasIdxBlock,
+		const int* widthVecBlockELL,
 		const int* biasVecBlockELL,  
 		const int16_t *colBlockELL, 
 		const float *valBlockELL, 
@@ -143,7 +144,9 @@ __global__ void kernelCachedBlockedELL(const int* widthVecBlockELL,
 	int vecStart = partBoundary[blockIdx.x];
 	int vecEnd = partBoundary[blockIdx.x + 1];
 	int warpLane = xIdx - ((xIdx>>5)<<5); //xIdx%32 = xIdx - (xIdx/32)*32)
+	int warpIdx = (xIdx<<5);
 	int row = 0;
+	int biasIdxWarp;
 	int blockStartIdx = blockPerPart*partIdx;	
 	for (int i = xIdx; i < vectorCacheSize; i += threadELL){
 		cachedVec[i] = x[i + vecStart];
@@ -152,20 +155,20 @@ __global__ void kernelCachedBlockedELL(const int* widthVecBlockELL,
 	//	sharedBias[xIdx] = biasVecBlockELL[blockStartIdx + xIdx];	
 	//	sharedWidth[xIdx] = widthVecBlockELL[blockStartIdx+ xIdx];	
 	//}
+	if(xIdx == 0) biasIdxBlock[partIdx] = blockStartIdx + blockPerPart;
+	if(warpLane == 0) biasIdxWarp = blockStartIdx + warpIdx;
 	__syncthreads();
 	float val, dot;
 	int dataIdx; 
 	int col;
-	int biasIdx, bias, width;
-
+	int bias, width;
 	#pragma unroll
 	for(int i = 0; i < loopInKernel; ++i){//the thread is step with stride threadELL
 		dot = 0;
-		row = i*threadELL + vecStart + xIdx;
+		row = warpIdx + vecStart + biasIdxWarp*warpSize;
 		if(row < vecEnd){
-			biasIdx = i*warpPerBlock + (xIdx>>5) + blockStartIdx;
-			bias = biasVecBlockELL[biasIdx]; 
-			width = widthVecBlockELL[biasIdx];
+			bias = biasVecBlockELL[biasIdxWarp]; 
+			width = widthVecBlockELL[biasIdxWarp];
 			for(int n=0; n< width; ++n){
 				dataIdx = bias + warpSize*n + warpLane;//however the data storage is stride with block_rowSize
 				val= valBlockELL[dataIdx];
@@ -177,6 +180,10 @@ __global__ void kernelCachedBlockedELL(const int* widthVecBlockELL,
 			//else 
 			y[row] = dot;
 		}
+		if(warpIdx == 0)
+			biasIdxWarp = atomicAdd(&biasIdxBlock[partIdx], 1); 
+	 	__syncwarp();	
+		__shfl_sync(FULL_MASK, bias, 0);
 	}
 }
 
@@ -220,6 +227,7 @@ void initialDeviceArray(int num, float *x)
 
 
 void matrixVectorBlockELL(const int nParts, const int testPoint, 
+		int* biasIdxBlock_d,
 		const int* widthVecBlockELL_d, 
 		const int* biasVecBlockELL_d,    
 		const int16_t* colBlockELL_d,
@@ -237,7 +245,8 @@ void matrixVectorBlockELL(const int nParts, const int testPoint,
 					partBoundary_d,
 					testPoint);
 		} else {
-			kernelCachedBlockedELL<<<nParts, threadELL>>>(widthVecBlockELL_d,
+			kernelCachedBlockedELL<<<nParts, threadELL>>>(biasIdxBlock_d,
+					widthVecBlockELL_d,
 					biasVecBlockELL_d,  
 					colBlockELL_d, valBlockELL_d, 
 					x_d,
@@ -267,12 +276,13 @@ void matrixVectorER(const int numOfRowER,
 
 }
 
-void matrixVectorEHYB(matrixEHYB* inputMatrix_d, float* vectorIn_d,
+void matrixVectorEHYB(matrixEHYB* inputMatrix_d, int* biasIdxBlock_d, float* vectorIn_d,
 		float* vectorOut_d, const int testPoint)
 {
 
 	matrixVectorBlockELL(inputMatrix_d->nParts, 
 			testPoint,
+			biasIdxBlock_d,
 			inputMatrix_d->widthVecBlockELL,
 			inputMatrix_d->biasVecBlockELL,  
 			inputMatrix_d->colBlockELL, 

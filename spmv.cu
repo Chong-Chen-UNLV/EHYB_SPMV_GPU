@@ -60,7 +60,9 @@ void spmvGPuEHYB(matrixCOO* localMatrix,
 	printf("sizeER is %d\n", sizeER);
 
 	float *vectorIn_d, *vectorOut_d;
+	int *biasIdxBlock_d;
 	size_t size1 = dimension*sizeof(float);
+	cudaMalloc((void **) &biasIdxBlock_d, sizeof(int)*localMatrix->nParts);
 	cudaMalloc((void **) &vectorOut_d,size1);
 	cudaMalloc((void **) &vectorIn_d,size1);
 	//float *x=(float *) malloc(size1);
@@ -73,7 +75,7 @@ void spmvGPuEHYB(matrixCOO* localMatrix,
 	gettimeofday(&start1, NULL);
     cudaMemcpy(vectorIn_d, vectorIn, dimension*sizeof(float), cudaMemcpyHostToDevice);
 	while (iter<MAXIter){
-		matrixVectorEHYB(&localMatrixEHYB_d, vectorIn_d, vectorOut_d, -1);
+		matrixVectorEHYB(&localMatrixEHYB_d, biasIdxBlock_d, vectorIn_d, vectorOut_d, -1);
 		iter++;
 	}
 	cudaMemcpy(vectorOut, vectorOut_d, dimension*sizeof(float), cudaMemcpyDeviceToHost);

@@ -45,7 +45,7 @@ void initialize_bp(int num, float *x);
 void initialize_r(int num, float *rk, float *vector_in);
 void myxpy(const int dimension, float gamak, const float *x, float *y);
 
-void matrixVectorEHYB(matrixEHYB* inputMatrix, float* vector_in_d,
+void matrixVectorEHYB(matrixEHYB* inputMatrix, int* biasIdxBlock_d, float* vector_in_d,
 		float* vector_out_d, const int testPoint);
 
 #endif
