@@ -182,8 +182,8 @@ __global__ void kernelCachedBlockedELL(int *biasIdxBlock,
 		}
 		if(warpIdx == 0)
 			biasIdxWarp = atomicAdd(&biasIdxBlock[partIdx], 1); 
+		__shfl_sync(FULL_MASK, biasIdxWarp, 0);
 	 	__syncwarp();	
-		__shfl_sync(FULL_MASK, bias, 0);
 	}
 }
 
