@@ -19,7 +19,7 @@
 #include "spmv.h"
 #define warpSize  32
 
-const int memPerThread = 48;
+const int memPerThread = 44;
 const int threadELL = 1024;
 const int warpPerBlock = threadELL/warpSize;
 const int sharedPerBlock = memPerThread*threadELL;//1024 is the maximum threads per block
@@ -45,7 +45,9 @@ void initialize_bp(int num, float *x);
 void initialize_r(int num, float *rk, float *vector_in);
 void myxpy(const int dimension, float gamak, const float *x, float *y);
 
-void matrixVectorEHYB(matrixEHYB* inputMatrix, int* biasIdxBlock_d, float* vector_in_d,
+void matrixVectorEHYB(matrixEHYB* inputMatrix, 
+		//int16_t* biasIdxBlock_d,
+		float* vector_in_d,
 		float* vector_out_d, const int testPoint);
 
 #endif

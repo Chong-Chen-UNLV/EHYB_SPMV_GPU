@@ -60,9 +60,9 @@ void spmvGPuEHYB(matrixCOO* localMatrix,
 	printf("sizeER is %d\n", sizeER);
 
 	float *vectorIn_d, *vectorOut_d;
-	int *biasIdxBlock_d;
+	int16_t *biasIdxBlock_d;
 	size_t size1 = dimension*sizeof(float);
-	cudaMalloc((void **) &biasIdxBlock_d, sizeof(int)*localMatrix->nParts);
+	//cudaMalloc((void **) &biasIdxBlock_d, sizeof(uint16_t)*localMatrix->nParts);
 	cudaMalloc((void **) &vectorOut_d,size1);
 	cudaMalloc((void **) &vectorIn_d,size1);
 	//float *x=(float *) malloc(size1);
@@ -75,13 +75,13 @@ void spmvGPuEHYB(matrixCOO* localMatrix,
 	gettimeofday(&start1, NULL);
     cudaMemcpy(vectorIn_d, vectorIn, dimension*sizeof(float), cudaMemcpyHostToDevice);
 	while (iter<MAXIter){
-		matrixVectorEHYB(&localMatrixEHYB_d, biasIdxBlock_d, vectorIn_d, vectorOut_d, -1);
+		matrixVectorEHYB(&localMatrixEHYB_d, vectorIn_d, vectorOut_d, -1);
 		iter++;
 	}
 	cudaMemcpy(vectorOut, vectorOut_d, dimension*sizeof(float), cudaMemcpyDeviceToHost);
 	gettimeofday(&end1, NULL);	
 	float timeByMs=((end1.tv_sec * 1000000 + end1.tv_usec)-(start1.tv_sec * 1000000 + start1.tv_usec))/1000;
-	printf("iter is %d, time is %f ms, GPU Gflops is %fn ",iter, timeByMs, 
+	printf("iter is %d, time is %f ms, GPU Gflops is %f\n ",iter, timeByMs, 
 			(1e-9*(totalNum*2)*1000*iter)/timeByMs );
 	cudaFree(localMatrixEHYB_d.valER);
 	cudaFree(localMatrixEHYB_d.colER);
