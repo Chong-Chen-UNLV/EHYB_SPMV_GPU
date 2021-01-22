@@ -8,7 +8,7 @@ static inline int get_blocks_rodr(const int* boundary,
 	int block_num = 0;
 	for(int i = 0; i < block_size; ++i){
 		int partRows = boundary[i + 1] - boundary[i];
-		block_num += ceil((float) partRows/threadELL);	
+		block_num += ceil((double) partRows/threadELL);	
 	}	
 	return block_num;
 }
