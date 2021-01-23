@@ -196,13 +196,13 @@ int main(int argc, char* argv[])
 	fclose(f);
 	x = (double *) calloc(localMatrixCOO.dimension, sizeof(double));
 
-	//solverGPuUnprecondCUSPARSE(&localMatrixCOO, y, x, MAXIter);
-	//for (int i=0;i<10;i++)
-	//{
-	//	printf("at %d x is %f x_compare is  %f\n",i + 30000, x[i + 30000], xCompare[i + 30000]);
-	//}
-	//memset(x, 0, sizeof(double)*localMatrixCOO.dimension);
-	//return 0;
+	solverGPuUnprecondCUSPARSE(&localMatrixCOO, y, x, MAXIter);
+	for (int i=0;i<10;i++)
+	{
+		printf("at %d x is %f x_compare is  %f\n",i + 30000, x[i + 30000], xCompare[i + 30000]);
+	}
+	memset(x, 0, sizeof(double)*localMatrixCOO.dimension);
+	return 0;
 
 	double *xReorder = (double* )calloc(localMatrixCOO.dimension, sizeof(double)); 
 	double *yReorder = (double* )calloc(localMatrixCOO.dimension, sizeof(double)); 

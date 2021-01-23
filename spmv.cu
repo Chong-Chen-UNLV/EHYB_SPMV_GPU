@@ -145,30 +145,80 @@ void solverGPuUnprecondCUSPARSE(matrixCOO* localMatrix,
 	if (status != CUSPARSE_STATUS_SUCCESS ) {
 		exit(0);	
 	}
-	cusparseSetMatType (descr, CUSPARSE_MATRIX_TYPE_GENERAL);
-	cusparseSetMatIndexBase (descr, CUSPARSE_INDEX_BASE_ZERO);
-	gettimeofday(&start1, NULL);
 	double one = 1.0;
 	double zero = 0.0;
+	size_t buffSize;
+	cusparseSetMatType (descr, CUSPARSE_MATRIX_TYPE_GENERAL);
+	cusparseSetMatIndexBase (descr, CUSPARSE_INDEX_BASE_ZERO);
+	cusparseStatus_t smpvStatus = 
+	cusparseCsrmvEx_bufferSize(handleSparse,
+		CUSPARSE_ALG_NAIVE,	
+		//CUSPARSE_ALG_MERGE_PATH,
+		transA,
+		dimension,
+		dimension,
+		totalNum,
+		&one,
+		CUDA_R_64F,
+		descr,
+		V_d,
+		CUDA_R_64F,
+		rowIdx_d,
+		col_d,
+		vector_in_d,
+		CUDA_R_64F,
+		&zero,
+		CUDA_R_64F,
+		vector_out_d,
+		CUDA_R_64F,
+		CUDA_R_64F,
+		&buffSize );
+	char* buff;
+    cudaMalloc((void **) &buff, buffSize);
+	gettimeofday(&start1, NULL);
+	
     if(cudaSuccess != cudaMemcpy(vector_in_d, vector_in, dimension*sizeof(double), cudaMemcpyHostToDevice)) printf("error4\n");
 	while (iter<MAXIter){
-		//int errorIdx = 0;
-		//double compareError;
+		int errorIdx = 0;
+		double compareError;
 		
 		cusparseStatus_t smpvStatus = 
-		cusparseDcsrmv(handleSparse,
-				transA,
-				dimension,
-				dimension,
-				totalNum,
-				&one,
-				descr,
-				V_d,
-				rowIdx_d,
-				col_d,
-				vector_in_d,
-				&zero,
-				vector_out_d);
+		cusparseCsrmvEx(handleSparse,
+			CUSPARSE_ALG_NAIVE,
+			//CUSPARSE_ALG_MERGE_PATH,
+			transA,
+			dimension,
+			dimension,
+			totalNum,
+			&one,
+			CUDA_R_64F,
+			descr,
+			V_d,
+			CUDA_R_64F,
+			rowIdx_d,
+			col_d,
+			vector_in_d,
+			CUDA_R_64F,
+			&zero,
+			CUDA_R_64F,
+			vector_out_d,
+			CUDA_R_64F,
+			CUDA_R_64F,
+			buff);
+		//cusparseStatus_t smpvStatus = 
+		//cusparseDcsrmv(handleSparse,
+		//		transA,
+		//		dimension,
+		//		dimension,
+		//		totalNum,
+		//		&one,
+		//		descr,
+		//		V_d,
+		//		rowIdx_d,
+		//		col_d,
+		//		vector_in_d,
+		//		&zero,
+		//		vector_out_d);
 		iter++;
 	}
 	cudaMemcpy(vector_out, vector_out_d, dimension*sizeof(double), cudaMemcpyDeviceToHost);
