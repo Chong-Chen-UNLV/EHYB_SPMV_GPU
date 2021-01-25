@@ -5,7 +5,7 @@
 
 void matrixReorder(matrixCOO* localMatrixCOO);
 
-void vectorReorder(const int dimension, const double* v_in, double* v_rodr, const int* rodr_list);
-void vectorRecover(const int dimension, const double* v_rodr, double* v, const int* rodr_list);
+void vectorReorder(const int dimension, const float* v_in, float* v_rodr, const int* rodr_list);
+void vectorRecover(const int dimension, const float* v_rodr, float* v, const int* rodr_list);
 
 #endif

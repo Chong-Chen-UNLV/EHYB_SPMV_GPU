@@ -52,14 +52,14 @@ void matrixReorder(matrixCOO* inputMatrix)
 		J[i] = inputMatrix->J[i];
 	}
 	int* I = inputMatrix->I;
-	double* V= inputMatrix->V;
+	float* V= inputMatrix->V;
 	uint32_t* rowIdx = (uint32_t*)malloc(sizeof(uint32_t)*(dimension + 1)); 
 	int* reorderList = inputMatrix->reorderList;
 	int* numInRow = inputMatrix->numInRow;
 	
 	int* newI = (int*)malloc(sizeof(uint32_t)*inputMatrix->totalNum);
 	int* newJ = (int*)malloc(sizeof(int)*inputMatrix->totalNum);
-	double* newV = (double*)malloc(sizeof(double)*inputMatrix->totalNum);
+	float* newV = (float*)malloc(sizeof(float)*inputMatrix->totalNum);
 
 	int* numInRow2 = (int *) calloc(dimension, sizeof(int));
 	/*transfer the COO format to CSR format, do the partitioning*/
@@ -187,13 +187,13 @@ void matrixReorder(matrixCOO* inputMatrix)
 	free(numInRow2);
 }
 
-void vectorReorder(int dimension, const double* v_in, 
-			double* v_rodr, const int* rodr_list)
+void vectorReorder(int dimension, const float* v_in, 
+			float* v_rodr, const int* rodr_list)
 {
 	for(int i=0; i < dimension; i++) v_rodr[rodr_list[i]] = v_in[i];	
 }
 
-void vectorRecover(const int dimension, const double* v_rodr, double* v, const int* rodr_list){
+void vectorRecover(const int dimension, const float* v_rodr, float* v, const int* rodr_list){
 	int* rodr_list_recover= (int*) malloc(dimension*sizeof(int));
 	for(int i=0; i < dimension; i++) rodr_list_recover[rodr_list[i]] = i;	
 	for(int i=0; i < dimension; i++) v[rodr_list_recover[i]] = v_rodr[i];	
