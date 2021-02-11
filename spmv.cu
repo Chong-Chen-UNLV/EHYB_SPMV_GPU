@@ -72,10 +72,11 @@ void spmvGPuEHYB(matrixCOO* localMatrix,
 	//float *x=(float *) malloc(size1);
 	//initialize
 	//warm Up
+    cudaMemcpy(vectorIn_d, vectorIn, dimension*sizeof(float), cudaMemcpyHostToDevice);
 	for(int i = 0; i < 100; ++i){
 		matrixVectorEHYB(&localMatrixEHYB_d, vectorIn_d, vectorOut_d, -1);
 	}
-	
+	cudaMemcpy(vectorOut, vectorOut_d, dimension*sizeof(float), cudaMemcpyDeviceToHost);
 	gettimeofday(&start1, NULL);
     cudaMemcpy(vectorIn_d, vectorIn, dimension*sizeof(float), cudaMemcpyHostToDevice);
 	while (iter<MAXIter){
@@ -210,9 +211,6 @@ void solverGPuUnprecondCUSPARSE(matrixCOO* localMatrix,
 	
     if(cudaSuccess != cudaMemcpy(vector_in_d, vector_in, dimension*sizeof(float), cudaMemcpyHostToDevice)) printf("error4\n");
 	while (iter<MAXIter){
-		int errorIdx = 0;
-		float compareError;
-		
 		cusparseStatus_t smpvStatus = 
 		cusparseCsrmvEx(handleSparse,
 			//CUSPARSE_ALG_NAIVE,
@@ -260,3 +258,107 @@ void solverGPuUnprecondCUSPARSE(matrixCOO* localMatrix,
 
 }
 
+void spmvHYB(matrixCOO* localMatrix, 
+		const float *vector_in, float *vector_out,  
+		const int MAXIter)
+{
+	//exampine the performance using cusparse library functions with
+	//CSR format
+	//float dotp0,dotr0,dotr1,doth;
+	int dimension, totalNum; 
+    int *rowIdx, *J; 
+    float* V;
+    dimension = localMatrix->dimension; 
+    totalNum = localMatrix->totalNum; 
+
+	rowIdx = localMatrix->rowIdx; 
+    J = localMatrix->J;
+    V = localMatrix->V;
+	
+	int* col_d;
+	int* rowIdx_d;
+	float *V_d;
+
+	float *vector_in_d, *vector_out_d;
+	size_t size1=dimension*sizeof(float);
+	
+	cudaMalloc((void **) &rowIdx_d, (dimension+1)*sizeof(float));
+	cudaMalloc((void **) &vector_out_d,size1);
+	cudaMalloc((void **) &vector_in_d,size1);
+	cudaMalloc((void **) &col_d,totalNum*sizeof(int));
+	cudaMalloc((void **) &V_d,totalNum*sizeof(float));
+	//float *x=(float *) malloc(size1);
+	int iter=0;
+	//float const1 = 1.0;
+	//initialize
+   	if(cudaSuccess != cudaMemcpy(rowIdx_d, rowIdx, (dimension+1)*sizeof(int), cudaMemcpyHostToDevice)) printf("error1\n");
+    if(cudaSuccess !=cudaMemcpy(col_d, J, totalNum*sizeof(int), cudaMemcpyHostToDevice)) printf("error2\n");
+    if(cudaSuccess !=cudaMemcpy(V_d, V, totalNum*sizeof(float), cudaMemcpyHostToDevice)) printf("error3\n");
+	
+	struct timeval start1, end1;
+	
+	//if BSR doing the format change 
+	//cusparseStatus_tcusparseDcsr2gebsr_bufferSize(handle, dir, m, n, descrA, csrValA, csrRowPtrA, 
+	//		csrColIndA, rowBlockDim, colBlockDim, pBufferSize);
+	cusparseHandle_t handleSparse;
+	cusparseCreate(&handleSparse);
+	cusparseOperation_t transA = CUSPARSE_OPERATION_NON_TRANSPOSE;
+	cusparseMatDescr_t descrA;
+	int status = cusparseCreateMatDescr(&descrA);
+	if (status != CUSPARSE_STATUS_SUCCESS ) {
+		exit(0);	
+	}
+	float one = 1.0;
+	float zero = 0.0;
+	size_t buffSize;
+	cusparseSetMatType (descrA, CUSPARSE_MATRIX_TYPE_GENERAL);
+	cusparseSetMatIndexBase (descrA, CUSPARSE_INDEX_BASE_ZERO);
+	cusparseHybMat_t hybA;
+	cusparseCreateHybMat(&hybA);
+	cusparseStatus_t smpvStatus = 
+	cusparseScsr2hyb(handleSparse,
+		dimension,
+		dimension,
+		descrA,
+		V_d,
+		rowIdx_d,
+		col_d,
+		hybA,
+		1,
+		CUSPARSE_HYB_PARTITION_AUTO);	
+		//warm up
+	for(int i = 0; i < 100; ++i){
+		cusparseStatus_t smpvStatus = 
+		cusparseShybmv(handleSparse,
+			transA,
+			&one,
+			descrA,
+			hybA,
+			vector_in_d,
+			&zero,
+			vector_out_d);
+	}
+	gettimeofday(&start1, NULL);
+	
+    if(cudaSuccess != cudaMemcpy(vector_in_d, vector_in, dimension*sizeof(float), cudaMemcpyHostToDevice)) printf("error4\n");
+	while (iter<MAXIter){
+		int errorIdx = 0;
+		float compareError;
+		cusparseStatus_t smpvStatus = 
+		cusparseShybmv(handleSparse,
+			transA,
+			&one,
+			descrA,
+			hybA,
+			vector_in_d,
+			&zero,
+			vector_out_d);
+		iter++;
+	}
+	cudaMemcpy(vector_out, vector_out_d, dimension*sizeof(float), cudaMemcpyDeviceToHost);
+	gettimeofday(&end1, NULL);	
+	float timeByMs=((end1.tv_sec * 1000000 + end1.tv_usec)-(start1.tv_sec * 1000000 + start1.tv_usec))/1000;
+	printf("iter is %d, time is %f ms, GPU csrmv Gflops is %f\n ",iter, timeByMs, (1e-9*(totalNum*2)*1000*iter)/timeByMs);
+			
+
+}

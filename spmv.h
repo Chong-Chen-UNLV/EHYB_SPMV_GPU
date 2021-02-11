@@ -67,4 +67,7 @@ void solverGPuUnprecondCUSPARSE(matrixCOO* localMatrix,
 		const float *vector_in, float *vector_out,  
 		const int MAXIter);
 
+void spmvHYB(matrixCOO* localMatrix, 
+		const float *vector_in, float *vector_out,  
+		const int MAXIter);
 #endif
