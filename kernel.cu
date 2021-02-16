@@ -10,17 +10,17 @@
 #define warpSize 32
 
 /*kernel function for initialize*/
-__global__ void kernelInitialize(const int num, float *x)
+__global__ void kernelInitialize(const int num, double *x)
 {
 	int idx=blockDim.x * blockIdx.x+ threadIdx.x;
 	
 	for (int n=idx;n<num;n+=BASE) x[n]=0;
 }
 
-__global__ void kernelInitializeAll(const int num, float *pk, float *bp, float *x, float *zk, const float *vector_in)
+__global__ void kernelInitializeAll(const int num, double *pk, double *bp, double *x, double *zk, const double *vector_in)
 {
 	int idx=blockDim.x * blockIdx.x+ threadIdx.x;
-	float temp;
+	double temp;
 	for (int n=idx;n<num;n+=BASE) 
 	{
 		temp=zk[n];
@@ -30,10 +30,10 @@ __global__ void kernelInitializeAll(const int num, float *pk, float *bp, float *
 	}
 }
 
-__global__ void kernelInitializeR(const int num,float *rk, const float *vector_in)
+__global__ void kernelInitializeR(const int num,double *rk, const double *vector_in)
 {
 	int idx=blockDim.x * blockIdx.x+ threadIdx.x;
-	float temp;
+	double temp;
 	for (int n=idx;n<num;n+=BASE) 
 	{
 		temp=vector_in[n];
@@ -48,13 +48,13 @@ __global__ void kernelER(const int numOfRowER,
 			const int* biasVecER,  
 			const int* widthVecER, 
 			const int* colER, 
-			const float *valER, const float * x, float * y)
+			const double *valER, const double * x, double * y)
 {
 	int width;  
 	int bias;
 	int dataIdx;
 	int row, col;	
-	float val;
+	double val;
 	uint32_t idx = blockDim.x*blockIdx.x+threadIdx.x;
 	uint32_t warpIdx = idx>>5;
 	uint32_t warpLane = threadIdx.x- ((threadIdx.x>>5)<<5);
@@ -62,7 +62,7 @@ __global__ void kernelER(const int numOfRowER,
 		row = rowVecER[idx];
 		width = widthVecER[warpIdx];//cache will work when every threads read same global address
 		bias = biasVecER[warpIdx];
-		float dot = 0;
+		double dot = 0;
 		for(int n=0; n < width; ++n){
 			dataIdx = bias + warpLane + warpSize*n ;
 			col=colER[dataIdx];
@@ -76,15 +76,15 @@ __global__ void kernelER(const int numOfRowER,
 __global__ void kernelCachedBlockedELL_test(const int* widthVecBlockELL,
 		const int* biasVecBlockELL,  
 		const int16_t *colBlockELL, 
-		const float *valBlockELL, 
-		const float * x,
-		float * y,
+		const double *valBlockELL, 
+		const double * x,
+		double * y,
 		const int* partBoundary,
 		const int testPoint)
 {
 	int partIdx = blockIdx.x; 
 	int xIdx = threadIdx.x;
-	__shared__ volatile float cachedVec[vectorCacheSize];  
+	__shared__ volatile double cachedVec[vectorCacheSize];  
 	int vecStart = partBoundary[blockIdx.x];
 	int vecEnd = partBoundary[blockIdx.x + 1];
 	int warpLane = xIdx - ((xIdx>>5)<<5); //xIdx%32 = xIdx - (xIdx/32)*32)
@@ -95,7 +95,7 @@ __global__ void kernelCachedBlockedELL_test(const int* widthVecBlockELL,
 	}
 	
 	__syncthreads();
-	float val, dot;
+	double val, dot;
 	int dataIdx; 
 	int col;
 	int biasIdx, bias, width;
@@ -132,14 +132,14 @@ __global__ void kernelCachedBlockedELL(
 		const int* widthVecBlockELL,
 		const int* biasVecBlockELL,  
 		const int16_t *colBlockELL, 
-		const float *valBlockELL, 
-		const float * x,
-		float * y,
+		const double *valBlockELL, 
+		const double * x,
+		double * y,
 		const int* partBoundary)
 {
 	int partIdx = blockIdx.x; 
 	int xIdx = threadIdx.x;
-	__shared__ volatile float cachedVec[vectorCacheSize];  
+	__shared__ volatile double cachedVec[vectorCacheSize];  
 	__shared__ int biasIdxBlock; 
 	//__shared__ volatile int sharedBias[blockPerPart];  
 	//__shared__ volatile int sharedWidth[blockPerPart];  
@@ -160,7 +160,7 @@ __global__ void kernelCachedBlockedELL(
 	if(xIdx == 0) biasIdxBlock = warpPerBlock; 
 	biasIdxWarp = warpIdx;
 	__syncthreads();
-	float val, dot;
+	double val, dot;
 	int dataIdx; 
 	int col;
 	int bias, width;
@@ -194,14 +194,14 @@ __global__ void kernelCachedBlockedELL_NC(
 		const int* widthVecBlockELL,
 		const int* biasVecBlockELL,  
 		const int16_t *colBlockELL, 
-		const float *valBlockELL, 
-		const float * x,
-		float * y,
+		const double *valBlockELL, 
+		const double * x,
+		double * y,
 		const int* partBoundary)
 {
 	int partIdx = blockIdx.x; 
 	int xIdx = threadIdx.x;
-	//__shared__ volatile float cachedVec[vectorCacheSize];  
+	//__shared__ volatile double cachedVec[vectorCacheSize];  
 	__shared__ int biasIdxBlock; 
 	//__shared__ volatile int sharedBias[blockPerPart];  
 	//__shared__ volatile int sharedWidth[blockPerPart];  
@@ -222,7 +222,7 @@ __global__ void kernelCachedBlockedELL_NC(
 	if(xIdx == 0) biasIdxBlock = warpPerBlock; 
 	biasIdxWarp = warpIdx;
 	__syncthreads();
-	float val, dot;
+	double val, dot;
 	int dataIdx; 
 	int col;
 	int bias, width;
@@ -253,7 +253,7 @@ __global__ void kernelCachedBlockedELL_NC(
 
 
 //y=x+gamak*y
-__global__ void kernelMyxpy(const int dimension, float gamak, const float *x, float *y)
+__global__ void kernelMyxpy(const int dimension, double gamak, const double *x, double *y)
 {
 	int idx=blockDim.x*blockIdx.x+threadIdx.x;
 	int n=idx;
@@ -264,26 +264,26 @@ __global__ void kernelMyxpy(const int dimension, float gamak, const float *x, fl
 }
 
 extern "C"
-void initialize_all(const int dimension, float *pk_d, float *bp_d, float *x, float *zk, const float *vector_in_d)
+void initialize_all(const int dimension, double *pk_d, double *bp_d, double *x, double *zk, const double *vector_in_d)
 {
 	kernelInitializeAll<<<block_size,thread_size>>>(dimension, pk_d, bp_d, x, zk, vector_in_d);
 }
 
-void initialize_bp(int num, float *x)
+void initialize_bp(int num, double *x)
 {
 	kernelInitialize<<<block_size,thread_size>>>(num,x);
 }
 
-void initialize_r(int num, float *rk, float *vector_in)
+void initialize_r(int num, double *rk, double *vector_in)
 {
 	kernelInitializeR<<<block_size,thread_size>>>(num,rk,vector_in);
 }
-void myxpy(const int dimension, float gamak, const float *x, float *y)
+void myxpy(const int dimension, double gamak, const double *x, double *y)
 {
 	kernelMyxpy<<<block_size,thread_size>>>(dimension,gamak,x,y);
 }
 
-void initialDeviceArray(int num, float *x)
+void initialDeviceArray(int num, double *x)
 {
 	kernelInitialize<<<512,512>>>(num,x);
 }
@@ -295,9 +295,9 @@ void matrixVectorBlockELL(const int nParts, const int testPoint,
 		const int* widthVecBlockELL_d, 
 		const int* biasVecBlockELL_d,    
 		const int16_t* colBlockELL_d,
-		const float* valBlockELL_d, 
+		const double* valBlockELL_d, 
 		const int* partBoundary_d,
-		const float *x_d, float *y_d)
+		const double *x_d, double *y_d)
 {
 
 		if(testPoint >= 0){
@@ -327,12 +327,12 @@ void matrixVectorBlockELL(const int nParts, const int testPoint,
 void matrixVectorER(const int numOfRowER, 
 		const int* rowVecER_d, const int* biasVecER_d, 
 		const int* widthVecER_d, 
-		const int* colER_d, const float* valER_d,
-		const float* vectorIn_d, float* vectorOut_d)
+		const int* colER_d, const double* valER_d,
+		const double* vectorIn_d, double* vectorOut_d)
 {
 
 	int blockSizeLocal;
-	blockSizeLocal=ceil(((float) numOfRowER)/threadELL);//for data with 2 million elements, we have interval size 200
+	blockSizeLocal=ceil(((double) numOfRowER)/threadELL);//for data with 2 million elements, we have interval size 200
 	kernelER<<<blockSizeLocal, threadELL>>>(numOfRowER, 
 			rowVecER_d, 
 			biasVecER_d, 
@@ -346,8 +346,8 @@ void matrixVectorER(const int numOfRowER,
 
 void matrixVectorEHYB_NC(matrixEHYB* inputMatrix_d, 
 		//int16_t* biasIdxBlock_d, 
-		float* vectorIn_d,
-		float* vectorOut_d, const int testPoint)
+		double* vectorIn_d,
+		double* vectorOut_d, const int testPoint)
 {
 
 	kernelCachedBlockedELL_NC<<<inputMatrix_d->nParts, threadELL>>>(
@@ -372,8 +372,8 @@ void matrixVectorEHYB_NC(matrixEHYB* inputMatrix_d,
 
 void matrixVectorEHYB(matrixEHYB* inputMatrix_d, 
 		//int16_t* biasIdxBlock_d, 
-		float* vectorIn_d,
-		float* vectorOut_d, const int testPoint)
+		double* vectorIn_d,
+		double* vectorOut_d, const int testPoint)
 {
 
 	matrixVectorBlockELL(inputMatrix_d->nParts, 
