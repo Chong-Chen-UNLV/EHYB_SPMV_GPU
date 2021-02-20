@@ -228,7 +228,7 @@ int main(int argc, char* argv[])
 	//{
 	//	printf("at %d x is %f x_compare is  %f\n",i + 30000, x[i + 30000], xCompare[i + 30000]);
 	//}
-	//memset(x, 0, sizeof(float)*localMatrixCOO.dimension);
+	//memset(x, 0, sizeof(double)*localMatrixCOO.dimension);
 	//return 0;
 
 	double *xReorder = (double* )calloc(localMatrixCOO.dimension, sizeof(double)); 
