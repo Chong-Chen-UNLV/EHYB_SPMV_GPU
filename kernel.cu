@@ -86,6 +86,7 @@ __global__ void kernelCachedBlockedELL(
 	int partIdx = blockIdx.x; 
 	int xIdx = threadIdx.x;
 	__shared__ int biasIdxBlock; 
+	extern __shared__ double cachedVec[];
 	//__shared__ volatile int sharedBias[blockPerPart];  
 	//__shared__ volatile int sharedWidth[blockPerPart];  
 	int vecStart = partBoundary[blockIdx.x];
@@ -244,6 +245,7 @@ void matrixVectorBlockELL(const int nParts, const int testPoint,
 		const int* partBoundary_d,
 		const double *x_d, double *y_d)
 {
+	int maxbytes = 65536;
 	cudaFuncSetAttribute(kernelCachedBlockedELL, cudaFuncAttributeMaxDynamicSharedMemorySize,
 			maxbytes);
 	kernelCachedBlockedELL<<<nParts, threadELL, sharedPerBlock>>>(
