@@ -73,59 +73,6 @@ __global__ void kernelER(const int numOfRowER,
 	}
 }
 
-__global__ void kernelCachedBlockedELL_test(const int* widthVecBlockELL,
-		const int* biasVecBlockELL,  
-		const int16_t *colBlockELL, 
-		const double *valBlockELL, 
-		const double * x,
-		double * y,
-		const int* partBoundary,
-		const int testPoint)
-{
-	int partIdx = blockIdx.x; 
-	int xIdx = threadIdx.x;
-	__shared__ volatile double cachedVec[vectorCacheSize];  
-	int vecStart = partBoundary[blockIdx.x];
-	int vecEnd = partBoundary[blockIdx.x + 1];
-	int warpLane = xIdx - ((xIdx>>5)<<5); //xIdx%32 = xIdx - (xIdx/32)*32)
-	int row = 0;
-	int blockStartIdx = blockPerPart*partIdx;	
-	for (int i = xIdx; i < vectorCacheSize; i += threadELL){
-		cachedVec[i] = x[i + vecStart];
-	}
-	
-	__syncthreads();
-	double val, dot;
-	int dataIdx; 
-	int col;
-	int biasIdx, bias, width;
-
-	#pragma unroll
-	for(int i = 0; i < loopInKernel; ++i){//the thread is step with stride threadELL
-		dot = 0;
-		//each iteration go through (1024/warpSize)=32 blocks in blockELL format, which is i >> 5
-		//the warpIdx is xIdx>>5
-		row = i*threadELL + vecStart + xIdx;
-		if(row < vecEnd){
-			biasIdx = i*warpPerBlock + (xIdx>>5) + blockStartIdx;
-			bias = biasVecBlockELL[biasIdx]; 
-			width = widthVecBlockELL[biasIdx];
-			for(int n=0; n< width; ++n){
-				dataIdx = bias + warpSize*n + warpLane;//however the data storage is stride with block_rowSize
-				val= valBlockELL[dataIdx];
-				col = colBlockELL[dataIdx];
-				if(row == testPoint)
-					dot += val*cachedVec[col] - 1 + 0.999;
-				else
-					dot += val*cachedVec[col];
-			}
-			//if(row == testPoint)
-			//	y[row] = dot+0.01;
-			//else 
-			y[row] = dot;
-		}
-	}		
-}
 
 __global__ void kernelCachedBlockedELL(
 		//int16_t* biasIdxBlock,
@@ -139,7 +86,7 @@ __global__ void kernelCachedBlockedELL(
 {
 	int partIdx = blockIdx.x; 
 	int xIdx = threadIdx.x;
-	__shared__ volatile double cachedVec[vectorCacheSize];  
+	extern __shared__ double cachedVec[];  
 	__shared__ int biasIdxBlock; 
 	//__shared__ volatile int sharedBias[blockPerPart];  
 	//__shared__ volatile int sharedWidth[blockPerPart];  
@@ -299,25 +246,16 @@ void matrixVectorBlockELL(const int nParts, const int testPoint,
 		const int* partBoundary_d,
 		const double *x_d, double *y_d)
 {
-
-		if(testPoint >= 0){
-			kernelCachedBlockedELL_test<<<nParts, threadELL>>>(widthVecBlockELL_d,
-					biasVecBlockELL_d,  
-					colBlockELL_d, valBlockELL_d, 
-					x_d,
-					y_d,
-					partBoundary_d,
-					testPoint);
-		} else {
-			kernelCachedBlockedELL<<<nParts, threadELL>>>(
-					//biasIdxBlock_d,
-					widthVecBlockELL_d,
-					biasVecBlockELL_d,  
-					colBlockELL_d, valBlockELL_d, 
-					x_d,
-					y_d,
-					partBoundary_d);
-		}
+ 	int maxbytes = 65536; // 64 KB
+        //cudaFuncSetAttribute(kernelCachedBlockedELL, cudaFuncAttributeMaxDynamicSharedMemorySize, maxbytes);
+	kernelCachedBlockedELL<<<nParts, threadELL, sharedPerBlock>>>(
+			//biasIdxBlock_d,
+			widthVecBlockELL_d,
+			biasVecBlockELL_d,  
+			colBlockELL_d, valBlockELL_d, 
+			x_d,
+			y_d,
+			partBoundary_d);
 
 }
 
