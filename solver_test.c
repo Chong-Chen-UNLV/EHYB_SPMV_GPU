@@ -45,8 +45,9 @@ static int matrixRead(matrixCOO* localMatrixCOO, double** xCompare_in, double** 
 	double*	y = *y_in;
 	/*The overall number of nozeros in this matrix*/
 	localMatrixCOO->totalNum = totalNum;
-	localMatrixCOO->nParts = ceil(((double) _dimension)/vectorCacheSize);
-	printf("parts is %d\n", localMatrixCOO->nParts);
+
+	localMatrixCOO->nParts = ceil(((float) _dimension)/vectorCacheSize);
+	printf("parts is %d with dimension %d vectorCacheSize %d\n", localMatrixCOO->nParts, _dimension, vectorCacheSize);
 	localMatrixCOO->partBoundary = (int* )calloc(_dimension, sizeof(int));
 	localMatrixCOO->reorderList = (int* )calloc(_dimension, sizeof(int));
 	localMatrixCOO->numInRow = (int* )calloc(_dimension, sizeof(int));
@@ -221,13 +222,14 @@ int main(int argc, char* argv[])
 	fclose(f);
 	x = (double *) calloc(localMatrixCOO.dimension, sizeof(double));
 
-	spmvHYB(&localMatrixCOO, y, x, MAXIter);
-	for (int i=0;i<10;i++)
-	{
-		printf("at %d x is %f x_compare is  %f\n",i + 30000, x[i + 30000], xCompare[i + 30000]);
-	}
-	memset(x, 0, sizeof(double)*localMatrixCOO.dimension);
-	return 0;
+	//spmvHYB(&localMatrixCOO, y, x, MAXIter);
+	//solverGPuUnprecondCUSPARSE(&localMatrixCOO, y, x, MAXIter);
+	//for (int i=0;i<10;i++)
+	//{
+	//	printf("at %d x is %f x_compare is  %f\n",i + 30000, x[i + 30000], xCompare[i + 30000]);
+	//}
+	//memset(x, 0, sizeof(float)*localMatrixCOO.dimension);
+	//return 0;
 
 	double *xReorder = (double* )calloc(localMatrixCOO.dimension, sizeof(double)); 
 	double *yReorder = (double* )calloc(localMatrixCOO.dimension, sizeof(double)); 
