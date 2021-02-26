@@ -24,7 +24,6 @@ const int threadELL = 1024;
 const int warpPerBlock = threadELL/warpSize;
 const int sharedPerBlock = memPerThread*threadELL;//1024 is the maximum threads per block
 const int elementSize = 8; //if single precision, 4, if double precision, 8 
-const int loopInKernel =  memPerThread/elementSize;
 const int vectorCacheSize = sharedPerBlock/elementSize;
 const int blockPerPart = sharedPerBlock/(warpSize*elementSize); 
 
