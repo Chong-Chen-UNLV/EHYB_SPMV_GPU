@@ -19,12 +19,11 @@
 #include "spmv.h"
 #define warpSize  32
 
-const int memPerThread = 52;
+const int memPerThread = 71;
 const int threadELL = 1024;
 const int warpPerBlock = threadELL/warpSize;
 const int sharedPerBlock = memPerThread*threadELL;//1024 is the maximum threads per block
 const int elementSize = 4; //if single precision, 4, if float precision, 8 
-const int loopInKernel =  memPerThread/elementSize;
 const int vectorCacheSize = sharedPerBlock/elementSize;
 const int blockPerPart = sharedPerBlock/(warpSize*elementSize); 
 

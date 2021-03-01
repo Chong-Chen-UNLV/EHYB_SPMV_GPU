@@ -111,8 +111,7 @@ __global__ void kernelCachedBlockedELL(
 	int dataIdx; 
 	int col;
 	int bias, width;
-	#pragma unroll
-	for(int i = 0; i < loopInKernel; ++i){//the thread is step with stride threadELL
+	while(biasIdxWarp < blockPerPart){//the thread is step with stride threadELL
 		dot = 0;
 		row = warpLane + biasIdxWarp*warpSize + vecStart;
 		if(row < vecEnd){
@@ -173,8 +172,7 @@ __global__ void kernelCachedBlockedELL_NC(
 	int dataIdx; 
 	int col;
 	int bias, width;
-	#pragma unroll
-	for(int i = 0; i < loopInKernel; ++i){//the thread is step with stride threadELL
+	while(biasIdxWarp < blockPerPart){//the thread is step with stride threadELL
 		dot = 0;
 		row = warpLane + biasIdxWarp*warpSize + vecStart;
 		if(row < vecEnd){
@@ -246,7 +244,7 @@ void matrixVectorBlockELL(const int nParts, const int testPoint,
 		const int* partBoundary_d,
 		const float *x_d, float *y_d)
 {
-	int maxbytes = 65536; // 96 KB
+	int maxbytes = 73728; // 72 KB
 	cudaFuncSetAttribute(kernelCachedBlockedELL, cudaFuncAttributeMaxDynamicSharedMemorySize,
 			maxbytes);
 
