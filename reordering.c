@@ -61,7 +61,7 @@ void matrixReorder(matrixCOO* inputMatrix)
 	int* newJ = (int*)malloc(sizeof(int)*inputMatrix->totalNum);
 	double* newV = (double*)malloc(sizeof(double)*inputMatrix->totalNum);
 
-	int* numInRow2 = (int *) calloc(dimension, sizeof(int));
+	int* numInRow2 = (int *) calloc(dimension+1, sizeof(int));
 	/*transfer the COO format to CSR format, do the partitioning*/
 	unsigned int *partVec, *cwghts;
 	partVec = (unsigned int *) calloc(dimension, sizeof(unsigned int));
