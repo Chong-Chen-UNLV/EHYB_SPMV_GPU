@@ -112,7 +112,7 @@ __global__ void kernelCachedBlockedELL(
 	int col;
 	int bias, width;
 	#pragma unroll
-	for(int i = 0; i < loopInKernel; ++i){//the thread is step with stride threadELL
+	while(biasIdxWarp < blockPerPart){//the thread is step with stride threadELL
 		dot = 0;
 		row = warpLane + biasIdxWarp*warpSize + vecStart;
 		if(row < vecEnd){
