@@ -28,7 +28,6 @@
 //		fclose(tFile);
 //}
 
-
 static int matrixRead(matrixCOO* localMatrixCOO, double** xCompare_in, double** y_in, FILE *f)
 {
 	int _dimension, _N, _lowerNum;
