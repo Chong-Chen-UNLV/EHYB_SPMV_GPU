@@ -247,7 +247,8 @@ void matrixVectorBlockELL(const int nParts, const int testPoint,
 		const double *x_d, double *y_d)
 {
  	//int maxbytes = 65536; // 64 KB
-        //cudaFuncSetAttribute(kernelCachedBlockedELL, cudaFuncAttributeMaxDynamicSharedMemorySize, maxbytes);
+ 	int maxbytes = 73728; // 72 KB
+        cudaFuncSetAttribute(kernelCachedBlockedELL, cudaFuncAttributeMaxDynamicSharedMemorySize, maxbytes);
 	kernelCachedBlockedELL<<<nParts, threadELL, sharedPerBlock>>>(
 			//biasIdxBlock_d,
 			widthVecBlockELL_d,
