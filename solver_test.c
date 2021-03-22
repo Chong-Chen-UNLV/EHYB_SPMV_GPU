@@ -313,7 +313,7 @@ int main(int argc, char* argv[])
 	{
 		printf("at %d yResult is %f y is  %f\n",i + 30000, yResult[i + 30000], y[i + 30000]);
 	}
-	compare(yResult, y, 0.01, localMatrixCOO.dimension);
+	//compare(yResult, y, 0.01, localMatrixCOO.dimension);
 	free(localMatrixCOO.I);
 	free(localMatrixCOO.J);
 	free(localMatrixCOO.V);

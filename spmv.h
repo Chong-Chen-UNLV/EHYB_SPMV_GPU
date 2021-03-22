@@ -36,12 +36,12 @@ typedef struct _matrixEHYB{
 	int	numOfRowER;
 	int* reorderList;
 	int* reorderListER;
-	int* widthVecBlockELL;
+	int16_t* widthVecBlockELL;
 	int* biasVecBlockELL;
 	int16_t* colBlockELL;
 	double* valBlockELL;
 	int* partBoundary;
-	int* widthVecER;
+	int16_t* widthVecER;
 	int* rowVecER;
 	int* biasVecER; 
 	int* colER;

@@ -46,7 +46,7 @@ __global__ void kernelInitializeR(const int num,double *rk, const double *vector
 __global__ void kernelER(const int numOfRowER,
 			const int* rowVecER,
 			const int* biasVecER,  
-			const int* widthVecER, 
+			const int16_t* widthVecER, 
 			const int* colER, 
 			const double *valER, const double * x, double * y)
 {
@@ -76,7 +76,7 @@ __global__ void kernelER(const int numOfRowER,
 
 __global__ void kernelCachedBlockedELL(
 		//int16_t* biasIdxBlock,
-		const int* widthVecBlockELL,
+		const int16_t* widthVecBlockELL,
 		const int* biasVecBlockELL,  
 		const int16_t *colBlockELL, 
 		const double *valBlockELL, 
@@ -138,7 +138,7 @@ __global__ void kernelCachedBlockedELL(
 
 __global__ void kernelCachedBlockedELL_NC(
 		//int16_t* biasIdxBlock,
-		const int* widthVecBlockELL,
+		const int16_t* widthVecBlockELL,
 		const int* biasVecBlockELL,  
 		const int16_t *colBlockELL, 
 		const double *valBlockELL, 
@@ -239,7 +239,7 @@ void initialDeviceArray(int num, double *x)
 
 void matrixVectorBlockELL(const int nParts, const int testPoint, 
 		//int16_t* biasIdxBlock_d,
-		const int* widthVecBlockELL_d, 
+		const int16_t* widthVecBlockELL_d, 
 		const int* biasVecBlockELL_d,    
 		const int16_t* colBlockELL_d,
 		const double* valBlockELL_d, 
@@ -247,7 +247,8 @@ void matrixVectorBlockELL(const int nParts, const int testPoint,
 		const double *x_d, double *y_d)
 {
  	//int maxbytes = 65536; // 64 KB
- 	int maxbytes = 73728; // 72 KB
+ 	//int maxbytes = 73728; // 72 KB
+ 	int maxbytes = 81920; // 80 KB
         cudaFuncSetAttribute(kernelCachedBlockedELL, cudaFuncAttributeMaxDynamicSharedMemorySize, maxbytes);
 	kernelCachedBlockedELL<<<nParts, threadELL, sharedPerBlock>>>(
 			//biasIdxBlock_d,
@@ -265,7 +266,7 @@ void matrixVectorBlockELL(const int nParts, const int testPoint,
 
 void matrixVectorER(const int numOfRowER, 
 		const int* rowVecER_d, const int* biasVecER_d, 
-		const int* widthVecER_d, 
+		const int16_t* widthVecER_d, 
 		const int* colER_d, const double* valER_d,
 		const double* vectorIn_d, double* vectorOut_d)
 {

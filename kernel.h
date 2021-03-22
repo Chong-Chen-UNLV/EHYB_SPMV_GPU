@@ -19,7 +19,7 @@
 #include "spmv.h"
 #define warpSize  32
 
-const int memPerThread = 66;
+const int memPerThread = 72;
 const int threadELL = 1024;
 const int warpPerBlock = threadELL/warpSize;
 const int sharedPerBlock = memPerThread*threadELL;//1024 is the maximum threads per block
