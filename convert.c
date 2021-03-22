@@ -94,7 +94,7 @@ static void vecsGenBlockELL(matrixCOO* inputMatrix,
 	printf("toER is %d, kernel calculation is %d\n", toER, inputMatrix->totalNum - toER);
 	outputMatrix->numOfRowER = numOfRowER;
 	outputMatrix->rowVecER = (int*)malloc(numOfRowER*sizeof(int));
-	outputMatrix->biasVecER = (int*)malloc(ceil(((double) numOfRowER)/warpSize)*sizeof(int));
+	outputMatrix->biasVecER = (int*)malloc(ceil(((float) numOfRowER)/warpSize)*sizeof(int));
 }
 
 static void vecsGenER(matrixEHYB* inputMatrix, int* numInRowER, int* reorderListER)
@@ -130,18 +130,18 @@ static void COO2EHYBCore(matrixCOO* inputMatrix,
 	int* numInRow = inputMatrix->numInRow;
 	int* I = inputMatrix->I;
 	int* J = inputMatrix->J;
-	double* V = inputMatrix->V;
+	float* V = inputMatrix->V;
 
 	int16_t* widthVecBlockELL = outputMatrix->widthVecBlockELL;
 	int* biasVecBlockELL = outputMatrix->biasVecBlockELL;
 	int16_t* colBlockELL = outputMatrix->colBlockELL; 
-	double* valBlockELL = outputMatrix->valBlockELL; 
+	float* valBlockELL = outputMatrix->valBlockELL; 
 
 	int16_t* widthVecER = outputMatrix->widthVecER;
 	int* rowVecER = outputMatrix->rowVecER; 
 	int* biasVecER = outputMatrix->biasVecER;
 	int* colER = outputMatrix->colER; 
-	double* valER = outputMatrix->valER; 
+	float* valER = outputMatrix->valER; 
 
 	int partIdx, partStart, partEnd, fetchEnd, extraRows;
 	int rowLocER, blockIdxER, rowLocInBlockER, biasER; 
@@ -221,7 +221,7 @@ static void COO2EHYBCore(matrixCOO* inputMatrix,
 					wasteElement += 1;
 					writedInRowELL+=1;
 				}
-				double val1, val2;
+				float val1, val2;
 			} else {
 				for(int j = 0; j < widthBlockELL; ++j){
 					colBlockELL[biasBlockELL+i+j*warpSize] = 0;
@@ -284,9 +284,9 @@ void COO2EHYB(matrixCOO* inputMatrix,
 		outputMatrix->biasVecBlockELL[i] = *sizeBlockELL; 
 		*sizeBlockELL += warpSize*outputMatrix->widthVecBlockELL[i]; 
 	}
-	outputMatrix->valBlockELL = (double*)calloc((*sizeBlockELL), sizeof(double));
+	outputMatrix->valBlockELL = (float*)calloc((*sizeBlockELL), sizeof(float));
 	outputMatrix->colBlockELL = (int16_t*)calloc((*sizeBlockELL), sizeof(int16_t));
-	int blockNumER = ceil((double (outputMatrix->numOfRowER))/warpSize);
+	int blockNumER = ceil((float (outputMatrix->numOfRowER))/warpSize);
 	outputMatrix->biasVecER = (int*)calloc(blockNumER, sizeof(int));
 	outputMatrix->widthVecER = (int16_t *)calloc(blockNumER, sizeof(int16_t));
 
@@ -299,7 +299,7 @@ void COO2EHYB(matrixCOO* inputMatrix,
 		*sizeER += warpSize*outputMatrix->widthVecER[i];
 	}
 
-	outputMatrix->valER = (double*) calloc((*sizeER), sizeof(double));
+	outputMatrix->valER = (float*) calloc((*sizeER), sizeof(float));
 	outputMatrix->colER = (int*) calloc((*sizeER), sizeof(int));
 
 	COO2EHYBCore(inputMatrix, 
