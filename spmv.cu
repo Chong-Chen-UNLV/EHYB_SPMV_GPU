@@ -80,7 +80,7 @@ void spmvGPuEHYB(matrixCOO* localMatrix,
 	gettimeofday(&start1, NULL);
     cudaMemcpy(vectorIn_d, vectorIn, dimension*sizeof(double), cudaMemcpyHostToDevice);
 	while (iter<MAXIter){
-		cudaMemset(vectorOut_d, 0, dimension*sizeof(double));
+		//cudaMemset(vectorOut_d, 0, dimension*sizeof(double));
 		matrixVectorEHYB(&localMatrixEHYB_d, vectorIn_d, vectorOut_d, -1);
 		iter++;
 	}
