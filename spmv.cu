@@ -60,9 +60,11 @@ void spmvGPuEHYB(matrixCOO* localMatrix,
 	printf("sizeER is %d\n", sizeER);
 
 	double *vectorIn_d, *vectorOut_d;
-	//int16_t *biasIdxBlock_d;
+	int *biasIdxBlock_d;
+	if(localMatrix->nParts <= 40){
+		cudaMalloc((void**) &biasIdxBlock_d, localMatrix->nParts*sizeof(int));
+	}
 	size_t size1 = dimension*sizeof(double);
-	//cudaMalloc((void **) &biasIdxBlock_d, sizeof(uint16_t)*localMatrix->nParts);
 	cudaMalloc((void **) &vectorOut_d,size1);
 	cudaMalloc((void **) &vectorIn_d,size1);
 	//double *x=(double *) malloc(size1);
@@ -72,16 +74,23 @@ void spmvGPuEHYB(matrixCOO* localMatrix,
 	//double *x=(double *) malloc(size1);
 	//initialize
 	//warm Up
-    cudaMemcpy(vectorIn_d, vectorIn, dimension*sizeof(double), cudaMemcpyHostToDevice);
-	for(int i = 0; i < 100; ++i){
-		matrixVectorEHYB(&localMatrixEHYB_d, vectorIn_d, vectorOut_d, -1);
+	cudaMemcpy(vectorIn_d, vectorIn, dimension*sizeof(double), cudaMemcpyHostToDevice);
+	for(int i = 0; i < 10; ++i){
+		if(localMatrix->nParts <= 40)
+		    matrixVectorEHYB_small(&localMatrixEHYB_d, localMatrix->kernelPerPart,  biasIdxBlock_d, vectorIn_d, vectorOut_d, -1);
+		else
+		    matrixVectorEHYB(&localMatrixEHYB_d, vectorIn_d, vectorOut_d, -1);
+
 	}
 	cudaMemcpy(vectorOut, vectorOut_d, dimension*sizeof(double), cudaMemcpyDeviceToHost);
 	gettimeofday(&start1, NULL);
-    cudaMemcpy(vectorIn_d, vectorIn, dimension*sizeof(double), cudaMemcpyHostToDevice);
+	cudaMemcpy(vectorIn_d, vectorIn, dimension*sizeof(double), cudaMemcpyHostToDevice);
 	while (iter<MAXIter){
 		//cudaMemset(vectorOut_d, 0, dimension*sizeof(double));
-		matrixVectorEHYB(&localMatrixEHYB_d, vectorIn_d, vectorOut_d, -1);
+		if(localMatrix->nParts <= 40)
+		    matrixVectorEHYB_small(&localMatrixEHYB_d, localMatrix->kernelPerPart, biasIdxBlock_d, vectorIn_d, vectorOut_d, -1);
+		else
+		    matrixVectorEHYB(&localMatrixEHYB_d, vectorIn_d, vectorOut_d, -1);
 		iter++;
 	}
 	cudaMemcpy(vectorOut, vectorOut_d, dimension*sizeof(double), cudaMemcpyDeviceToHost);

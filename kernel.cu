@@ -136,6 +136,68 @@ __global__ void kernelCachedBlockedELL(
 	}
 }
 
+__global__ void kernelCachedBlockedELL_small(
+		const int16_t kernelPerPart,
+		int* biasIdxBlock,
+		const int16_t* widthVecBlockELL,
+		const int* biasVecBlockELL,  
+		const int16_t *colBlockELL, 
+		const double *valBlockELL, 
+		const double * x,
+		double * y,
+		const int* partBoundary)
+{
+	int partIdx = (blockIdx.x)/kernelPerPart; 
+	int xIdx = threadIdx.x;
+	extern __shared__ double cachedVec[];  
+	//__shared__ int biasIdxBlock; 
+	//__shared__ volatile int sharedBias[blockPerPart];  
+	//__shared__ volatile int sharedWidth[blockPerPart];  
+	int vecStart = partBoundary[partIdx];
+	int vecEnd = partBoundary[partIdx + 1];
+	int warpLane = xIdx - ((xIdx>>5)<<5); //xIdx%32 = xIdx - (xIdx/32)*32)
+	int warpIdx = (xIdx/32);
+	int row = 0;
+	int biasIdxWarp;
+	int blockStartIdx = blockPerPart*partIdx;	
+	for (int i = xIdx; i < vectorCacheSize; i += threadELL){
+		cachedVec[i] = x[i + vecStart];
+	}
+	//if(xIdx < blockPerPart){
+	//	sharedBias[xIdx] = biasVecBlockELL[blockStartIdx + xIdx];	
+	//	sharedWidth[xIdx] = widthVecBlockELL[blockStartIdx+ xIdx];	
+	//}
+	if(xIdx == 0 && (blockIdx.x)%kernelPerPart == 0) biasIdxBlock[partIdx] = warpPerBlock*kernelPerPart; 
+	biasIdxWarp = warpIdx*kernelPerPart+((blockIdx.x)%kernelPerPart);
+	__syncthreads();
+	double val, dot;
+	int dataIdx; 
+	int col;
+	int bias, width;
+	while(biasIdxWarp < blockPerPart){//the thread is step with stride threadELL
+		dot = 0;
+		row = warpLane + biasIdxWarp*warpSize + vecStart;
+		if(row < vecEnd){
+			bias = biasVecBlockELL[biasIdxWarp + blockStartIdx]; 
+			width = widthVecBlockELL[biasIdxWarp + blockStartIdx];
+			for(int n=0; n< width; ++n){
+				dataIdx = bias + warpSize*n + warpLane;//however the data storage is stride with block_rowSize
+				val= valBlockELL[dataIdx];
+				col = colBlockELL[dataIdx];
+				dot += val*cachedVec[col];
+			}
+			//if(row == testPoint)
+			//	y[row] = dot+0.01;
+			//else 
+			y[row] = dot;
+		}
+		if(warpLane == 0)
+			biasIdxWarp = atomicAdd(&(biasIdxBlock[partIdx]), 1); 
+	 	__syncwarp();	
+		biasIdxWarp = __shfl_sync(FULL_MASK, biasIdxWarp, 0);
+	}
+}
+
 __global__ void kernelCachedBlockedELL_NC(
 		//int16_t* biasIdxBlock,
 		const int16_t* widthVecBlockELL,
@@ -173,7 +235,6 @@ __global__ void kernelCachedBlockedELL_NC(
 	int dataIdx; 
 	int col;
 	int bias, width;
-	#pragma unroll
 	for(int i = 0; i < loopInKernel; ++i){//the thread is step with stride threadELL
 		dot = 0;
 		row = warpLane + biasIdxWarp*warpSize + vecStart;
@@ -248,10 +309,38 @@ void matrixVectorBlockELL(const int nParts, const int testPoint,
 {
  	//int maxbytes = 65536; // 64 KB
  	//int maxbytes = 73728; // 72 KB
- 	int maxbytes = 81920; // 80 KB
-        cudaFuncSetAttribute(kernelCachedBlockedELL, cudaFuncAttributeMaxDynamicSharedMemorySize, maxbytes);
+ 	//int maxbytes = 81920; // 80 KB
+        //cudaFuncSetAttribute(kernelCachedBlockedELL, cudaFuncAttributeMaxDynamicSharedMemorySize, maxbytes);
 	kernelCachedBlockedELL<<<nParts, threadELL, sharedPerBlock>>>(
 			//biasIdxBlock_d,
+			widthVecBlockELL_d,
+			biasVecBlockELL_d,  
+			colBlockELL_d, valBlockELL_d, 
+			x_d,
+			y_d,
+			partBoundary_d);
+
+}
+
+void matrixVectorBlockELL_small(const int nParts,	
+		const int16_t kernelPerPart,
+		int* biasIdxBlock_d,
+		const int16_t* widthVecBlockELL_d, 
+		const int* biasVecBlockELL_d,    
+		const int16_t* colBlockELL_d,
+		const double* valBlockELL_d, 
+		const int* partBoundary_d,
+		const double *x_d, double *y_d)
+{
+ 	//int maxbytes = 65536; // 64 KB
+ 	//int maxbytes = 73728; // 72 KB
+ 	//int maxbytes = 81920; // 80 KB
+ 	int maxbytes = 94208; // 92 KB
+	uint16_t kernelNum = kernelPerPart*nParts;
+    cudaFuncSetAttribute(kernelCachedBlockedELL_small, cudaFuncAttributeMaxDynamicSharedMemorySize, maxbytes);
+	kernelCachedBlockedELL_small<<<kernelNum, threadELL, sharedPerBlock>>>(
+			kernelPerPart,
+			biasIdxBlock_d,
 			widthVecBlockELL_d,
 			biasVecBlockELL_d,  
 			colBlockELL_d, valBlockELL_d, 
@@ -319,6 +408,33 @@ void matrixVectorEHYB(matrixEHYB* inputMatrix_d,
 	matrixVectorBlockELL(inputMatrix_d->nParts, 
 			testPoint,
 			//biasIdxBlock_d,
+			inputMatrix_d->widthVecBlockELL,
+			inputMatrix_d->biasVecBlockELL,  
+			inputMatrix_d->colBlockELL, 
+			inputMatrix_d->valBlockELL, 
+			inputMatrix_d->partBoundary,
+			vectorIn_d,
+			vectorOut_d);
+	
+	matrixVectorER(inputMatrix_d->numOfRowER, inputMatrix_d->rowVecER, 
+			inputMatrix_d->biasVecER,
+			inputMatrix_d->widthVecER,
+			inputMatrix_d->colER, 
+			inputMatrix_d->valER,
+			vectorIn_d, vectorOut_d);
+
+}
+
+void matrixVectorEHYB_small(matrixEHYB* inputMatrix_d, 
+		const int16_t kernelPerPart,
+		int* biasIdxBlock_d, 
+		double* vectorIn_d,
+		double* vectorOut_d, const int testPoint)
+{
+
+	matrixVectorBlockELL_small(inputMatrix_d->nParts, 
+			kernelPerPart,
+			biasIdxBlock_d,
 			inputMatrix_d->widthVecBlockELL,
 			inputMatrix_d->biasVecBlockELL,  
 			inputMatrix_d->colBlockELL, 

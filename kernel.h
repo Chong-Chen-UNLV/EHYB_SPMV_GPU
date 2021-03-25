@@ -18,8 +18,9 @@
 #include <cuda.h>
 #include "spmv.h"
 #define warpSize  32
+#define smSize 80 
 
-const int memPerThread = 72;
+const int memPerThread = 90; 
 const int threadELL = 1024;
 const int warpPerBlock = threadELL/warpSize;
 const int sharedPerBlock = memPerThread*threadELL;//1024 is the maximum threads per block
@@ -27,7 +28,6 @@ const int elementSize = 8; //if single precision, 4, if double precision, 8
 const int loopInKernel =  memPerThread/elementSize;
 const int vectorCacheSize = sharedPerBlock/elementSize;
 const int blockPerPart = sharedPerBlock/(warpSize*elementSize); 
-
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
 {
@@ -54,5 +54,11 @@ void matrixVectorEHYB(matrixEHYB* inputMatrix,
 		//int16_t* biasIdxBlock_d,
 		double* vector_in_d,
 		double* vector_out_d, const int testPoint);
+
+void matrixVectorEHYB_small(matrixEHYB* inputMatrix_d, 
+		const int16_t kernelPerPart,
+		int* biasIdxBlock_d, 
+		double* vectorIn_d,
+		double* vectorOut_d, const int testPoint);
 
 #endif

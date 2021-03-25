@@ -8,6 +8,7 @@ static void compare(double* yResult, double* yReorder, const double threshold, c
 {
 	double avgdiff = 0; 
 	double avgampldiff = 0;
+	int k = 0;
 	for (int i = 0; i < dimension; ++i)
 	{
 		double d = fabs(yReorder[i] - yResult[i]);
@@ -15,6 +16,8 @@ static void compare(double* yResult, double* yReorder, const double threshold, c
 		if (d > ampl*threshold)
 		{
 			printf("large difference at %d  : %f vs %f\n", i, yReorder[i] , yResult[i]);
+			k++;
+			if(k > 100) exit(0);
 		}
 		avgdiff += d;
 		if(ampl > 0) avgampldiff += d/ampl;
@@ -36,7 +39,11 @@ static int matrixRead_unsym(matrixCOO* localMatrixCOO, double** xCompare_in, dou
 	double*	y = *y_in;
 	localMatrixCOO->totalNum = totalNum;
 	localMatrixCOO->nParts = ceil(((double) _dimension)/vectorCacheSize);
-	printf("parts is %d\n", localMatrixCOO->nParts);
+	printf("parts is %d with cachSize %d\n", localMatrixCOO->nParts, vectorCacheSize);
+	if(localMatrixCOO->nParts <= 40){
+		localMatrixCOO->kernelPerPart = smSize/(localMatrixCOO->nParts);
+		printf("kernel per part is %d\n", localMatrixCOO->kernelPerPart);
+	}
 	localMatrixCOO->partBoundary = (int* )calloc(_dimension, sizeof(int));
 	localMatrixCOO->reorderList = (int* )calloc(_dimension, sizeof(int));
 	localMatrixCOO->numInRow = (int* )calloc(_dimension, sizeof(int));
@@ -101,7 +108,11 @@ static int matrixRead_sym(matrixCOO* localMatrixCOO, double** xCompare_in, doubl
 	/*The overall number of nozeros in this matrix*/
 	localMatrixCOO->totalNum = totalNum;
 	localMatrixCOO->nParts = ceil(((double) _dimension)/vectorCacheSize);
-	printf("parts is %d\n", localMatrixCOO->nParts);
+	printf("parts is %d with cahe size %d\n", localMatrixCOO->nParts, vectorCacheSize);
+	if(localMatrixCOO->nParts <= 40){
+		localMatrixCOO->kernelPerPart = smSize/(localMatrixCOO->nParts);
+		printf("kernel per part is %d\n", localMatrixCOO->kernelPerPart);
+	}
 	localMatrixCOO->partBoundary = (int* )calloc(_dimension, sizeof(int));
 	localMatrixCOO->reorderList = (int* )calloc(_dimension, sizeof(int));
 	localMatrixCOO->numInRow = (int* )calloc(_dimension, sizeof(int));
@@ -306,7 +317,6 @@ int main(int argc, char* argv[])
 	//format change is completed in the solver function
 
 	spmvGPuEHYB(&localMatrixCOO, xReorder, yReorder, MAXIter, &realIter);
-	
 	vectorRecover(localMatrixCOO.dimension, yReorder, yResult, localMatrixCOO.reorderList);
 
 	for (int i=0;i<10;i++)

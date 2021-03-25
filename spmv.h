@@ -19,6 +19,7 @@ typedef struct _matrixCOO{
     int dimension;                 
     int maxCol;
 	int nParts;
+	int16_t kernelPerPart;
     int* rowIdx;                 
     int* numInRow;
     int* numInRow2;//"real" numInRow for vetex goto blockELL
