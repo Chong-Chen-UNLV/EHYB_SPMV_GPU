@@ -294,7 +294,7 @@ int main(int argc, char* argv[])
 	float *yResult = (float *) calloc(localMatrixCOO.dimension, sizeof(float));
 
 	//spmvHYB(&localMatrixCOO, xCompare, yResult, MAXIter);
-	//solverGPuUnprecondCUSPARSE(&localMatrixCOO, y, x, MAXIter);	
+	//solverGPuUnprecondCUSPARSE(&localMatrixCOO, xCompare, yResult, MAXIter);	
 	//for (int i=0;i<10;i++)
 	//{
 	//	printf("at %d yResult is %f y is  %f\n",i + 30000, yResult[i + 30000], y[i + 30000]);

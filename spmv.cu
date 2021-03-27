@@ -94,6 +94,7 @@ void spmvGPuEHYB(matrixCOO* localMatrix,
 		iter++;
 	}
 	cudaMemcpy(vectorOut, vectorOut_d, dimension*sizeof(float), cudaMemcpyDeviceToHost);
+	cudaDeviceSynchronize();
 	gettimeofday(&end1, NULL);	
 	float timeByMs=((end1.tv_sec * 1000000 + end1.tv_usec)-(start1.tv_sec * 1000000 + start1.tv_usec))/1000;
 	printf("iter is %d, time is %f ms, GPU Gflops is %f\n ",iter, timeByMs, 

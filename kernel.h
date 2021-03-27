@@ -20,7 +20,7 @@
 #define warpSize  32
 #define smSize 80 
 
-const int memPerThread = 72; 
+const int memPerThread = 40; 
 const int threadELL = 1024;
 const int warpPerBlock = threadELL/warpSize;
 const int sharedPerBlock = memPerThread*threadELL;//1024 is the maximum threads per block
