@@ -40,7 +40,15 @@ __global__ void kernelInitializeR(const int num,double *rk, const double *vector
 		rk[n]=temp;
 	}
 }
-
+__global__ void vecReorderER(const int numOfRowER,
+			const int* rowVecER,
+			const double* yER,
+			double* y){
+	uint32_t idx = blockDim.x*blockIdx.x+threadIdx.x;
+	if(idx < numOfRowER){
+		y[rowVecER[idx]]+=yER[idx];
+	}
+}
 //first version implementation,
 //concern about performance loss from inbalance between blocks 
 __global__ void kernelER(const int numOfRowER,
@@ -99,6 +107,8 @@ __global__ void kernelCachedBlockedELL(
 	int blockStartIdx = blockPerPart*partIdx;	
 	for (int i = xIdx; i < vectorCacheSize; i += threadELL){
 		cachedVec[i] = x[i + vecStart];
+		if(i + vecStart + vectorCacheSize < vecEnd)
+			y[i + vecStart +  vectorCacheSize] = 0;
 	}
 	//if(xIdx < blockPerPart){
 	//	sharedBias[xIdx] = biasVecBlockELL[blockStartIdx + xIdx];	
@@ -143,8 +153,14 @@ __global__ void kernelCachedBlockedELL_small(
 		const int* biasVecBlockELL,  
 		const int16_t *colBlockELL, 
 		const double *valBlockELL, 
+		const int numOfRowER,
+		const int* biasVecER, 
+		const int16_t* widthVecER, 
+		const int* colER, const double* valER,
+		int* warpIdxER,
 		const double * x,
 		double * y,
+		double * yER,
 		const int* partBoundary)
 {
 	int partIdx = (blockIdx.x)/kernelPerPart; 
@@ -194,6 +210,32 @@ __global__ void kernelCachedBlockedELL_small(
 		if(warpLane == 0)
 			biasIdxWarp = atomicAdd(&(biasIdxBlock[partIdx]), 1); 
 	 	__syncwarp();	
+		biasIdxWarp = __shfl_sync(FULL_MASK, biasIdxWarp, 0);
+	}
+	biasIdxWarp = 0;
+	__syncwarp();
+	if(warpLane == 0)
+		biasIdxWarp = atomicAdd(warpIdxER, 1); 
+	__syncwarp();	
+	biasIdxWarp = __shfl_sync(FULL_MASK, biasIdxWarp, 0);
+
+	while(biasIdxWarp < (numOfRowER/32 +1)){
+		row = biasIdxWarp*32 + warpLane;
+		if(row < numOfRowER){
+			width = widthVecER[biasIdxWarp];//cache will work when every threads read same global address
+			bias = biasVecER[biasIdxWarp];
+			double dot = 0;
+			for(int n=0; n < width; ++n){
+				dataIdx = bias + warpLane + warpSize*n ;
+				col=colER[dataIdx];
+				val=valER[dataIdx];
+				dot += val* x[col];
+			}
+			yER[row]=dot;
+		}
+		if(warpLane == 0)
+			biasIdxWarp = atomicAdd(warpIdxER, 1); 
+		__syncwarp();	
 		biasIdxWarp = __shfl_sync(FULL_MASK, biasIdxWarp, 0);
 	}
 }
@@ -309,8 +351,8 @@ void matrixVectorBlockELL(const int nParts, const int testPoint,
 {
  	//int maxbytes = 65536; // 64 KB
  	//int maxbytes = 73728; // 72 KB
- 	//int maxbytes = 81920; // 80 KB
-        //cudaFuncSetAttribute(kernelCachedBlockedELL, cudaFuncAttributeMaxDynamicSharedMemorySize, maxbytes);
+ 	int maxbytes = 81920; // 80 KB
+	cudaFuncSetAttribute(kernelCachedBlockedELL, cudaFuncAttributeMaxDynamicSharedMemorySize, maxbytes);
 	kernelCachedBlockedELL<<<nParts, threadELL, sharedPerBlock>>>(
 			//biasIdxBlock_d,
 			widthVecBlockELL_d,
@@ -330,24 +372,47 @@ void matrixVectorBlockELL_small(const int nParts,
 		const int16_t* colBlockELL_d,
 		const double* valBlockELL_d, 
 		const int* partBoundary_d,
-		const double *x_d, double *y_d)
+		const int numOfRowER,
+		const int* rowVecER_d, 
+		const int* biasVecER_d, 
+		const int16_t* widthVecER_d, 
+		const int* colER_d, 
+		const double* valER_d,
+		int* warpIdxER_d,
+		const double *x_d, 
+		double *y_d,
+		double *yER_d)
 {
  	//int maxbytes = 65536; // 64 KB
  	//int maxbytes = 73728; // 72 KB
- 	//int maxbytes = 81920; // 80 KB
- 	int maxbytes = 94208; // 92 KB
-	uint16_t kernelNum = kernelPerPart*nParts;
+ 	int maxbytes = 81920; // 80 KB
+ 	//int maxbytes = 94208; // 92 KB
     cudaFuncSetAttribute(kernelCachedBlockedELL_small, cudaFuncAttributeMaxDynamicSharedMemorySize, maxbytes);
+	uint16_t kernelNum = kernelPerPart*nParts;
 	kernelCachedBlockedELL_small<<<kernelNum, threadELL, sharedPerBlock>>>(
 			kernelPerPart,
 			biasIdxBlock_d,
 			widthVecBlockELL_d,
 			biasVecBlockELL_d,  
 			colBlockELL_d, valBlockELL_d, 
+			numOfRowER,
+			biasVecER_d, 
+			widthVecER_d, 
+			colER_d, valER_d,
+			warpIdxER_d,
 			x_d,
 			y_d,
+			yER_d,
 			partBoundary_d);
-
+	int threadSizeER, blockSizeER;
+	if(numOfRowER/80 > 1023){
+		threadSizeER = 1024;
+		blockSizeER = ceil(((double) numOfRowER)/1024);
+	} else {
+		blockSizeER = 80;
+		threadSizeER = 	ceil(((double) numOfRowER)/80);
+	}
+	vecReorderER<<<blockSizeER, threadSizeER>>>(numOfRowER, rowVecER_d, yER_d, y_d);
 }
 
 
@@ -361,6 +426,7 @@ void matrixVectorER(const int numOfRowER,
 {
 
 	int blockSizeLocal;
+	//int threadER = ceil(((double) numOfRowER)/160);
 	blockSizeLocal=ceil(((double) numOfRowER)/threadELL);//for data with 2 million elements, we have interval size 200
 	kernelER<<<blockSizeLocal, threadELL>>>(numOfRowER, 
 			rowVecER_d, 
@@ -440,14 +506,22 @@ void matrixVectorEHYB_small(matrixEHYB* inputMatrix_d,
 			inputMatrix_d->colBlockELL, 
 			inputMatrix_d->valBlockELL, 
 			inputMatrix_d->partBoundary,
-			vectorIn_d,
-			vectorOut_d);
-	
-	matrixVectorER(inputMatrix_d->numOfRowER, inputMatrix_d->rowVecER, 
+			inputMatrix_d->numOfRowER, 
+			inputMatrix_d->rowVecER, 
 			inputMatrix_d->biasVecER,
 			inputMatrix_d->widthVecER,
 			inputMatrix_d->colER, 
 			inputMatrix_d->valER,
-			vectorIn_d, vectorOut_d);
+			inputMatrix_d->warpIdxER_d,
+			vectorIn_d,
+			vectorOut_d,
+			inputMatrix_d->outER);
+	
+	//matrixVectorER(inputMatrix_d->numOfRowER, inputMatrix_d->rowVecER, 
+	//		inputMatrix_d->biasVecER,
+	//		inputMatrix_d->widthVecER,
+	//		inputMatrix_d->colER, 
+	//		inputMatrix_d->valER,
+	//		vectorIn_d, vectorOut_d);
 
 }

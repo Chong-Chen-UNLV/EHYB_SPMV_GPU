@@ -35,6 +35,9 @@ typedef struct _matrixEHYB{
 	int dimension;
 	int	nParts;
 	int	numOfRowER;
+	int* warpIdxER_d;
+	//int	threadSizeER;
+	//int	blockSizeER;
 	int* reorderList;
 	int* reorderListER;
 	int16_t* widthVecBlockELL;
@@ -47,6 +50,7 @@ typedef struct _matrixEHYB{
 	int* biasVecER; 
 	int* colER;
 	double* valER;
+	double* outER;
 }matrixEHYB;
 
 inline void init_cb(cb_s* in_s)

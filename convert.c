@@ -198,7 +198,7 @@ static void COO2EHYBCore(matrixCOO* inputMatrix,
 						valBlockELL[biasBlockELL+i+writedInRowELL*warpSize] = V[tmpIdx];
 						writedInRowELL += 1;	
 						if(writedInRowELL > widthBlockELL){
-							printf("write more elements to blockELL than its width\n");
+							printf("write more elements to blockELL than its width %d\n", widthBlockELL);
 							exit(1);
 						}
 					} else {

@@ -11,7 +11,10 @@ static void cudaMallocTransDataEHYB(matrixEHYB* localMatrix, matrixEHYB* localMa
 	localMatrix_d->numOfRowER = localMatrix->numOfRowER;
 	localMatrix_d->nParts = localMatrix->nParts;
 	int blockNumER = ceil(((double) localMatrix->numOfRowER)/warpSize);
+	int warpIdxER = 0;	
 
+    cudaMalloc((void **) &(localMatrix_d->warpIdxER_d), sizeof(int));
+    cudaMalloc((void **) &(localMatrix_d->outER), localMatrix_d->numOfRowER*sizeof(double));
     cudaMalloc((void **) &(localMatrix_d->biasVecBlockELL), localMatrix->nParts*blockPerPart*sizeof(int));
     cudaMalloc((void **) &(localMatrix_d->widthVecBlockELL), localMatrix->nParts*blockPerPart*sizeof(int));
     cudaMalloc((void **) &(localMatrix_d->partBoundary), (localMatrix->nParts+1)*sizeof(int));
@@ -24,6 +27,7 @@ static void cudaMallocTransDataEHYB(matrixEHYB* localMatrix, matrixEHYB* localMa
     cudaMalloc((void **) &(localMatrix_d->colER), sizeER*sizeof(int));
     cudaMalloc((void **) &(localMatrix_d->valER), sizeER*sizeof(double));
 
+    cudaMemcpy(localMatrix_d->warpIdxER_d, &warpIdxER, sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(localMatrix_d->biasVecBlockELL, localMatrix->biasVecBlockELL, localMatrix->nParts*blockPerPart*sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(localMatrix_d->widthVecBlockELL, localMatrix->widthVecBlockELL, localMatrix->nParts*blockPerPart*sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(localMatrix_d->partBoundary, localMatrix->partBoundary, (localMatrix->nParts+1)*sizeof(int), cudaMemcpyHostToDevice);
@@ -95,7 +99,7 @@ void spmvGPuEHYB(matrixCOO* localMatrix,
 	}
 	cudaMemcpy(vectorOut, vectorOut_d, dimension*sizeof(double), cudaMemcpyDeviceToHost);
 	gettimeofday(&end1, NULL);	
-	double timeByMs=((end1.tv_sec * 1000000 + end1.tv_usec)-(start1.tv_sec * 1000000 + start1.tv_usec))/1000;
+	double timeByMs=(double (end1.tv_sec * 1000000 + end1.tv_usec)-(start1.tv_sec * 1000000 + start1.tv_usec))/1000;
 	printf("iter is %d, time is %f ms, GPU Gflops is %f\n ",iter, timeByMs, 
 			(1e-9*(totalNum*2)*1000*iter)/timeByMs );
 	cudaFree(localMatrixEHYB_d.valER);
@@ -261,7 +265,7 @@ void solverGPuUnprecondCUSPARSE(matrixCOO* localMatrix,
 	}
 	cudaMemcpy(vector_out, vector_out_d, dimension*sizeof(double), cudaMemcpyDeviceToHost);
 	gettimeofday(&end1, NULL);	
-	double timeByMs=((end1.tv_sec * 1000000 + end1.tv_usec)-(start1.tv_sec * 1000000 + start1.tv_usec))/1000;
+	double timeByMs=(double (end1.tv_sec * 1000000 + end1.tv_usec)-(start1.tv_sec * 1000000 + start1.tv_usec))/1000;
 	printf("iter is %d, time is %f ms, GPU csrmv Gflops is %f\n ",iter, timeByMs, (1e-9*(totalNum*2)*1000*iter)/timeByMs);
 			
 

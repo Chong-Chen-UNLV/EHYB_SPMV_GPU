@@ -4,18 +4,18 @@
 #include <unistd.h>
 #include "mmio.h"
 
-static void compare(double* yResult, double* yReorder, const double threshold, const int dimension)
+static void compare(double* yResult, double* y, const double threshold, const int dimension)
 {
 	double avgdiff = 0; 
 	double avgampldiff = 0;
 	int k = 0;
 	for (int i = 0; i < dimension; ++i)
 	{
-		double d = fabs(yReorder[i] - yResult[i]);
-		double ampl = fmin(fabs(yReorder[i]), fabs(yResult[i]));
+		double d = fabs(y[i] - yResult[i]);
+		double ampl = fmin(fabs(y[i]), fabs(yResult[i]));
 		if (d > ampl*threshold)
 		{
-			printf("large difference at %d  : %f vs %f\n", i, yReorder[i] , yResult[i]);
+			printf("large difference at %d  : realy %f vs yResult %f\n", i, y[i] , yResult[i]);
 			k++;
 			if(k > 100) exit(0);
 		}
@@ -294,7 +294,7 @@ int main(int argc, char* argv[])
 	double *yResult = (double *) calloc(localMatrixCOO.dimension, sizeof(double));
 
 	//spmvHYB(&localMatrixCOO, xCompare, yResult, MAXIter);
-	//solverGPuUnprecondCUSPARSE(&localMatrixCOO, y, x, MAXIter);	
+	//solverGPuUnprecondCUSPARSE(&localMatrixCOO, xCompare, yResult, MAXIter);	
 	//for (int i=0;i<10;i++)
 	//{
 	//	printf("at %d yResult is %f y is  %f\n",i + 30000, yResult[i + 30000], y[i + 30000]);
@@ -323,7 +323,7 @@ int main(int argc, char* argv[])
 	{
 		printf("at %d yResult is %f y is  %f\n",i + 30000, yResult[i + 30000], y[i + 30000]);
 	}
-	//compare(yResult, y, 0.01, localMatrixCOO.dimension);
+	compare(yResult, y, 0.01, localMatrixCOO.dimension);
 	free(localMatrixCOO.I);
 	free(localMatrixCOO.J);
 	free(localMatrixCOO.V);
