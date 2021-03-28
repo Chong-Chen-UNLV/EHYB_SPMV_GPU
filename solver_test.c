@@ -4,18 +4,18 @@
 #include <unistd.h>
 #include "mmio.h"
 
-static void compare(float* yResult, float* yReorder, const float threshold, const int dimension)
+static void compare(double* yResult, double* y, const double threshold, const int dimension)
 {
-	float avgdiff = 0; 
-	float avgampldiff = 0;
+	double avgdiff = 0; 
+	double avgampldiff = 0;
 	int k = 0;
 	for (int i = 0; i < dimension; ++i)
 	{
-		float d = fabs(yReorder[i] - yResult[i]);
-		float ampl = fmin(fabs(yReorder[i]), fabs(yResult[i]));
+		double d = fabs(y[i] - yResult[i]);
+		double ampl = fmin(fabs(y[i]), fabs(yResult[i]));
 		if (d > ampl*threshold)
 		{
-			printf("large difference at %d  : %f vs %f\n", i, yReorder[i] , yResult[i]);
+			printf("large difference at %d  : realy %f vs yResult %f\n", i, y[i] , yResult[i]);
 			k++;
 			if(k > 100) exit(0);
 		}
@@ -27,18 +27,18 @@ static void compare(float* yResult, float* yReorder, const float threshold, cons
 	printf("diff is %e, ampldiff is %e\n", avgdiff, avgampldiff);
 }
 
-static int matrixRead_unsym(matrixCOO* localMatrixCOO, float** xCompare_in, float** y_in, FILE *f)
+static int matrixRead_unsym(matrixCOO* localMatrixCOO, double** xCompare_in, double** y_in, FILE *f)
 { 	int _dimension, _N;
 	int ret_code, totalNum;
 	if ((ret_code = mm_read_mtx_crd_size(f, &_dimension, &_N, &totalNum)) !=0)
 		exit(1);	
 	localMatrixCOO->dimension = _dimension;
-	*xCompare_in = (float*)malloc(_dimension*sizeof(float));
-	*y_in = (float*)malloc(_dimension*sizeof(float));
-	float*	xCompare = *xCompare_in;
-	float*	y = *y_in;
+	*xCompare_in = (double*)malloc(_dimension*sizeof(double));
+	*y_in = (double*)malloc(_dimension*sizeof(double));
+	double*	xCompare = *xCompare_in;
+	double*	y = *y_in;
 	localMatrixCOO->totalNum = totalNum;
-	localMatrixCOO->nParts = ceil(((float) _dimension)/vectorCacheSize);
+	localMatrixCOO->nParts = ceil(((double) _dimension)/vectorCacheSize);
 	printf("parts is %d with cachSize %d\n", localMatrixCOO->nParts, vectorCacheSize);
 	if(localMatrixCOO->nParts <= 40){
 		localMatrixCOO->kernelPerPart = smSize/(localMatrixCOO->nParts);
@@ -51,23 +51,23 @@ static int matrixRead_unsym(matrixCOO* localMatrixCOO, float** xCompare_in, floa
 
 	localMatrixCOO->I=(int *) malloc(totalNum*sizeof(int));
 	localMatrixCOO->J=(int *) malloc(totalNum*sizeof(int));
-	localMatrixCOO->V=(float *) malloc(totalNum*sizeof(float));
-	localMatrixCOO->diag = (float *) malloc(_dimension*sizeof(float));
+	localMatrixCOO->V=(double *) malloc(totalNum*sizeof(double));
+	localMatrixCOO->diag = (double *) malloc(_dimension*sizeof(double));
 
 	int* numInRow = localMatrixCOO->numInRow;
 	int* I = localMatrixCOO->I;
 	int* J = localMatrixCOO->J;
-	float* V = localMatrixCOO->V;
+	double* V = localMatrixCOO->V;
 
 	for (int i=0;i < _dimension;i++){
 		srand(i);
-		xCompare[i]=(float) (rand()%200-100)/1000;
+		xCompare[i]=(double) (rand()%200-100)/1000;
 		//x_compare[i]=1;
 	}
 	int tempI, tempJ;
-	float tempV;
+	double tempV;
 	for (int i=0; i<totalNum; i++){
-		fscanf(f, "%d %d %f\n", &tempI, &tempJ, &tempV);
+		fscanf(f, "%d %d %lg\n", &tempI, &tempJ, &tempV);
 		J[i]=tempJ-1;  /* adjust from 1-based to 0-based */
 		I[i]=tempI-1;
 		V[i]=tempV;
@@ -91,7 +91,7 @@ static int matrixRead_unsym(matrixCOO* localMatrixCOO, float** xCompare_in, floa
 	localMatrixCOO->maxCol = maxCol;
 	return 1;
 }
-static int matrixRead_sym(matrixCOO* localMatrixCOO, float** xCompare_in, float** y_in, FILE *f)
+static int matrixRead_sym(matrixCOO* localMatrixCOO, double** xCompare_in, double** y_in, FILE *f)
 {
 	int _dimension, _N, _lowerNum;
 	int ret_code, totalNum, lowerNum;
@@ -101,13 +101,13 @@ static int matrixRead_sym(matrixCOO* localMatrixCOO, float** xCompare_in, float*
 	lowerNum = _lowerNum;
 	totalNum = lowerNum*2-_dimension;
 	
-	*xCompare_in = (float*)malloc(_dimension*sizeof(float));
-	*y_in = (float*)malloc(_dimension*sizeof(float));
-	float*	xCompare = *xCompare_in;
-	float*	y = *y_in;
+	*xCompare_in = (double*)malloc(_dimension*sizeof(double));
+	*y_in = (double*)malloc(_dimension*sizeof(double));
+	double*	xCompare = *xCompare_in;
+	double*	y = *y_in;
 	/*The overall number of nozeros in this matrix*/
 	localMatrixCOO->totalNum = totalNum;
-	localMatrixCOO->nParts = ceil(((float) _dimension)/vectorCacheSize);
+	localMatrixCOO->nParts = ceil(((double) _dimension)/vectorCacheSize);
 	printf("parts is %d with cahe size %d\n", localMatrixCOO->nParts, vectorCacheSize);
 	if(localMatrixCOO->nParts <= 40){
 		localMatrixCOO->kernelPerPart = smSize/(localMatrixCOO->nParts);
@@ -120,22 +120,22 @@ static int matrixRead_sym(matrixCOO* localMatrixCOO, float** xCompare_in, float*
 
 	int* lowerI=(int *) malloc(lowerNum*sizeof(int));
 	int* lowerJ=(int *) malloc(lowerNum*sizeof(int));
-	float* lowerV=(float *) malloc(lowerNum*sizeof(float));
+	double* lowerV=(double *) malloc(lowerNum*sizeof(double));
 
 	localMatrixCOO->I=(int *) malloc(totalNum*sizeof(int));
 	localMatrixCOO->J=(int *) malloc(totalNum*sizeof(int));
-	localMatrixCOO->V=(float *) malloc(totalNum*sizeof(float));
-	localMatrixCOO->diag = (float *) malloc(_dimension*sizeof(float));
+	localMatrixCOO->V=(double *) malloc(totalNum*sizeof(double));
+	localMatrixCOO->diag = (double *) malloc(_dimension*sizeof(double));
 	int* numInRow = localMatrixCOO->numInRow;
 	int* I = localMatrixCOO->I;
 	int* J = localMatrixCOO->J;
-	float* V = localMatrixCOO->V;
-	float* diag = localMatrixCOO->diag;
+	double* V = localMatrixCOO->V;
+	double* diag = localMatrixCOO->diag;
 	
 	int tempI, tempJ;
-	float tempV;
+	double tempV;
 	for (int i=0; i<lowerNum; i++){
-		fscanf(f, "%d %d %f\n", &tempI, &tempJ, &tempV);
+		fscanf(f, "%d %d %lg\n", &tempI, &tempJ, &tempV);
 		lowerJ[i]=tempJ-1;  /* adjust from 1-based to 0-based */
 		lowerI[i]=tempI-1;
 		lowerV[i]=tempV;
@@ -165,7 +165,7 @@ static int matrixRead_sym(matrixCOO* localMatrixCOO, float** xCompare_in, float*
 	numInRow[_dimension-1]=0;
 	for (int i=0;i < _dimension;i++){
 		srand(i);
-		xCompare[i]=(float) (rand()%200-100)/1000;
+		xCompare[i]=(double) (rand()%200-100)/1000;
 		//x_compare[i]=1;
 	}
 	int index1, index2;
@@ -207,8 +207,8 @@ int main(int argc, char* argv[])
 	MM_typecode matcode;
 	int MAXIter = 0;
 	FILE *f;
-	float *y;
-	float *xCompare;
+	double *y;
+	double *xCompare;
 	char fileName[100];
 	fileName[0] = '\0';
 	int oc;
@@ -291,7 +291,7 @@ int main(int argc, char* argv[])
 		matrixRead_unsym(&localMatrixCOO, &xCompare, &y, f);
 	}
 	fclose(f);
-	float *yResult = (float *) calloc(localMatrixCOO.dimension, sizeof(float));
+	double *yResult = (double *) calloc(localMatrixCOO.dimension, sizeof(double));
 
 	//spmvHYB(&localMatrixCOO, xCompare, yResult, MAXIter);
 	//solverGPuUnprecondCUSPARSE(&localMatrixCOO, xCompare, yResult, MAXIter);	
@@ -301,8 +301,8 @@ int main(int argc, char* argv[])
 	//}
 	//return 0;
 
-	float *xReorder = (float* )calloc(localMatrixCOO.dimension, sizeof(float)); 
-	float *yReorder = (float* )calloc(localMatrixCOO.dimension, sizeof(float)); 
+	double *xReorder = (double* )calloc(localMatrixCOO.dimension, sizeof(double)); 
+	double *yReorder = (double* )calloc(localMatrixCOO.dimension, sizeof(double)); 
 	if (mm_is_symmetric(matcode)){
 		matrixReorder(&localMatrixCOO);
 	} else {
@@ -323,7 +323,7 @@ int main(int argc, char* argv[])
 	{
 		printf("at %d yResult is %f y is  %f\n",i + 30000, yResult[i + 30000], y[i + 30000]);
 	}
-	//compare(yResult, y, 0.01, localMatrixCOO.dimension);
+	compare(yResult, y, 0.01, localMatrixCOO.dimension);
 	free(localMatrixCOO.I);
 	free(localMatrixCOO.J);
 	free(localMatrixCOO.V);
@@ -339,7 +339,7 @@ int main(int argc, char* argv[])
 	//interval2=(end_time2-start_time2)*1000/CLOCKS_PER_SEC;
 
 	//printf("time consuming CPU is %f, time consuming GPU is %f, speedup is %f\n", interval1, interval2, interval1/interval2);
-	//float Gflop=(totalNum*4+12*dimension)/interval1*1000*MAXIter;
+	//double Gflop=(totalNum*4+12*dimension)/interval1*1000*MAXIter;
 	//printf("error is %f, total num is %d, time is %f ms, Gflops is %f, final error is %f\n",result_error/dimension, totalNum, interval1, Gflop, error_track[MAXIter-1]*1000);
 	return 0;
 }
