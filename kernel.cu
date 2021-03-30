@@ -380,8 +380,8 @@ void matrixVectorBlockELL(const int nParts,
 {
  	//int maxbytes = 65536; // 64 KB
  	//int maxbytes = 73728; // 72 KB
- 	//int maxbytes = 81920; // 80 KB
- 	int maxbytes = 96256; // 94 KB
+ 	int maxbytes = 81920; // 80 KB
+ 	//int maxbytes = 96256; // 94 KB
 	cudaFuncSetAttribute(kernelCachedBlockedELL, cudaFuncAttributeMaxDynamicSharedMemorySize, maxbytes);
 	kernelCachedBlockedELL<<<nParts, threadELL, sharedPerBlock>>>(
 			widthVecBlockELL_d,
@@ -430,8 +430,8 @@ void matrixVectorBlockELL_small(const int nParts,
  	//int maxbytes = 65536; // 64 KB
  	//int maxbytes = 73728; // 72 KB
  	//int maxbytes = 81920; // 80 KB
- 	int maxbytes = 94208; // 92 KB
-    cudaFuncSetAttribute(kernelCachedBlockedELL_small, cudaFuncAttributeMaxDynamicSharedMemorySize, maxbytes);
+ 	//int maxbytes = 94208; // 92 KB
+    //cudaFuncSetAttribute(kernelCachedBlockedELL_small, cudaFuncAttributeMaxDynamicSharedMemorySize, maxbytes);
 	uint16_t kernelNum = kernelPerPart*nParts;
 	kernelCachedBlockedELL_small<<<kernelNum, threadELL, sharedPerBlock>>>(
 			kernelPerPart,

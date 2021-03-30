@@ -4,6 +4,8 @@
 #include <unistd.h>
 #include "mmio.h"
 
+static MM_typecode matcode;
+
 static void compare(double* yResult, double* y, const double threshold, const int dimension)
 {
 	double avgdiff = 0; 
@@ -210,7 +212,6 @@ static int matrixRead_sym(matrixCOO* localMatrixCOO, double** xCompare_in, doubl
 
 int main(int argc, char* argv[])
 {
-	MM_typecode matcode;
 	int MAXIter = 0;
 	FILE *f;
 	double *y;
@@ -300,6 +301,7 @@ int main(int argc, char* argv[])
 	double *yResult = (double *) calloc(localMatrixCOO.dimension, sizeof(double));
 
 	//spmvHYB(&localMatrixCOO, xCompare, yResult, MAXIter);
+	//spmvGeneric(&localMatrixCOO, xCompare, yResult, MAXIter);
 	//solverGPuUnprecondCUSPARSE(&localMatrixCOO, xCompare, yResult, MAXIter);	
 	//for (int i=0;i<10;i++)
 	//{

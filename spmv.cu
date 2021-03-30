@@ -115,6 +115,153 @@ void spmvGPuEHYB(matrixCOO* localMatrix,
 	cudaFree(localMatrixEHYB_d.partBoundary);
 }
 
+void spmvGeneric(matrixCOO* localMatrix, 
+		const double *vector_in, double *vector_out,  
+		const int MAXIter)
+{
+	//exampine the performance using cusparse library functions with
+	//CSR format
+	//double dotp0,dotr0,dotr1,doth;
+	int dimension, totalNum; 
+    int *rowIdx, *J; 
+    double* V;
+    dimension = localMatrix->dimension; 
+    totalNum = localMatrix->totalNum; 
+
+	rowIdx = localMatrix->rowIdx; 
+    J = localMatrix->J;
+    V = localMatrix->V;
+	
+	int* col_d;
+	int* rowIdx_d;
+	double *V_d;
+
+	double *vector_in_d, *vector_out_d;
+	size_t size1=dimension*sizeof(double);
+	
+	cudaMalloc((void **) &rowIdx_d, (dimension+1)*sizeof(double));
+	cudaMalloc((void **) &vector_out_d,size1);
+	cudaMalloc((void **) &vector_in_d,size1);
+	cudaMalloc((void **) &col_d,totalNum*sizeof(int));
+	cudaMalloc((void **) &V_d,totalNum*sizeof(double));
+	//double *x=(double *) malloc(size1);
+	int iter=0;
+	//double const1 = 1.0;
+	//initialize
+   	if(cudaSuccess != cudaMemcpy(rowIdx_d, rowIdx, (dimension+1)*sizeof(int), cudaMemcpyHostToDevice)) printf("error1\n");
+    if(cudaSuccess !=cudaMemcpy(col_d, J, totalNum*sizeof(int), cudaMemcpyHostToDevice)) printf("error2\n");
+    if(cudaSuccess !=cudaMemcpy(V_d, V, totalNum*sizeof(double), cudaMemcpyHostToDevice)) printf("error3\n");
+	
+	struct timeval start1, end1;
+	
+	//if BSR doing the format change 
+	//cusparseStatus_tcusparseDcsr2gebsr_bufferSize(handle, dir, m, n, descrA, csrValA, csrRowPtrA, 
+	//		csrColIndA, rowBlockDim, colBlockDim, pBufferSize);
+	cusparseHandle_t handleSparse;
+	cusparseCreate(&handleSparse);
+	cusparseOperation_t transA = CUSPARSE_OPERATION_NON_TRANSPOSE;
+	cusparseSpMatDescr_t descrA = 0;
+	cusparseDnVecDescr_t descrVecIn = 0;
+	cusparseDnVecDescr_t descrVecOut = 0;
+	int status = cusparseCreateDnVec(&descrVecIn,
+			dimension,
+			vector_in_d,
+			CUDA_R_64F);
+	if (status != CUSPARSE_STATUS_SUCCESS ) {
+		exit(0);	
+	}
+	status = cusparseCreateDnVec(&descrVecOut,
+			dimension,
+			vector_out_d,
+			CUDA_R_64F);
+	if (status != CUSPARSE_STATUS_SUCCESS ) {
+		exit(0);	
+	}
+	status = cusparseCreateCsr(&descrA,
+			dimension,
+			dimension,
+			totalNum,
+			rowIdx_d,
+			col_d,
+			V_d,
+			CUSPARSE_INDEX_32I,
+			CUSPARSE_INDEX_32I,
+			CUSPARSE_INDEX_BASE_ZERO,
+			CUDA_R_64F);
+	if (status != CUSPARSE_STATUS_SUCCESS ) {
+		exit(0);	
+	}
+	double one = 1.0;
+	double zero = 0.0;
+	size_t buffSize;
+	cusparseStatus_t smpvStatus = 
+	cusparseSpMV_bufferSize(
+			handleSparse,
+			transA,
+			&one,
+			descrA,
+			descrVecIn,
+			&zero,
+			descrVecOut,
+			CUDA_R_64F,
+			CUSPARSE_CSRMV_ALG2,
+			&buffSize );
+	char* buff;
+	cudaMalloc((void **) &buff, buffSize);
+	//warm up
+	for(int i = 0; i < 100; ++i){
+		smpvStatus = 
+		cusparseSpMV(
+			handleSparse,
+			transA,
+			&one,
+			descrA,
+			descrVecIn,
+			&zero,
+			descrVecOut,
+			CUDA_R_64F,
+			CUSPARSE_CSRMV_ALG2,
+			buff);
+	}
+	gettimeofday(&start1, NULL);
+	
+    if(cudaSuccess != cudaMemcpy(vector_in_d, vector_in, dimension*sizeof(double), cudaMemcpyHostToDevice)) printf("error4\n");
+	while (iter<MAXIter){
+		cusparseStatus_t smpvStatus = 
+		cusparseSpMV(
+			handleSparse,
+			transA,
+			&one,
+			descrA,
+			descrVecIn,
+			&zero,
+			descrVecOut,
+			CUDA_R_64F,
+			CUSPARSE_CSRMV_ALG2,
+			buff);
+		//cusparseStatus_t smpvStatus = 
+		//cusparseDcsrmv(handleSparse,
+		//		transA,
+		//		dimension,
+		//		dimension,
+		//		totalNum,
+		//		&one,
+		//		descr,
+		//		V_d,
+		//		rowIdx_d,
+		//		col_d,
+		//		vector_in_d,
+		//		&zero,
+		//		vector_out_d);
+		iter++;
+	}
+	cudaMemcpy(vector_out, vector_out_d, dimension*sizeof(double), cudaMemcpyDeviceToHost);
+	gettimeofday(&end1, NULL);	
+	double timeByMs=(double (end1.tv_sec * 1000000 + end1.tv_usec)-(start1.tv_sec * 1000000 + start1.tv_usec))/1000;
+	printf("iter is %d, time is %f ms, GPU csrmv Gflops is %f\n ",iter, timeByMs, (1e-9*(totalNum*2)*1000*iter)/timeByMs);
+			
+
+}
 void solverGPuUnprecondCUSPARSE(matrixCOO* localMatrix, 
 		const double *vector_in, double *vector_out,  
 		const int MAXIter)
