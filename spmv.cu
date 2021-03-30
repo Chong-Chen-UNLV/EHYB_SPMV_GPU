@@ -8,6 +8,7 @@ static void cudaMallocTransDataEHYB(matrixEHYB* localMatrix, matrixEHYB* localMa
 
 
 	localMatrix_d->dimension = localMatrix->dimension;
+	localMatrix_d->kernelPerPart = localMatrix->kernelPerPart;
 	localMatrix_d->numOfRowER = localMatrix->numOfRowER;
 	localMatrix_d->nParts = localMatrix->nParts;
 	int blockNumER = ceil(((double) localMatrix->numOfRowER)/warpSize);
@@ -81,9 +82,9 @@ void spmvGPuEHYB(matrixCOO* localMatrix,
 	cudaMemcpy(vectorIn_d, vectorIn, dimension*sizeof(double), cudaMemcpyHostToDevice);
 	for(int i = 0; i < 10; ++i){
 		if(localMatrix->nParts <= 40)
-		    matrixVectorEHYB_small(&localMatrixEHYB_d, localMatrix->kernelPerPart,  biasIdxBlock_d, vectorIn_d, vectorOut_d, -1);
+		    matrixVectorEHYB_small(&localMatrixEHYB_d, biasIdxBlock_d, vectorIn_d, vectorOut_d);
 		else
-		    matrixVectorEHYB(&localMatrixEHYB_d, vectorIn_d, vectorOut_d, -1);
+		    matrixVectorEHYB(&localMatrixEHYB_d, vectorIn_d, vectorOut_d);
 
 	}
 	cudaMemcpy(vectorOut, vectorOut_d, dimension*sizeof(double), cudaMemcpyDeviceToHost);
@@ -91,9 +92,9 @@ void spmvGPuEHYB(matrixCOO* localMatrix,
 	cudaMemcpy(vectorIn_d, vectorIn, dimension*sizeof(double), cudaMemcpyHostToDevice);
 	while (iter<MAXIter){
 		if(localMatrix->nParts <= 40)
-		    matrixVectorEHYB_small(&localMatrixEHYB_d, localMatrix->kernelPerPart, biasIdxBlock_d, vectorIn_d, vectorOut_d, -1);
+		    matrixVectorEHYB_small(&localMatrixEHYB_d, biasIdxBlock_d, vectorIn_d, vectorOut_d);
 		else
-		    matrixVectorEHYB(&localMatrixEHYB_d, vectorIn_d, vectorOut_d, -1);
+		    matrixVectorEHYB(&localMatrixEHYB_d, vectorIn_d, vectorOut_d);
 		iter++;
 	}
 	cudaMemcpy(vectorOut, vectorOut_d, dimension*sizeof(double), cudaMemcpyDeviceToHost);
@@ -166,9 +167,9 @@ void solverGPuUnprecondCUSPARSE(matrixCOO* localMatrix,
 	}
 	double one = 1.0;
 	double zero = 0.0;
-	size_t buffSize;
 	cusparseSetMatType (descr, CUSPARSE_MATRIX_TYPE_GENERAL);
 	cusparseSetMatIndexBase (descr, CUSPARSE_INDEX_BASE_ZERO);
+	size_t buffSize;
 	cusparseStatus_t smpvStatus = 
 	cusparseCsrmvEx_bufferSize(handleSparse,
 		//CUSPARSE_ALG_NAIVE,	
@@ -323,7 +324,6 @@ void spmvHYB(matrixCOO* localMatrix,
 	}
 	double one = 1.0;
 	double zero = 0.0;
-	size_t buffSize;
 	cusparseSetMatType (descrA, CUSPARSE_MATRIX_TYPE_GENERAL);
 	cusparseSetMatIndexBase (descrA, CUSPARSE_INDEX_BASE_ZERO);
 	cusparseHybMat_t hybA;
@@ -355,8 +355,6 @@ void spmvHYB(matrixCOO* localMatrix,
 	
     if(cudaSuccess != cudaMemcpy(vector_in_d, vector_in, dimension*sizeof(double), cudaMemcpyHostToDevice)) printf("error4\n");
 	while (iter<MAXIter){
-		int errorIdx = 0;
-		double compareError;
 		cusparseStatus_t smpvStatus = 
 		cusparseDhybmv(handleSparse,
 			transA,

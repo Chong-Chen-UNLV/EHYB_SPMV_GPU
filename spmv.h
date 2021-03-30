@@ -34,6 +34,7 @@ typedef struct _matrixCOO{
 typedef struct _matrixEHYB{
 	int dimension;
 	int	nParts;
+	int	kernelPerPart;
 	int	numOfRowER;
 	int* warpIdxER_d;
 	//int	threadSizeER;

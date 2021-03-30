@@ -78,16 +78,19 @@ static int matrixRead_unsym(matrixCOO* localMatrixCOO, double** xCompare_in, dou
 	localMatrixCOO->rowIdx=(int *)malloc((_dimension+1)*sizeof(int));
 	int* rowIdx = localMatrixCOO->rowIdx;
 	int maxCol = 0;
+	int maxColIdx = 0;
 	rowIdx[0] = 0;
 	
 	for (int i=1;i<= _dimension;i++){
-		if (numInRow[i-1]>maxCol)
+		if (numInRow[i-1]>maxCol){
 			maxCol = numInRow[i-1];
+			maxColIdx = i-1;
+		}
 
 		rowIdx[i]=rowIdx[i-1]+numInRow[i-1];
 	}	
 	if (numInRow[_dimension-1] > maxCol) maxCol=numInRow[_dimension-1];
-	printf("maxCol is %d\n", maxCol);
+	printf("maxCol is %d at idx %d\n", maxCol, maxColIdx);
 	localMatrixCOO->maxCol = maxCol;
 	return 1;
 }
@@ -149,18 +152,21 @@ static int matrixRead_sym(matrixCOO* localMatrixCOO, double** xCompare_in, doubl
 	localMatrixCOO->rowIdx=(int *)malloc((_dimension+1)*sizeof(int));
 	int* rowIdx = localMatrixCOO->rowIdx;
 	int maxCol = 0;
+	int maxColIdx = 0;
 	rowIdx[0] = 0;
 	
 	for (int i=1;i<= _dimension;i++){
-		if (numInRow[i-1]>maxCol)
+		if (numInRow[i-1]>maxCol){
 			maxCol = numInRow[i-1];
+			maxColIdx = i-1;
+		}
 
 		rowIdx[i]=rowIdx[i-1]+numInRow[i-1];
 		numInRow[i-1]=0;
 	}	
 	if (numInRow[_dimension-1] > maxCol) maxCol=numInRow[_dimension-1];
 	
-	printf("maxCol is %d\n", maxCol);
+	printf("maxCol is %d with idx %d\n", maxCol, maxColIdx);
 	localMatrixCOO->maxCol = maxCol;
 	numInRow[_dimension-1]=0;
 	for (int i=0;i < _dimension;i++){

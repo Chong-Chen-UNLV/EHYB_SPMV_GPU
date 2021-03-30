@@ -20,7 +20,7 @@
 #define warpSize  32
 #define smSize 80 
 
-const int memPerThread = 93; 
+const int memPerThread = 82; 
 const int threadELL = 1024;
 const int warpPerBlock = threadELL/warpSize;
 const int sharedPerBlock = memPerThread*threadELL;//1024 is the maximum threads per block
@@ -48,17 +48,16 @@ void myxpy(const int dimension, double gamak, const double *x, double *y);
 void matrixVectorEHYB_NC(matrixEHYB* inputMatrix, 
 		//int16_t* biasIdxBlock_d,
 		double* vector_in_d,
-		double* vector_out_d, const int testPoint);
+		double* vector_out_d);
 
 void matrixVectorEHYB(matrixEHYB* inputMatrix, 
 		//int16_t* biasIdxBlock_d,
 		double* vector_in_d,
-		double* vector_out_d, const int testPoint);
+		double* vector_out_d);
 
 void matrixVectorEHYB_small(matrixEHYB* inputMatrix_d, 
-		const int16_t kernelPerPart,
 		int* biasIdxBlock_d, 
 		double* vectorIn_d,
-		double* vectorOut_d, const int testPoint);
+		double* vectorOut_d);
 
 #endif

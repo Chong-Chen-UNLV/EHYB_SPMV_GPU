@@ -273,6 +273,7 @@ void COO2EHYB(matrixCOO* inputMatrix,
 	int* numInRowER = (int*)calloc(inputMatrix->dimension, sizeof(int));
 	outputMatrix->dimension = inputMatrix->dimension;
 	outputMatrix->nParts = inputMatrix->nParts;
+	outputMatrix->kernelPerPart = inputMatrix->kernelPerPart;
 	outputMatrix->partBoundary = inputMatrix->partBoundary;
 	outputMatrix->widthVecBlockELL = (int16_t*)calloc(outputMatrix->nParts*blockPerPart, sizeof(int16_t));
 	outputMatrix->biasVecBlockELL = (int*)calloc(outputMatrix->nParts*blockPerPart, sizeof(int));
