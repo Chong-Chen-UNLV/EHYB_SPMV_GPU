@@ -4,17 +4,21 @@
 #include <unistd.h>
 #include "mmio.h"
 
-static void compare(float* yResult, float* yReorder, const float threshold, const int dimension)
+static void compare(float* yResult, float* y, const float threshold, const int dimension)
 {
 	float avgdiff = 0; 
 	float avgampldiff = 0;
+	int k = 0;
 	for (int i = 0; i < dimension; ++i)
 	{
-		float d = fabs(yReorder[i] - yResult[i]);
-		float ampl = fmin(fabs(yReorder[i]), fabs(yResult[i]));
+		float d = fabs(y[i] - yResult[i]);
+		float ampl = fmin(fabs(y[i]), fabs(yResult[i]));
 		if (d > ampl*threshold)
 		{
-			printf("large difference at %d  : %f vs %f\n", i, yReorder[i] , yResult[i]);
+			if(k < 100){
+				printf("large difference at %d  : realy %f vs yResult %f\n", i, y[i] , yResult[i]);
+				k++;
+			}
 		}
 		avgdiff += d;
 		if(ampl > 0) avgampldiff += d/ampl;
@@ -36,7 +40,11 @@ static int matrixRead_unsym(matrixCOO* localMatrixCOO, float** xCompare_in, floa
 	float*	y = *y_in;
 	localMatrixCOO->totalNum = totalNum;
 	localMatrixCOO->nParts = ceil(((float) _dimension)/vectorCacheSize);
-	printf("parts is %d\n", localMatrixCOO->nParts);
+	printf("parts is %d with cachSize %d\n", localMatrixCOO->nParts, vectorCacheSize);
+	if(localMatrixCOO->nParts <= 40){
+		localMatrixCOO->kernelPerPart = smSize/(localMatrixCOO->nParts);
+		printf("kernel per part is %d\n", localMatrixCOO->kernelPerPart);
+	}
 	localMatrixCOO->partBoundary = (int* )calloc(_dimension, sizeof(int));
 	localMatrixCOO->reorderList = (int* )calloc(_dimension, sizeof(int));
 	localMatrixCOO->numInRow = (int* )calloc(_dimension, sizeof(int));
@@ -54,13 +62,13 @@ static int matrixRead_unsym(matrixCOO* localMatrixCOO, float** xCompare_in, floa
 
 	for (int i=0;i < _dimension;i++){
 		srand(i);
-		xCompare[i]=(float) (rand()%200-100)/100;
+		xCompare[i]=(float) (rand()%200-100)/1000;
 		//x_compare[i]=1;
 	}
 	int tempI, tempJ;
 	float tempV;
 	for (int i=0; i<totalNum; i++){
-		fscanf(f, "%d %d %f\n", &tempI, &tempJ, &tempV);
+		fscanf(f, "%d %d %g\n", &tempI, &tempJ, &tempV);
 		J[i]=tempJ-1;  /* adjust from 1-based to 0-based */
 		I[i]=tempI-1;
 		V[i]=tempV;
@@ -71,16 +79,19 @@ static int matrixRead_unsym(matrixCOO* localMatrixCOO, float** xCompare_in, floa
 	localMatrixCOO->rowIdx=(int *)malloc((_dimension+1)*sizeof(int));
 	int* rowIdx = localMatrixCOO->rowIdx;
 	int maxCol = 0;
+	int maxColIdx = 0;
 	rowIdx[0] = 0;
 	
 	for (int i=1;i<= _dimension;i++){
-		if (numInRow[i-1]>maxCol)
+		if (numInRow[i-1]>maxCol){
 			maxCol = numInRow[i-1];
+			maxColIdx = i-1;
+		}
 
 		rowIdx[i]=rowIdx[i-1]+numInRow[i-1];
 	}	
 	if (numInRow[_dimension-1] > maxCol) maxCol=numInRow[_dimension-1];
-	printf("maxCol is %d\n", maxCol);
+	printf("maxCol is %d at idx %d\n", maxCol, maxColIdx);
 	localMatrixCOO->maxCol = maxCol;
 	return 1;
 }
@@ -100,9 +111,12 @@ static int matrixRead_sym(matrixCOO* localMatrixCOO, float** xCompare_in, float*
 	float*	y = *y_in;
 	/*The overall number of nozeros in this matrix*/
 	localMatrixCOO->totalNum = totalNum;
-
 	localMatrixCOO->nParts = ceil(((float) _dimension)/vectorCacheSize);
-	printf("parts is %d with dimension %d vectorCacheSize %d\n", localMatrixCOO->nParts, _dimension, vectorCacheSize);
+	printf("parts is %d with cahe size %d\n", localMatrixCOO->nParts, vectorCacheSize);
+	if(localMatrixCOO->nParts <= 40){
+		localMatrixCOO->kernelPerPart = smSize/(localMatrixCOO->nParts);
+		printf("kernel per part is %d\n", localMatrixCOO->kernelPerPart);
+	}
 	localMatrixCOO->partBoundary = (int* )calloc(_dimension, sizeof(int));
 	localMatrixCOO->reorderList = (int* )calloc(_dimension, sizeof(int));
 	localMatrixCOO->numInRow = (int* )calloc(_dimension, sizeof(int));
@@ -139,23 +153,26 @@ static int matrixRead_sym(matrixCOO* localMatrixCOO, float** xCompare_in, float*
 	localMatrixCOO->rowIdx=(int *)malloc((_dimension+1)*sizeof(int));
 	int* rowIdx = localMatrixCOO->rowIdx;
 	int maxCol = 0;
+	int maxColIdx = 0;
 	rowIdx[0] = 0;
 	
 	for (int i=1;i<= _dimension;i++){
-		if (numInRow[i-1]>maxCol)
+		if (numInRow[i-1]>maxCol){
 			maxCol = numInRow[i-1];
+			maxColIdx = i-1;
+		}
 
 		rowIdx[i]=rowIdx[i-1]+numInRow[i-1];
 		numInRow[i-1]=0;
 	}	
 	if (numInRow[_dimension-1] > maxCol) maxCol=numInRow[_dimension-1];
 	
-	printf("maxCol is %d\n", maxCol);
+	printf("maxCol is %d with idx %d\n", maxCol, maxColIdx);
 	localMatrixCOO->maxCol = maxCol;
 	numInRow[_dimension-1]=0;
 	for (int i=0;i < _dimension;i++){
 		srand(i);
-		xCompare[i]=(float) (rand()%200-100)/100;
+		xCompare[i]=(float) (rand()%200-100)/1000;
 		//x_compare[i]=1;
 	}
 	int index1, index2;
@@ -194,7 +211,7 @@ static int matrixRead_sym(matrixCOO* localMatrixCOO, float** xCompare_in, float*
 
 int main(int argc, char* argv[])
 {
-	MM_typecode matcode;
+	static MM_typecode matcode;
 	int MAXIter = 0;
 	FILE *f;
 	float *y;
@@ -283,8 +300,9 @@ int main(int argc, char* argv[])
 	fclose(f);
 	float *yResult = (float *) calloc(localMatrixCOO.dimension, sizeof(float));
 
-	//spmvHYB(&localMatrixCOO, y, x, MAXIter);
-	//solverGPuUnprecondCUSPARSE(&localMatrixCOO, y, x, MAXIter);
+	//spmvHYB(&localMatrixCOO, xCompare, yResult, MAXIter);
+	//spmvGeneric(&localMatrixCOO, xCompare, yResult, MAXIter);
+	//solverGPuUnprecondCUSPARSE(&localMatrixCOO, xCompare, yResult, MAXIter);	
 	//for (int i=0;i<10;i++)
 	//{
 	//	printf("at %d yResult is %f y is  %f\n",i + 30000, yResult[i + 30000], y[i + 30000]);
@@ -307,14 +325,13 @@ int main(int argc, char* argv[])
 	//format change is completed in the solver function
 
 	spmvGPuEHYB(&localMatrixCOO, xReorder, yReorder, MAXIter, &realIter);
-	
 	vectorRecover(localMatrixCOO.dimension, yReorder, yResult, localMatrixCOO.reorderList);
 
 	for (int i=0;i<10;i++)
 	{
 		printf("at %d yResult is %f y is  %f\n",i + 30000, yResult[i + 30000], y[i + 30000]);
 	}
-	//compare(yResult, y, 0.01, localMatrixCOO.dimension);
+	compare(yResult, y, 0.01, localMatrixCOO.dimension);
 	free(localMatrixCOO.I);
 	free(localMatrixCOO.J);
 	free(localMatrixCOO.V);

@@ -19,6 +19,7 @@ typedef struct _matrixCOO{
     int dimension;                 
     int maxCol;
 	int nParts;
+	int16_t kernelPerPart;
     int* rowIdx;                 
     int* numInRow;
     int* numInRow2;//"real" numInRow for vetex goto blockELL
@@ -33,7 +34,11 @@ typedef struct _matrixCOO{
 typedef struct _matrixEHYB{
 	int dimension;
 	int	nParts;
+	int	kernelPerPart;
 	int	numOfRowER;
+	int* warpIdxER_d;
+	//int	threadSizeER;
+	//int	blockSizeER;
 	int* reorderList;
 	int* reorderListER;
 	int16_t* widthVecBlockELL;
@@ -46,6 +51,7 @@ typedef struct _matrixEHYB{
 	int* biasVecER; 
 	int* colER;
 	float* valER;
+	float* outER;
 }matrixEHYB;
 
 inline void init_cb(cb_s* in_s)
@@ -67,7 +73,8 @@ void solverGPuUnprecondCUSPARSE(matrixCOO* localMatrix,
 		const float *vector_in, float *vector_out,  
 		const int MAXIter);
 
-void spmvHYB(matrixCOO* localMatrix, 
+void spmvGeneric(matrixCOO* localMatrix, 
 		const float *vector_in, float *vector_out,  
 		const int MAXIter);
 #endif
+

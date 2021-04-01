@@ -18,15 +18,16 @@
 #include <cuda.h>
 #include "spmv.h"
 #define warpSize  32
+#define smSize 80 
 
-const int memPerThread = 63;
+const int memPerThread = 56; 
 const int threadELL = 1024;
 const int warpPerBlock = threadELL/warpSize;
 const int sharedPerBlock = memPerThread*threadELL;//1024 is the maximum threads per block
-const int elementSize = 4; //if single precision, 4, if float precision, 8 
+const int elementSize = 4; //if single precision, 4, if higher precision, 8 
+const int loopInKernel =  memPerThread/elementSize;
 const int vectorCacheSize = sharedPerBlock/elementSize;
 const int blockPerPart = sharedPerBlock/(warpSize*elementSize); 
-
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
 {
@@ -47,11 +48,16 @@ void myxpy(const int dimension, float gamak, const float *x, float *y);
 void matrixVectorEHYB_NC(matrixEHYB* inputMatrix, 
 		//int16_t* biasIdxBlock_d,
 		float* vector_in_d,
-		float* vector_out_d, const int testPoint);
+		float* vector_out_d);
 
 void matrixVectorEHYB(matrixEHYB* inputMatrix, 
 		//int16_t* biasIdxBlock_d,
 		float* vector_in_d,
-		float* vector_out_d, const int testPoint);
+		float* vector_out_d);
+
+void matrixVectorEHYB_small(matrixEHYB* inputMatrix_d, 
+		int* biasIdxBlock_d, 
+		float* vectorIn_d,
+		float* vectorOut_d);
 
 #endif

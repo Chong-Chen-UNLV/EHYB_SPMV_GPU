@@ -8,10 +8,14 @@ static void cudaMallocTransDataEHYB(matrixEHYB* localMatrix, matrixEHYB* localMa
 
 
 	localMatrix_d->dimension = localMatrix->dimension;
+	localMatrix_d->kernelPerPart = localMatrix->kernelPerPart;
 	localMatrix_d->numOfRowER = localMatrix->numOfRowER;
 	localMatrix_d->nParts = localMatrix->nParts;
 	int blockNumER = ceil(((float) localMatrix->numOfRowER)/warpSize);
+	int warpIdxER = 0;	
 
+    cudaMalloc((void **) &(localMatrix_d->warpIdxER_d), sizeof(int));
+    cudaMalloc((void **) &(localMatrix_d->outER), localMatrix_d->numOfRowER*sizeof(float));
     cudaMalloc((void **) &(localMatrix_d->biasVecBlockELL), localMatrix->nParts*blockPerPart*sizeof(int));
     cudaMalloc((void **) &(localMatrix_d->widthVecBlockELL), localMatrix->nParts*blockPerPart*sizeof(int));
     cudaMalloc((void **) &(localMatrix_d->partBoundary), (localMatrix->nParts+1)*sizeof(int));
@@ -24,6 +28,7 @@ static void cudaMallocTransDataEHYB(matrixEHYB* localMatrix, matrixEHYB* localMa
     cudaMalloc((void **) &(localMatrix_d->colER), sizeER*sizeof(int));
     cudaMalloc((void **) &(localMatrix_d->valER), sizeER*sizeof(float));
 
+    cudaMemcpy(localMatrix_d->warpIdxER_d, &warpIdxER, sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(localMatrix_d->biasVecBlockELL, localMatrix->biasVecBlockELL, localMatrix->nParts*blockPerPart*sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(localMatrix_d->widthVecBlockELL, localMatrix->widthVecBlockELL, localMatrix->nParts*blockPerPart*sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(localMatrix_d->partBoundary, localMatrix->partBoundary, (localMatrix->nParts+1)*sizeof(int), cudaMemcpyHostToDevice);
@@ -60,9 +65,11 @@ void spmvGPuEHYB(matrixCOO* localMatrix,
 	printf("sizeER is %d\n", sizeER);
 
 	float *vectorIn_d, *vectorOut_d;
-	//int16_t *biasIdxBlock_d;
+	int *biasIdxBlock_d;
+	if(localMatrix->nParts <= 40){
+		cudaMalloc((void**) &biasIdxBlock_d, localMatrix->nParts*sizeof(int));
+	}
 	size_t size1 = dimension*sizeof(float);
-	//cudaMalloc((void **) &biasIdxBlock_d, sizeof(uint16_t)*localMatrix->nParts);
 	cudaMalloc((void **) &vectorOut_d,size1);
 	cudaMalloc((void **) &vectorIn_d,size1);
 	//float *x=(float *) malloc(size1);
@@ -72,21 +79,28 @@ void spmvGPuEHYB(matrixCOO* localMatrix,
 	//float *x=(float *) malloc(size1);
 	//initialize
 	//warm Up
-    cudaMemcpy(vectorIn_d, vectorIn, dimension*sizeof(float), cudaMemcpyHostToDevice);
-	for(int i = 0; i < 100; ++i){
-		matrixVectorEHYB(&localMatrixEHYB_d, vectorIn_d, vectorOut_d, -1);
+	cudaMemcpy(vectorIn_d, vectorIn, dimension*sizeof(float), cudaMemcpyHostToDevice);
+	for(int i = 0; i < 10; ++i){
+		if(localMatrix->nParts <= 40)
+		    matrixVectorEHYB_small(&localMatrixEHYB_d, biasIdxBlock_d, vectorIn_d, vectorOut_d);
+		else
+		    matrixVectorEHYB(&localMatrixEHYB_d, vectorIn_d, vectorOut_d);
+
 	}
 	cudaMemcpy(vectorOut, vectorOut_d, dimension*sizeof(float), cudaMemcpyDeviceToHost);
 	gettimeofday(&start1, NULL);
-    cudaMemcpy(vectorIn_d, vectorIn, dimension*sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(vectorIn_d, vectorIn, dimension*sizeof(float), cudaMemcpyHostToDevice);
 	while (iter<MAXIter){
-		//cudaMemset(vectorOut_d, 0, dimension*sizeof(float));
-		matrixVectorEHYB(&localMatrixEHYB_d, vectorIn_d, vectorOut_d, -1);
+		if(localMatrix->nParts <= 40)
+		    matrixVectorEHYB_small(&localMatrixEHYB_d, biasIdxBlock_d, vectorIn_d, vectorOut_d);
+		else
+		    matrixVectorEHYB(&localMatrixEHYB_d, vectorIn_d, vectorOut_d);
 		iter++;
 	}
 	cudaMemcpy(vectorOut, vectorOut_d, dimension*sizeof(float), cudaMemcpyDeviceToHost);
+	cudaDeviceSynchronize();
 	gettimeofday(&end1, NULL);	
-	float timeByMs=((end1.tv_sec * 1000000 + end1.tv_usec)-(start1.tv_sec * 1000000 + start1.tv_usec))/1000;
+	double timeByMs=(double (end1.tv_sec * 1000000 + end1.tv_usec)-(start1.tv_sec * 1000000 + start1.tv_usec))/1000;
 	printf("iter is %d, time is %f ms, GPU Gflops is %f\n ",iter, timeByMs, 
 			(1e-9*(totalNum*2)*1000*iter)/timeByMs );
 	cudaFree(localMatrixEHYB_d.valER);
@@ -101,6 +115,153 @@ void spmvGPuEHYB(matrixCOO* localMatrix,
 	cudaFree(localMatrixEHYB_d.partBoundary);
 }
 
+void spmvGeneric(matrixCOO* localMatrix, 
+		const float *vector_in, float *vector_out,  
+		const int MAXIter)
+{
+	//exampine the performance using cusparse library functions with
+	//CSR format
+	//float dotp0,dotr0,dotr1,doth;
+	int dimension, totalNum; 
+    int *rowIdx, *J; 
+    float* V;
+    dimension = localMatrix->dimension; 
+    totalNum = localMatrix->totalNum; 
+
+	rowIdx = localMatrix->rowIdx; 
+    J = localMatrix->J;
+    V = localMatrix->V;
+	
+	int* col_d;
+	int* rowIdx_d;
+	float *V_d;
+
+	float *vector_in_d, *vector_out_d;
+	size_t size1=dimension*sizeof(float);
+	
+	cudaMalloc((void **) &rowIdx_d, (dimension+1)*sizeof(float));
+	cudaMalloc((void **) &vector_out_d,size1);
+	cudaMalloc((void **) &vector_in_d,size1);
+	cudaMalloc((void **) &col_d,totalNum*sizeof(int));
+	cudaMalloc((void **) &V_d,totalNum*sizeof(float));
+	//float *x=(float *) malloc(size1);
+	int iter=0;
+	//float const1 = 1.0;
+	//initialize
+   	if(cudaSuccess != cudaMemcpy(rowIdx_d, rowIdx, (dimension+1)*sizeof(int), cudaMemcpyHostToDevice)) printf("error1\n");
+    if(cudaSuccess !=cudaMemcpy(col_d, J, totalNum*sizeof(int), cudaMemcpyHostToDevice)) printf("error2\n");
+    if(cudaSuccess !=cudaMemcpy(V_d, V, totalNum*sizeof(float), cudaMemcpyHostToDevice)) printf("error3\n");
+	
+	struct timeval start1, end1;
+	
+	//if BSR doing the format change 
+	//cusparseStatus_tcusparseDcsr2gebsr_bufferSize(handle, dir, m, n, descrA, csrValA, csrRowPtrA, 
+	//		csrColIndA, rowBlockDim, colBlockDim, pBufferSize);
+	cusparseHandle_t handleSparse;
+	cusparseCreate(&handleSparse);
+	cusparseOperation_t transA = CUSPARSE_OPERATION_NON_TRANSPOSE;
+	cusparseSpMatDescr_t descrA = 0;
+	cusparseDnVecDescr_t descrVecIn = 0;
+	cusparseDnVecDescr_t descrVecOut = 0;
+	int status = cusparseCreateDnVec(&descrVecIn,
+			dimension,
+			vector_in_d,
+			CUDA_R_32F);
+	if (status != CUSPARSE_STATUS_SUCCESS ) {
+		exit(0);	
+	}
+	status = cusparseCreateDnVec(&descrVecOut,
+			dimension,
+			vector_out_d,
+			CUDA_R_32F);
+	if (status != CUSPARSE_STATUS_SUCCESS ) {
+		exit(0);	
+	}
+	status = cusparseCreateCsr(&descrA,
+			dimension,
+			dimension,
+			totalNum,
+			rowIdx_d,
+			col_d,
+			V_d,
+			CUSPARSE_INDEX_32I,
+			CUSPARSE_INDEX_32I,
+			CUSPARSE_INDEX_BASE_ZERO,
+			CUDA_R_32F);
+	if (status != CUSPARSE_STATUS_SUCCESS ) {
+		exit(0);	
+	}
+	float one = 1.0;
+	float zero = 0.0;
+	size_t buffSize;
+	cusparseStatus_t smpvStatus = 
+	cusparseSpMV_bufferSize(
+			handleSparse,
+			transA,
+			&one,
+			descrA,
+			descrVecIn,
+			&zero,
+			descrVecOut,
+			CUDA_R_32F,
+			CUSPARSE_CSRMV_ALG1,
+			&buffSize );
+	char* buff;
+	cudaMalloc((void **) &buff, buffSize);
+	//warm up
+	for(int i = 0; i < 100; ++i){
+		smpvStatus = 
+		cusparseSpMV(
+			handleSparse,
+			transA,
+			&one,
+			descrA,
+			descrVecIn,
+			&zero,
+			descrVecOut,
+			CUDA_R_32F,
+			CUSPARSE_CSRMV_ALG1,
+			buff);
+	}
+	gettimeofday(&start1, NULL);
+	
+    if(cudaSuccess != cudaMemcpy(vector_in_d, vector_in, dimension*sizeof(float), cudaMemcpyHostToDevice)) printf("error4\n");
+	while (iter<MAXIter){
+		cusparseStatus_t smpvStatus = 
+		cusparseSpMV(
+			handleSparse,
+			transA,
+			&one,
+			descrA,
+			descrVecIn,
+			&zero,
+			descrVecOut,
+			CUDA_R_32F,
+			CUSPARSE_CSRMV_ALG1,
+			buff);
+		//cusparseStatus_t smpvStatus = 
+		//cusparseDcsrmv(handleSparse,
+		//		transA,
+		//		dimension,
+		//		dimension,
+		//		totalNum,
+		//		&one,
+		//		descr,
+		//		V_d,
+		//		rowIdx_d,
+		//		col_d,
+		//		vector_in_d,
+		//		&zero,
+		//		vector_out_d);
+		iter++;
+	}
+	cudaMemcpy(vector_out, vector_out_d, dimension*sizeof(float), cudaMemcpyDeviceToHost);
+	gettimeofday(&end1, NULL);	
+	double timeByMs=(double (end1.tv_sec * 1000000 + end1.tv_usec)-(start1.tv_sec * 1000000 + start1.tv_usec))/1000;
+	printf("iter is %d, time is %f ms, GPU csrmv Gflops is %f\n ",iter, timeByMs, (1e-9*(totalNum*2)*1000*iter)/timeByMs);
+			
+
+}
 void solverGPuUnprecondCUSPARSE(matrixCOO* localMatrix, 
 		const float *vector_in, float *vector_out,  
 		const int MAXIter)
@@ -153,9 +314,9 @@ void solverGPuUnprecondCUSPARSE(matrixCOO* localMatrix,
 	}
 	float one = 1.0;
 	float zero = 0.0;
-	size_t buffSize;
 	cusparseSetMatType (descr, CUSPARSE_MATRIX_TYPE_GENERAL);
 	cusparseSetMatIndexBase (descr, CUSPARSE_INDEX_BASE_ZERO);
+	size_t buffSize;
 	cusparseStatus_t smpvStatus = 
 	cusparseCsrmvEx_bufferSize(handleSparse,
 		//CUSPARSE_ALG_NAIVE,	
@@ -252,113 +413,10 @@ void solverGPuUnprecondCUSPARSE(matrixCOO* localMatrix,
 	}
 	cudaMemcpy(vector_out, vector_out_d, dimension*sizeof(float), cudaMemcpyDeviceToHost);
 	gettimeofday(&end1, NULL);	
-	float timeByMs=((end1.tv_sec * 1000000 + end1.tv_usec)-(start1.tv_sec * 1000000 + start1.tv_usec))/1000;
+	double timeByMs=(double (end1.tv_sec * 1000000 + end1.tv_usec)-(start1.tv_sec * 1000000 + start1.tv_usec))/1000;
 	printf("iter is %d, time is %f ms, GPU csrmv Gflops is %f\n ",iter, timeByMs, (1e-9*(totalNum*2)*1000*iter)/timeByMs);
 			
 
 }
 
-void spmvHYB(matrixCOO* localMatrix, 
-		const float *vector_in, float *vector_out,  
-		const int MAXIter)
-{
-	//exampine the performance using cusparse library functions with
-	//CSR format
-	//float dotp0,dotr0,dotr1,doth;
-	int dimension, totalNum; 
-    int *rowIdx, *J; 
-    float* V;
-    dimension = localMatrix->dimension; 
-    totalNum = localMatrix->totalNum; 
 
-	rowIdx = localMatrix->rowIdx; 
-    J = localMatrix->J;
-    V = localMatrix->V;
-	
-	int* col_d;
-	int* rowIdx_d;
-	float *V_d;
-
-	float *vector_in_d, *vector_out_d;
-	size_t size1=dimension*sizeof(float);
-	
-	cudaMalloc((void **) &rowIdx_d, (dimension+1)*sizeof(float));
-	cudaMalloc((void **) &vector_out_d,size1);
-	cudaMalloc((void **) &vector_in_d,size1);
-	cudaMalloc((void **) &col_d,totalNum*sizeof(int));
-	cudaMalloc((void **) &V_d,totalNum*sizeof(float));
-	//float *x=(float *) malloc(size1);
-	int iter=0;
-	//float const1 = 1.0;
-	//initialize
-   	if(cudaSuccess != cudaMemcpy(rowIdx_d, rowIdx, (dimension+1)*sizeof(int), cudaMemcpyHostToDevice)) printf("error1\n");
-    if(cudaSuccess !=cudaMemcpy(col_d, J, totalNum*sizeof(int), cudaMemcpyHostToDevice)) printf("error2\n");
-    if(cudaSuccess !=cudaMemcpy(V_d, V, totalNum*sizeof(float), cudaMemcpyHostToDevice)) printf("error3\n");
-	
-	struct timeval start1, end1;
-	
-	//if BSR doing the format change 
-	//cusparseStatus_tcusparseDcsr2gebsr_bufferSize(handle, dir, m, n, descrA, csrValA, csrRowPtrA, 
-	//		csrColIndA, rowBlockDim, colBlockDim, pBufferSize);
-	cusparseHandle_t handleSparse;
-	cusparseCreate(&handleSparse);
-	cusparseOperation_t transA = CUSPARSE_OPERATION_NON_TRANSPOSE;
-	cusparseMatDescr_t descrA;
-	int status = cusparseCreateMatDescr(&descrA);
-	if (status != CUSPARSE_STATUS_SUCCESS ) {
-		exit(0);	
-	}
-	float one = 1.0;
-	float zero = 0.0;
-	size_t buffSize;
-	cusparseSetMatType (descrA, CUSPARSE_MATRIX_TYPE_GENERAL);
-	cusparseSetMatIndexBase (descrA, CUSPARSE_INDEX_BASE_ZERO);
-	cusparseHybMat_t hybA;
-	cusparseCreateHybMat(&hybA);
-	cusparseStatus_t smpvStatus = 
-	cusparseScsr2hyb(handleSparse,
-		dimension,
-		dimension,
-		descrA,
-		V_d,
-		rowIdx_d,
-		col_d,
-		hybA,
-		1,
-		CUSPARSE_HYB_PARTITION_AUTO);	
-		//warm up
-	for(int i = 0; i < 100; ++i){
-		cusparseStatus_t smpvStatus = 
-		cusparseShybmv(handleSparse,
-			transA,
-			&one,
-			descrA,
-			hybA,
-			vector_in_d,
-			&zero,
-			vector_out_d);
-	}
-	gettimeofday(&start1, NULL);
-	
-    if(cudaSuccess != cudaMemcpy(vector_in_d, vector_in, dimension*sizeof(float), cudaMemcpyHostToDevice)) printf("error4\n");
-	while (iter<MAXIter){
-		int errorIdx = 0;
-		float compareError;
-		cusparseStatus_t smpvStatus = 
-		cusparseShybmv(handleSparse,
-			transA,
-			&one,
-			descrA,
-			hybA,
-			vector_in_d,
-			&zero,
-			vector_out_d);
-		iter++;
-	}
-	cudaMemcpy(vector_out, vector_out_d, dimension*sizeof(float), cudaMemcpyDeviceToHost);
-	gettimeofday(&end1, NULL);	
-	float timeByMs=((end1.tv_sec * 1000000 + end1.tv_usec)-(start1.tv_sec * 1000000 + start1.tv_usec))/1000;
-	printf("iter is %d, time is %f ms, GPU csrmv Gflops is %f\n ",iter, timeByMs, (1e-9*(totalNum*2)*1000*iter)/timeByMs);
-			
-
-}

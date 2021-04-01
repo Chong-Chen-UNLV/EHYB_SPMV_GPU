@@ -198,7 +198,7 @@ static void COO2EHYBCore(matrixCOO* inputMatrix,
 						valBlockELL[biasBlockELL+i+writedInRowELL*warpSize] = V[tmpIdx];
 						writedInRowELL += 1;	
 						if(writedInRowELL > widthBlockELL){
-							printf("write more elements to blockELL than its width\n");
+							printf("write more elements to blockELL than its width %d\n", widthBlockELL);
 							exit(1);
 						}
 					} else {
@@ -273,6 +273,7 @@ void COO2EHYB(matrixCOO* inputMatrix,
 	int* numInRowER = (int*)calloc(inputMatrix->dimension, sizeof(int));
 	outputMatrix->dimension = inputMatrix->dimension;
 	outputMatrix->nParts = inputMatrix->nParts;
+	outputMatrix->kernelPerPart = inputMatrix->kernelPerPart;
 	outputMatrix->partBoundary = inputMatrix->partBoundary;
 	outputMatrix->widthVecBlockELL = (int16_t*)calloc(outputMatrix->nParts*blockPerPart, sizeof(int16_t));
 	outputMatrix->biasVecBlockELL = (int*)calloc(outputMatrix->nParts*blockPerPart, sizeof(int));
