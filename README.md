@@ -6,7 +6,11 @@ to test the file please fist derived the cache memory size using equation (1) an
 for example for matrix audikw_1, the dimension of matrix is 77651847, we can derive the size 
 of the vector cache in the shared memory: 93KB
 
-The we change the shared memory size at kernel to 93, generate the executable file:
+The we change the line 23 of the kernel.h (memPerThread)to 93, that is, make the line 93 of kernel.h
+```
+const int memPerThread = 93;
+```
+generate the executable file:
 ```
 make
 ```
