@@ -7,15 +7,14 @@ for example for matrix audikw_1, the dimension of matrix is 77651847, we can der
 of the vector cache in the shared memory: 93KB
 
 The we change the shared memory size at kernel to 93, generate the executable file:
-
-'''
+```
 make
-'''
+```
 
 Then we can test the file as follow:
-'''
+```
 ./spmv.out -i 2000 -m audikw_1
-'''
+```
 
 Where -i indicates the number of iterations for test, and the -m indicates the matrix for test
 where matrix should stored in the directory: ../read as a .mtx file (there should be a directory
