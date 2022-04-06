@@ -37,20 +37,22 @@ static void longVecCopy(
 		matrixEHYB* outputMatrix){
 		
 	int nLongVec = outputMatrix->nLongVec;
-	int vecEleSize = longVecBoundary[nLongVec]; 
-	outputMatrix->longVecBoundary = (int*)malloc((nLongVec+1)*sizeof(int));
-	outputMatrix->longVecRow = (int*)malloc(nLongVec*sizeof(int));
-	outputMatrix->longVecCol = (int*)malloc(vecEleSize*sizeof(int));
-	outputMatrix->longVecVal = (float*)malloc(vecEleSize*sizeof(float));
-	memcpy(outputMatrix->longVecBoundary, longVecBoundary, sizeof(int)*(nLongVec+1) );
-	memcpy(outputMatrix->longVecRow, longVecRow, sizeof(int)*nLongVec );
-	for(int i = 0; i < nLongVec; ++i){
-		int row = longVecRow[i];				
-		for(int j = 0; j < inputMatrix->numInRow[row]; ++j){
-			int idxL = longVecBoundary[i] + j;
-			int idxM = inputMatrix->rowIdx[row] + j;
-			outputMatrix->longVecCol[idxL] = inputMatrix->I[idxM];
-			outputMatrix->longVecVal[idxL] = inputMatrix->V[idxM];
+	if(nLongVec > 0){
+		int vecEleSize = longVecBoundary[nLongVec]; 
+		outputMatrix->longVecBoundary = (int*)malloc((nLongVec+1)*sizeof(int));
+		outputMatrix->longVecRow = (int*)malloc(nLongVec*sizeof(int));
+		outputMatrix->longVecCol = (int*)malloc(vecEleSize*sizeof(int));
+		outputMatrix->longVecVal = (float*)malloc(vecEleSize*sizeof(float));
+		memcpy(outputMatrix->longVecBoundary, longVecBoundary, sizeof(int)*(nLongVec+1) );
+		memcpy(outputMatrix->longVecRow, longVecRow, sizeof(int)*nLongVec );
+		for(int i = 0; i < nLongVec; ++i){
+			int row = longVecRow[i];				
+			for(int j = 0; j < inputMatrix->numInRow[row]; ++j){
+				int idxL = longVecBoundary[i] + j;
+				int idxM = inputMatrix->rowIdx[row] + j;
+				outputMatrix->longVecCol[idxL] = inputMatrix->I[idxM];
+				outputMatrix->longVecVal[idxL] = inputMatrix->V[idxM];
+			}
 		}
 	}
 	
@@ -100,8 +102,8 @@ static void vecsGenBlockELL(matrixCOO* inputMatrix,
 		tmpBoundary[partIdx] = realPartStart;
 		if(partEnd > partStart + blockPerPart*warpSize)
 			extraRows = partEnd - partStart - blockPerPart*warpSize;
-		else
-
+		//if(partIdx == 2)
+		//	printf("start fined error on 0 numCols\n");	
 		for(int iter = 0; iter < blockPerPart; ++iter){
 			blockIdx = iter + blockPerPart*partIdx;
 			int blockStart = partStart + iter*warpSize;

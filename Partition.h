@@ -7,7 +7,7 @@
 #include <sys/time.h>
 #include <time.h>
 #include <unistd.h>
-#include <mtmetis.h>
+#include "mtmetis.h"
 
 typedef struct _rowS{
 	unsigned int idx;

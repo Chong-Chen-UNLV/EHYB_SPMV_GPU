@@ -117,7 +117,7 @@ void matrixReorder_unsym(matrixCOO* inputMatrix)
 	
 	unsigned int ncon = 1;
 	float ubvec = 1.001;
-	options[MTMETIS_OPTION_NTHREADS] = 1;
+	options[MTMETIS_OPTION_NTHREADS] = 6;
 	mtmetis_wgt_type r_edgecut;
 	struct timeval start, end;
 	gettimeofday(&start, NULL);

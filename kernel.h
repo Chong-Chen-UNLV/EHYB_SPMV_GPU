@@ -18,7 +18,8 @@
 #include <cuda.h>
 #include "spmv.h"
 #define warpSize  32
-#define smSize 80 
+#define smSize 82 
+#define smSize2 80 
 #define maxSharedMem 93*1024
 
 const int threadELL = 1024;

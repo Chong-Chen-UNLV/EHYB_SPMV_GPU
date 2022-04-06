@@ -162,15 +162,15 @@ static int matrixRead_sym(matrixCOO* localMatrixCOO, float** xCompare_in, float*
 		int kArray[4] = {8, 5, 4, 2};//only for smSize equal to 80, change this if smSize is 100
 		int kIdx = 0;
 		kernelPerPart = kArray[kIdx];
-		vectorCacheSize = kernelPerPart*ceil(((float) _dimension)/(smSize*threadELL))*threadELL;
+		vectorCacheSize = kernelPerPart*ceil(((float) _dimension)/(smSize2*threadELL))*threadELL;
 		kIdx++;
 		while(vectorCacheSize*sizeof(float) > maxSharedMem && kIdx < 4 ){
 			kernelPerPart = kArray[kIdx];
-			vectorCacheSize = kernelPerPart*ceil(((float) _dimension)/(smSize*threadELL))*threadELL;
+			vectorCacheSize = kernelPerPart*ceil(((float) _dimension)/(smSize2*threadELL))*threadELL;
 			kIdx++;
 		}
 		localMatrixCOO->vectorCacheSize = vectorCacheSize;
-		localMatrixCOO->nParts = smSize/kernelPerPart;
+		localMatrixCOO->nParts = smSize2/kernelPerPart;
 		localMatrixCOO->kernelPerPart= kernelPerPart;
 	} else {
 		while(vectorCacheSize*sizeof(float) > maxSharedMem){
@@ -281,7 +281,7 @@ int main(int argc, char* argv[])
 		switch (oc) {
 			case 'm':
 				/* input matrix */
-				sprintf(fileName, "../read/%s.mtx", optarg);		
+				sprintf(fileName, "./read/%s.mtx", optarg);		
 				printf("filename is %s\n", fileName);
 				break;
 			case 'i':

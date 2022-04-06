@@ -55,7 +55,7 @@ typedef struct _matrixEHYB{
 	float* valER;
 	float* outER;
 	//the long vectors 
-	int nLongVec;
+	int nLongVec = 0;
 	int* longVecBoundary;
 	int* longVecRow;
 	int* longVecCol;
