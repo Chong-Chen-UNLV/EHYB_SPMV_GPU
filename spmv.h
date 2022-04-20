@@ -26,8 +26,8 @@ typedef struct _matrixCOO{
     int* numInRow2;//"real" numInRow for vetex goto blockELL
     int* I;
     int* J;
-    float* V;
-    float* diag;
+    double* V;
+    double* diag;
 	int* partBoundary;
 	int* reorderList;
 }matrixCOO;
@@ -46,20 +46,20 @@ typedef struct _matrixEHYB{
 	int16_t* widthVecBlockELL;
 	int* biasVecBlockELL;
 	int16_t* colBlockELL;
-	float* valBlockELL;
+	double* valBlockELL;
 	int* partBoundary;
 	int16_t* widthVecER;
 	int* rowVecER;
 	int* biasVecER; 
 	int* colER;
-	float* valER;
-	float* outER;
+	double* valER;
+	double* outER;
 	//the long vectors 
 	int nLongVec = 0;
 	int* longVecBoundary;
 	int* longVecRow;
 	int* longVecCol;
-	float* longVecVal;
+	double* longVecVal;
 }matrixEHYB;
 
 inline void init_cb(cb_s* in_s)
@@ -74,15 +74,15 @@ inline void init_cb(cb_s* in_s)
 
 extern "C"
 void spmvGPuEHYB(matrixCOO* localMatrix, 
-		const float* vectorIn, float* vectorOut,  
+		const double* vectorIn, double* vectorOut,  
 		const int MAXIter, int* realIter);
 
 void solverGPuUnprecondCUSPARSE(matrixCOO* localMatrix, 
-		const float *vector_in, float *vector_out,  
+		const double *vector_in, double *vector_out,  
 		const int MAXIter);
 
 void spmvGeneric(matrixCOO* localMatrix, 
-		const float *vector_in, float *vector_out,  
+		const double *vector_in, double *vector_out,  
 		const int MAXIter);
 #endif
 

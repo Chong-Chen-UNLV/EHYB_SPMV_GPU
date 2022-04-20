@@ -42,7 +42,7 @@ static void longVecCopy(
 		outputMatrix->longVecBoundary = (int*)malloc((nLongVec+1)*sizeof(int));
 		outputMatrix->longVecRow = (int*)malloc(nLongVec*sizeof(int));
 		outputMatrix->longVecCol = (int*)malloc(vecEleSize*sizeof(int));
-		outputMatrix->longVecVal = (float*)malloc(vecEleSize*sizeof(float));
+		outputMatrix->longVecVal = (double*)malloc(vecEleSize*sizeof(double));
 		memcpy(outputMatrix->longVecBoundary, longVecBoundary, sizeof(int)*(nLongVec+1) );
 		memcpy(outputMatrix->longVecRow, longVecRow, sizeof(int)*nLongVec );
 		for(int i = 0; i < nLongVec; ++i){
@@ -140,7 +140,7 @@ static void vecsGenBlockELL(matrixCOO* inputMatrix,
 	printf("toER is %d, kernel calculation is %d\n", toER, inputMatrix->totalNum - toER);
 	outputMatrix->numOfRowER = numOfRowER;
 	outputMatrix->rowVecER = (int*)malloc(numOfRowER*sizeof(int));
-	outputMatrix->biasVecER = (int*)malloc(ceil(((float) numOfRowER)/warpSize)*sizeof(int));
+	outputMatrix->biasVecER = (int*)malloc(ceil(((double) numOfRowER)/warpSize)*sizeof(int));
 	//----start longVec transfer-----------
 	longVecCopy(longVecBoundary, longVecRow, inputMatrix, outputMatrix);
 }
@@ -179,18 +179,18 @@ static void COO2EHYBCore(matrixCOO* inputMatrix,
 	int* numInRow = inputMatrix->numInRow;
 	int* I = inputMatrix->I;
 	int* J = inputMatrix->J;
-	float* V = inputMatrix->V;
+	double* V = inputMatrix->V;
 
 	int16_t* widthVecBlockELL = outputMatrix->widthVecBlockELL;
 	int* biasVecBlockELL = outputMatrix->biasVecBlockELL;
 	int16_t* colBlockELL = outputMatrix->colBlockELL; 
-	float* valBlockELL = outputMatrix->valBlockELL; 
+	double* valBlockELL = outputMatrix->valBlockELL; 
 
 	int16_t* widthVecER = outputMatrix->widthVecER;
 	int* rowVecER = outputMatrix->rowVecER; 
 	int* biasVecER = outputMatrix->biasVecER;
 	int* colER = outputMatrix->colER; 
-	float* valER = outputMatrix->valER; 
+	double* valER = outputMatrix->valER; 
 
 	int partIdx, partStart, realPartStart, partEnd, fetchEnd, extraRows;
 	int rowLocER, blockIdxER, rowLocInBlockER, biasER; 
@@ -272,7 +272,7 @@ static void COO2EHYBCore(matrixCOO* inputMatrix,
 					wasteElement += 1;
 					writedInRowELL+=1;
 				}
-				float val1, val2;
+				double val1, val2;
 			} else {
 				for(int j = 0; j < widthBlockELL; ++j){
 					colBlockELL[biasBlockELL+i+j*warpSize] = 0;
@@ -338,9 +338,9 @@ void COO2EHYB(matrixCOO* inputMatrix,
 		outputMatrix->biasVecBlockELL[i] = *sizeBlockELL; 
 		*sizeBlockELL += warpSize*outputMatrix->widthVecBlockELL[i]; 
 	}
-	outputMatrix->valBlockELL = (float*)calloc((*sizeBlockELL), sizeof(float));
+	outputMatrix->valBlockELL = (double*)calloc((*sizeBlockELL), sizeof(double));
 	outputMatrix->colBlockELL = (int16_t*)calloc((*sizeBlockELL), sizeof(int16_t));
-	int blockNumER = ceil((float (outputMatrix->numOfRowER))/warpSize);
+	int blockNumER = ceil((double (outputMatrix->numOfRowER))/warpSize);
 	outputMatrix->biasVecER = (int*)calloc(blockNumER, sizeof(int));
 	outputMatrix->widthVecER = (int16_t *)calloc(blockNumER, sizeof(int16_t));
 
@@ -353,7 +353,7 @@ void COO2EHYB(matrixCOO* inputMatrix,
 		*sizeER += warpSize*outputMatrix->widthVecER[i];
 	}
 
-	outputMatrix->valER = (float*) calloc((*sizeER), sizeof(float));
+	outputMatrix->valER = (double*) calloc((*sizeER), sizeof(double));
 	outputMatrix->colER = (int*) calloc((*sizeER), sizeof(int));
 
 	COO2EHYBCore(inputMatrix, 

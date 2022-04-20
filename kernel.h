@@ -25,7 +25,7 @@
 const int threadELL = 1024;
 const int threadLongVec = 512;
 const int warpPerBlock = threadELL/warpSize;
-const int elementSize = 4; //if single precision, 4, if higher precision, 8 
+const int elementSize = 8; //if single precision, 4, if higher precision, 8 
 
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
@@ -39,24 +39,24 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 
 
 extern "C"
-void initialize_all(const int dimension, float *pk_d, float *bp_d, float *x, float *zk, const float *vector_in_d);
-void initialize_bp(int num, float *x);
-void initialize_r(int num, float *rk, float *vector_in);
-void myxpy(const int dimension, float gamak, const float *x, float *y);
+void initialize_all(const int dimension, double *pk_d, double *bp_d, double *x, double *zk, const double *vector_in_d);
+void initialize_bp(int num, double *x);
+void initialize_r(int num, double *rk, double *vector_in);
+void myxpy(const int dimension, double gamak, const double *x, double *y);
 
 //void matrixVectorEHYB_NC(matrixEHYB* inputMatrix, 
 //		//int16_t* biasIdxBlock_d,
-//		float* vector_in_d,
-//		float* vector_out_d);
+//		double* vector_in_d,
+//		double* vector_out_d);
 
 void matrixVectorEHYB(matrixEHYB* inputMatrix, 
 		//int16_t* biasIdxBlock_d,
-		float* vector_in_d,
-		float* vector_out_d);
+		double* vector_in_d,
+		double* vector_out_d);
 
 void matrixVectorEHYB_small(matrixEHYB* inputMatrix_d, 
 		int* biasIdxBlock_d, 
-		float* vectorIn_d,
-		float* vectorOut_d);
+		double* vectorIn_d,
+		double* vectorOut_d);
 
 #endif
