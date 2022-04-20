@@ -11,3 +11,7 @@ After the code is compiled, users can test the code as follow:
 ```
 
 Where -i indicates the number of iterations for test, and the -m indicates the file name of the matrix for test (the matrix should be stored with a .mtx file)
+
+In this project I used [mt-metis](http://glaros.dtc.umn.edu/gkhome/fetch/sw/metis/mt-metis-0.7.2.tar.gz) as third-part library for sparse matrix partitioning.
+
+If the libmtmetis.a in this codebase is not recognized in your environment, please compile the library from source  
